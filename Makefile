@@ -11,3 +11,6 @@ run: build/score-bundle.js
 
 clean:
 	rm -rf build
+
+lint:
+	node_modules/.bin/jshint score.js
