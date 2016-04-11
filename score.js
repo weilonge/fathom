@@ -72,11 +72,11 @@ function rule(source, mixer, verb) {
 }
 
 
-// NEXT: This set of rules might be the beginning of something that works. (It's modeled after what I do when I try to do this by hand: I look for balls of black text, and I look for them to be near each other, on the same nesting level: a "cluster" of them.) Order of rules matters (until we find a reason to add more complexity). (We can always help people insert new rules in the desired order by providing a way to insert them before or after such-and-such a named rule.) Perhaps we might as well remove the "mixer" arg from rule() and just do the math in the verbs, since we won't do parallelism at first. And it turned out we didn't use the types much, so maybe we should get rid of those or at least factor them out.
-// NEXT also: consider adding an early step that converts divs that directly contain text (or even inline text-havers like spans?) into p tags so we don't grab both the div and the p it contains in the first rule.
-// score on text length -> texty. We start with this because, no matter the other markup details, the main body text is definitely going to have a bunch of text.
-rule(dom('p,div'), bonus, node => ['texty', scaleByLinkDensity(len(node.mergedInnerText))] if > 0 else null)  // maybe log or sqrt(char_count) or something. Char count might work even for CJK.
-// give bonuses for being in p tags
+// NEXT: This set of rules might be the beginning of something that works. (It's modeled after what I do when I try to do this by hand: I look for balls of black text, and I look for them to be near each other, generally siblings: a "cluster" of them.) Order of rules matters (until we find a reason to add more complexity). (We can always help people insert new rules in the desired order by providing a way to insert them before or after such-and-such a named rule.) Perhaps we might as well remove the "mixer" arg from rule() and just do the math in the verbs, since we won't do parallelism at first. And it turned out we didn't use the types much, so maybe we should get rid of those or at least factor them out.
+// score on text length -> texty. We start with this because, no matter the other markup details, the main body text is definitely going to have a bunch of text. Every node starts with a score of 1, so we can just multiply all the time.
+rule(dom('p,div'), scale, node => ['texty', len(node.mergedStrippedInnerTextNakedOrInInlineTags)] if > 0 else null)  // maybe log or sqrt(char_count) or something. Char count might work even for CJK. mergedInnerTextNakedOrInInInlineTags() doesn't count chars in, say, p (or any other block-level) tags within a div tag.
+rule(typed('texty'), scale, node.linkDensity)
+// give bonuses for being in p tags. TODO: article tags, too
 rule(typed('texty'), scale, node => node.el.tagName == 'p' ? 1.5 : 1)
 // give bonuses for being (nth) cousins of other texties  // IOW, texties that are the same-leveled children of a common ancestor get a bonus.
 rule(typed('texty'), scale, node => node.numCousinsOfAtLeastOfScore(200) * 1.5)
@@ -88,3 +88,12 @@ rule(typed('texty'), scale, node => node.numCousinsOfAtLeastOfScore(200) * 1.5)
 rule(and(tag('p'), klass('snork')), scored('texty', node => node.word_count))  // and, tag, and klass are object constructors that the query engine can read. They don't actually do the query themselves. That way, a query planner can be smarter than them, figuring out which indices to use based on all of them. (We'll probably keep a heap by each dimension's score and a hash by type name, for starters.)
 
 // We don't need to know up front what types may be emitted; we can just observe which indices were touched and re-run the rules that take those types in, then the rules that take *those* emitted types in, etc.
+// How do we ensure blockquotes, h2s, uls, etc. that are part of the article are included? Maybe what we're really looking for is a single, high-scoring container (or span of a container?) and then taking either everything inside it or everything but certain excised bits (interstitial ads/relateds). There might be 2 phases: rank and yank.
+// Also do something about invisible nodes.
+
+Yankers:
+max score (on some dimension)
+max-scored sibling cluster (maybe a contiguous span of containers around high-scoring ones, like a blur algo allowing occasional flecks of low-scoring noise)
+
+Yanking:
+* Block-level containers at the smallest. (Any smaller, and you're pulling out parts of paragraphs, not entire paragraphs.) mergedInnerTextNakedOrInInInlineTags might make this superfluous.
