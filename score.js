@@ -1,5 +1,5 @@
 import "babel-polyfill";
-import {forEach, isEmpty, map, sum} from 'lodash';
+import {forEach, map, sum} from 'lodash';
 var jsdom = require("jsdom");
 
 
@@ -19,21 +19,100 @@ var jsdom = require("jsdom");
 // This is the "rank" portion of the rank-and-yank algorithm.
 function score(tree, rules) {
     var dirtyRules = new Set();
-    var oldDirtyRules;
-    var facts = knowledgebase();
+    var kb = knowledgebase();
 
+    // Merge adjacent text nodes so inlineTexts() and similar rankers can be
+    // simple.
     tree.normalize();
-    
+
+    // We start with an empty KB, so we'd better bootstrap it by running the
+    // rules which use the DOM as a source:
     forEach(rules.ofKind('dom'), dirtyRules.add);
+
+    // Find the rules that are provoked into running by the introduction of new
+    // KB facts. Run them in no particular order. Repeat until no more rules
+    // want to run.
     do {
-        oldDirtyRules = Array.from(dirtyRules);
-        forEach(oldDirtyRules,
-                rule => facts.add(resultsOf(rule)));  // may dirty additional things (or the same thing!)
-        dirtyRules.concat(...forEach(facts.dirtyTypes(),
-                                     type => rules.taking(type)));
+        forEach(dirtyRules,
+                rule => forEach(resultsOf(rule), result => kb.add));  // may dirty additional things (or the same thing!)
+        //dirtyRules = rules.taking(kb.dirtyTypes());
+        dirtyRules.clear();
+        // What I might actually need is dirty facts, not just dirty types. There's no sense running over and over the same facts when I know which ones are new.
+        forEach(kb.dirtyTypes(),
+                type => forEach(rules.taking(type), dirtyRules.add));
     } while (dirtyRules.size);
 
-    return facts;
+    return kb;
+}
+
+
+// Get a key of a map, first setting it to a default value if it's missing.
+function getDefault(map, key, defaultValue) {
+    var value = map.get(key);
+    if (value === undefined) {
+        map.set(key, defaultValue);
+        return defaultValue;
+    }
+    return value;
+}
+
+
+// Construct a collection of rules that we can query on kind (DOM, typed, etc.)
+// and on the type of fact they operate on.
+function rules(...theRules) {
+    var kinds = {dom: [],  // [rule, rule, ...]
+                 typed: new Map()};  // [someInputType: rule, ...]
+
+    // File each rule under its kind:
+    for (rule of theRules) {
+        switch (rule.source.kind) {
+            case "dom":
+                kinds.dom.push(rule);
+                break;
+            case "typed":
+                kinds.typed.set(rule.source.inputType, rule);
+                break;
+            default:
+                throw "Unknown kind of rule: " + rule.source.kind;
+        }
+    }
+
+    return {
+        // Return a collection of rules of the given kind ('dom' or 'typed').
+        ofKind: function (kind) {
+            return kinds[kind];
+        },
+
+        // Return a collection of rules which take facts of any of the given
+        // types as input.
+        taking: function (types) {
+            
+            [rule for rule in kinds.typed if rule.inputType in types]
+        }
+    };
+}
+
+
+// Construct a container for storing and querying facts, where a fact has a
+// type (used to dispatch further rules upon) and a result (arbitrary at the
+// moment, generally containing a score).
+function knowledgebase() {
+    var facts = new Map();
+    var dirty = new Set();
+    return {
+        add: function (fact) {
+            getDefault(facts, fact.type, []).push(fact.result);
+            dirty.add(fact.type);
+        },
+        
+        // Return the types of facts that have been add()ed since dirtyTypes
+        // was last called.
+        dirtyTypes: function () {
+            var ret = Array.from(dirty);
+            dirty.clear();
+            return ret;
+        }
+    };
 }
 
 
@@ -43,13 +122,18 @@ function resultsOf(rule) {
 }
 
 
-function resultsOfDomRule(rule) {
+function *resultsOfDomRule(rule) {
     var matches = tree.querySelectorAll(pattern);
     for (let element of matches) {
         anyMatched = true;
         // Transform element according to RHS of rule:
         transform(node(element));
     }
+    
+    yield {
+        type: whatever,
+        result: whatever
+    };
 }
 
 
@@ -75,6 +159,10 @@ function *inlineTexts(node) {
                                        node.tagName === 'script' &&
                                        node.tagName === 'style'))) {
         if (child.nodeType === child.TEXT_NODE) {
+            // .wholeText is what needs the DOM tree to be normalized.
+            // Otherwise, it'll return the contents of adjacent text nodes,
+            // too, and we'll get those contents a second time when we traverse
+            // to them.
             yield child.wholeText;
         }
     }
@@ -101,24 +189,23 @@ function main() {
     var doc = jsdom.jsdom(
         '<p><a class="ad" href="https://github.com/tmpvar/jsdom">jsdom!</a></p>'
     );
-    var rules = [
+    var rules = rules(
         // Score by length of directly contained text:
         rule(dom('p,div'), paragraphish),
         // Give bonus for being in a semantically appropriate tag:
         rule(typed('paragraphish'), node => node.el.tagName == 'p' ? 1.5 : 1)
-    ];
-
-    score(doc, rules);
+    );
+    console.log(score(doc, rules));
 }
 
 
 main();
 
 
-// Return a rule that uses a DOM selector to find its matches from the
+// Return a condition that uses a DOM selector to find its matches from the
 // original DOM tree.
 //
-// For consistency, Nodes will still be delivered to the transformers, but they'll have empty types and score = 1. If the verb returns null, bail out and don't add the node to any indices.
+// For consistency, Nodes will still be delivered to the transformers, but they'll have empty types and score = 1. If the ranker returns null, bail out and don't add the node to any indices.
 function dom(selector) {
     return {
         kind: 'dom',
@@ -127,21 +214,24 @@ function dom(selector) {
 }
 
 
-// Return a rule that pulls nodes out of the knowledgebase by type.
-function typed(type) {
+// Return a condition discriminates on nodes of the knowledgebase by type.
+function typed(inputType) {
     return {
         kind: 'typed',
-        type: type
+        inputType: inputType
     }
 }
 
 
-function rule(source, mixer, verb) {
-    
+function rule(source, ranker) {
+    return {
+        source: source,
+        ranker: ranker
+    };
 }
 
 
-// NEXT: This set of rules might be the beginning of something that works. (It's modeled after what I do when I try to do this by hand: I look for balls of black text, and I look for them to be near each other, generally siblings: a "cluster" of them.) Order of rules matters (until we find a reason to add more complexity). (We can always help people insert new rules in the desired order by providing a way to insert them before or after such-and-such a named rule.) Perhaps we might as well remove the "mixer" arg from rule() and just do the math in the verbs, since we won't do parallelism at first. And it turned out we didn't use the types much, so maybe we should get rid of those or at least factor them out.
+// NEXT: This set of rules might be the beginning of something that works. (It's modeled after what I do when I try to do this by hand: I look for balls of black text, and I look for them to be near each other, generally siblings: a "cluster" of them.) Order of rules matters (until we find a reason to add more complexity). (We can always help people insert new rules in the desired order by providing a way to insert them before or after such-and-such a named rule.) And it turned out we didn't use the types much, so maybe we should get rid of those or at least factor them out.
 // score on text length -> texty. We start with this because, no matter the other markup details, the main body text is definitely going to have a bunch of text. Every node starts with a score of 1, so we can just multiply all the time.
 rule(dom('p,div'), node => ['texty', len(node.mergedStrippedInnerTextNakedOrInInlineTags)] if > 0 else null)  // maybe log or sqrt(char_count) or something. Char count might work even for CJK. mergedInnerTextNakedOrInInInlineTags() doesn't count chars in, say, p (or any other block-level) tags within a div tag.
 rule(typed('texty'), node.linkDensity)
@@ -160,6 +250,15 @@ rule(and(tag('p'), klass('snork')), scored('texty', node => node.word_count))  /
 // How do we ensure blockquotes, h2s, uls, etc. that are part of the article are included? Maybe what we're really looking for is a single, high-scoring container (or span of a container?) and then taking either everything inside it or everything but certain excised bits (interstitial ads/relateds). There might be 2 phases: rank and yank.
 // Also do something about invisible nodes.
 
+Future possible fanciness:
+* Metarules, e.g. specific rules for YouTube if it's extremely weird. Maybe they can just take simple predicates over the DOM: metarule(dom => !isEmpty(dom.querySelectorAll('body[youtube]')), rule(...)). Maybe they'll have to be worse: the result of a full rank-and-yank process themselves. Or maybe we can somehow implement them without having to have a special "meta" kind of rule at all.
+* Different kinds of "mixing" than just multiplication, though this makes us care even more that rules execute in order and in series. An alternative may be to have rankers lay down the component numbers and a yanker do the fancier math.
+* Fancy combinators for rule sources, along with something like a Rete tree for more efficiently dispatching them
+* If a ranker returns 0 (i.e. this thing has no chance of being in the category that I'm thinking about), delete the fact from the KB: a performance optimization.
+* I'm not sure about constraining us to execute the rules in order. It hurts efficiency and is going to lead us into a monkeypatching nightmare as third parties contribute rules. What if we instead used subtypes to order where necessary, where a subtype is "(explicit-type, rule that touched me, rule that touched me next, ...)". A second approach: Ordinarily, if we were trying to order rules, we'd have them operate on different types, each rule spitting out a fact of a new type and the next rule taking it as input. Inserting a third-party rule into a ruleset like that would require rewriting the whole thing to interpose a new type. But what if we instead did something like declaring dependencies on certain rules but without mentioning them (in case the set of rules in the ruleset changes later). This draws a clear line between the ruleset's private implementation and its public, hookable API. Think: why would 3rd-party rule B want to fire between A and C? Because it requires some data A lays down and wants to muck with it before C uses it as input. That data would be part of facts of a certain type (if the ruleset designer is competent), and rules that want to hook in could specify where in terms of "I want to fire right after facts of type FOO are made." They can then mess with the fact before C sees it.
+* We could even defer actually multiplying the ranks together, preserving the individual factors, in case we can get any interesting results out of comparing the results with and without certain rules' effects.
+* Probably fact types and the score axes should be separate: fact types state what kind of scribblings are available about nodes (and might affect rule order if they want to use each other's scribblings). Score axes talk about the degree to which a node is in a category. Each fact would be linked to a proxy for a DOM node, and all scores would live on those proxies.
+
 Yankers:
 max score (on some dimension)
 max-scored sibling cluster (maybe a contiguous span of containers around high-scoring ones, like a blur algo allowing occasional flecks of low-scoring noise)
@@ -175,3 +274,4 @@ Advantages over readability:
 * Pluggable
 * Potential to have rules generated or tuned by training
 * Adaptable to find things other than the main body text
+* Potential to perform better since it doesn't have to run over and over, loosening constraints each time, if it fails
