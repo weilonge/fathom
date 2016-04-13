@@ -1,5 +1,5 @@
 import "babel-polyfill";
-import {forEach, map, sum} from 'lodash';
+import {flatMap, forEach, map, sum} from 'lodash';
 var jsdom = require("jsdom");
 
 
@@ -18,8 +18,9 @@ var jsdom = require("jsdom");
 //
 // This is the "rank" portion of the rank-and-yank algorithm.
 function score(tree, rules) {
-    var dirtyRules = new Set();
     var kb = knowledgebase();
+    var newFacts;
+    var initialFact = {type: 'dom', score: 1, tree: tree};
 
     // Merge adjacent text nodes so inlineTexts() and similar rankers can be
     // simple.
@@ -27,20 +28,25 @@ function score(tree, rules) {
 
     // We start with an empty KB, so we'd better bootstrap it by running the
     // rules which use the DOM as a source:
-    forEach(rules.ofKind('dom'), dirtyRules.add);
+    //forEach(rules.ofKind('dom'), dirtyRules.add);
 
-    // Find the rules that are provoked into running by the introduction of new
-    // KB facts. Run them in no particular order. Repeat until no more rules
-    // want to run.
-    do {
-        forEach(dirtyRules,
-                rule => forEach(resultsOf(rule), result => kb.add));  // may dirty additional things (or the same thing!)
-        //dirtyRules = rules.taking(kb.dirtyTypes());
-        dirtyRules.clear();
-        // What I might actually need is dirty facts, not just dirty types. There's no sense running over and over the same facts when I know which ones are new.
-        forEach(kb.dirtyTypes(),
-                type => forEach(rules.taking(type), dirtyRules.add));
-    } while (dirtyRules.size);
+    forEach(rules.ofKind('dom'),
+            rule => forEach(resultsOf(rule), result => kb.add));
+
+    // Introduce the whole DOM into the KB as type 'dom' to get things started:
+    newFacts = [initialFact];
+    kb.add(initialFact);
+
+    // While there are new facts, run the applicable rules over them to
+    // generate even newer facts. Repeat until everything's fully digested.
+    // Rules run in no particular guaranteed order.
+    while (let fact = newFacts.pop()) {
+        for (let rule of rules.taking(fact.type)) {
+            results = Array.from(resultsOf(rule, fact));
+            newFacts.push(...results);
+            forEach(results, kb.add);
+        }
+    }
 
     return kb;
 }
@@ -57,37 +63,21 @@ function getDefault(map, key, defaultValue) {
 }
 
 
-// Construct a collection of rules that we can query on kind (DOM, typed, etc.)
-// and on the type of fact they operate on.
-function rules(...theRules) {
-    var kinds = {dom: [],  // [rule, rule, ...]
-                 typed: new Map()};  // [someInputType: rule, ...]
+// Construct a collection of rules that we can query on the type of
+// node they operate on.
+function ruleset(...rules) {
+    var rulesByInputType = new Map();  // [someInputType: rule, ...]
 
     // File each rule under its kind:
-    for (rule of theRules) {
-        switch (rule.source.kind) {
-            case "dom":
-                kinds.dom.push(rule);
-                break;
-            case "typed":
-                kinds.typed.set(rule.source.inputType, rule);
-                break;
-            default:
-                throw "Unknown kind of rule: " + rule.source.kind;
-        }
+    for (let rule of rules) {
+        rulesByInputType.set(rule.source.inputType, rule);
     }
 
     return {
-        // Return a collection of rules of the given kind ('dom' or 'typed').
-        ofKind: function (kind) {
-            return kinds[kind];
-        },
-
         // Return a collection of rules which take facts of any of the given
         // types as input.
-        taking: function (types) {
-            
-            [rule for rule in kinds.typed if rule.inputType in types]
+        taking: function (type) {
+            return rulesByInputType.get(type);
         }
     };
 }
@@ -97,44 +87,63 @@ function rules(...theRules) {
 // type (used to dispatch further rules upon) and a result (arbitrary at the
 // moment, generally containing a score).
 function knowledgebase() {
+    var nodesByType = Map{'texty' -> [NodeA],
+                          'spiffy' -> [NodeA, NodeB]}
+        NodeA = {element: <someElement>,
+                 score: 8,  // global score. Add more with scribbles if you want.
+                 types: Map{'texty' -> {ownText: 'blah',
+                                        someOtherScribble: 'foo',
+                                        someCustomScore: 10},
+                            'fluffy' -> {}}}
+    var nodesByElement (if necessary)
+
+
     var facts = new Map();
-    var dirty = new Set();
     return {
         add: function (fact) {
             getDefault(facts, fact.type, []).push(fact.result);
-            dirty.add(fact.type);
-        },
-        
-        // Return the types of facts that have been add()ed since dirtyTypes
-        // was last called.
-        dirtyTypes: function () {
-            var ret = Array.from(dirty);
-            dirty.clear();
-            return ret;
         }
     };
 }
 
 
-function resultsOf(rule) {
+// A ranker returns a score multiplier and 0 or more type declarations along
+// with optional typed scribbles.
+function someRanker(node) {
+    return {scoreMultiplier: 3,
+            types: [{type: 'texty', scribbles: {}}]};
+}
+
+
+// Apply a rule (as returned by a call to rule()) to a fact, and return the
+// new fact that results.
+function resultsOf(rule, fact) {
     // If more types of rule pop up someday, do fancier dispatching here.
-    return rule.kind === 'typed' ? resultsOfTypedRule(rule) : resultsOfDomRule(rule);
+    return rule.kind === 'typed' ? resultsOfTypedRule(rule, fact) : resultsOfDomRule(rule, fact);
 }
 
 
-function *resultsOfDomRule(rule) {
-    var matches = tree.querySelectorAll(pattern);
+// Pull the DOM tree off the special property of the root "dom" fact, and query
+// against it.
+function *resultsOfDomRule(rule, fact) {
+    var matches = fact.tree.querySelectorAll(pattern);
+    var newFact;
+
     for (let element of matches) {
-        anyMatched = true;
-        // Transform element according to RHS of rule:
-        transform(node(element));
+        newFact = rule.ranker(node(element), fact);  // NEXT: Figure out what rankers return: just int scores or objs full of type info like paragraphish(). I kinda do want them to be able to (1) scribble arbitrary stuff somewhere, (2) return >1 typed fact, (3) be short. Maybe I just have one NodeProxy (at most) for each DOM node, and it contains a ref to the DOM node and a Map of type -> scores-and-scribbles. What to pass to the rankers? At most, the whole NodeProxy. At least, an object which lets them add their typed scribbles to the map. It should go without saying that, once laid down, a typed scribble is immutable.
+        // A NodeProxy has element, map of type -> scores and scribbles. Return [{score:int, type:blah}, {...}, ...] from ranker.
+        // Actually, 1 score is plenty. That simplifies our data, our rankers, our type system (since we don't need to represent score axes), and our engine. If somebody wants more score axes, they can fake it themselves with scribbles, thus paying only for what they eat. (We can even provide functions that help with that.) Most rulesets will probably be concerned with scoring only 1 thing at a time anyway. So, rankers return a score multiplier + 0 or more new categories with optional scribbles. Facts can never be deleted from the KB by rankers (or order would start to matter); after all, they're *facts*.
+        
+        
+        ////meh Return int to just insert {score: int}. Return an obj to insert the obj.
+        newFact.element = element;
+        // We preserve any other scribbles the ranker made on its result.
+        // Other rules or yankers may well want to read them.
+        yield newFact;
     }
-    
-    yield {
-        type: whatever,
-        result: whatever
-    };
 }
+
+// change vocab from "scribbles" to "notes": shorter and more accurate
 
 
 // Iterate, depth first, over a DOM node.
@@ -143,8 +152,8 @@ function *resultsOfDomRule(rule) {
 function *walk(node, shouldTraverse) {
     if (shouldTraverse(node)) {
         yield node;
-        for (child of node.childNodes) {
-            for (w of walk(child, shouldTraverse)) {
+        for (let child of node.childNodes) {
+            for (let w of walk(child, shouldTraverse)) {
                 yield w;
             }
         }
@@ -155,9 +164,9 @@ function *walk(node, shouldTraverse) {
 // Yield strings of text nodes within a normalized DOM node and its children,
 // without venturing into any contained block elements.
 function *inlineTexts(node) {
-    for (child of walk(node, node => !(isBlock(node) ||
-                                       node.tagName === 'script' &&
-                                       node.tagName === 'style'))) {
+    for (let child of walk(node, node => !(isBlock(node) ||
+                                           node.tagName === 'script' &&
+                                           node.tagName === 'style'))) {
         if (child.nodeType === child.TEXT_NODE) {
             // .wholeText is what needs the DOM tree to be normalized.
             // Otherwise, it'll return the contents of adjacent text nodes,
@@ -174,8 +183,8 @@ function collapseWhitespace(str) {
 }
 
 
-// Score a DOM node based on how much it resembles a maximally tight block
-// element full of text.
+// Return a fact that scores a DOM node based on how much it resembles a
+// maximally tight block element full of text.
 function paragraphish(node) {
     return {
         type: 'paragraphish',
@@ -189,9 +198,10 @@ function main() {
     var doc = jsdom.jsdom(
         '<p><a class="ad" href="https://github.com/tmpvar/jsdom">jsdom!</a></p>'
     );
-    var rules = rules(
+    var rules = ruleset(
         // Score by length of directly contained text:
         rule(dom('p,div'), paragraphish),
+
         // Give bonus for being in a semantically appropriate tag:
         rule(typed('paragraphish'), node => node.el.tagName == 'p' ? 1.5 : 1)
     );
@@ -236,7 +246,7 @@ function rule(source, ranker) {
 rule(dom('p,div'), node => ['texty', len(node.mergedStrippedInnerTextNakedOrInInlineTags)] if > 0 else null)  // maybe log or sqrt(char_count) or something. Char count might work even for CJK. mergedInnerTextNakedOrInInInlineTags() doesn't count chars in, say, p (or any other block-level) tags within a div tag.
 rule(typed('texty'), node.linkDensity)
 // give bonuses for being in p tags. TODO: article tags, too
-rule(typed('texty'), node => node.el.tagName == 'p' ? 1.5 : 1)
+rule(typed('texty'), node => node.el.tagName === 'p' ? 1.5 : 1)
 // give bonuses for being (nth) cousins of other texties  // IOW, texties that are the same-leveled children of a common ancestor get a bonus.
 rule(typed('texty'), node => node.numCousinsOfAtLeastOfScore(200) * 1.5)
 // Find the texty with the highest score.
