@@ -20,7 +20,6 @@ var jsdom = require("jsdom");
 function score(tree, rules) {
     var kb = knowledgebase();
     var newFacts;
-    var initialFact = {type: 'dom', score: 1, tree: tree};
 
     // Merge adjacent text nodes so inlineTexts() and similar rankers can be
     // simple.
@@ -34,8 +33,7 @@ function score(tree, rules) {
             rule => forEach(resultsOf(rule), result => kb.add));
 
     // Introduce the whole DOM into the KB as type 'dom' to get things started:
-    newFacts = [initialFact];
-    kb.add(initialFact);
+    newFacts = [{type: 'dom', score: 1, tree: tree};];
 
     // While there are new facts, run the applicable rules over them to
     // generate even newer facts. Repeat until everything's fully digested.
@@ -51,11 +49,30 @@ function score(tree, rules) {
     return kb;
 }
 
+while there are things in nonterminalFacts {
+    [inNode, inType] = nonterminalFacts.pop();  // A fact is a node + a type.
+    // TODO: We could get an efficiency boost by knowing ahead of time what types a rule can emit and not running those rules on nodes already tagged with that type. We can thus also avoid re-running rules against that new-newly-tagged node redundantly.
+    // Actually, we want rules to be able to added which mess with the score. Those are refining rules, and we anticipate refinements.
+    for each rule that takes inType:
+        facts = runThatRule(inNode and inType perhaps packaged together)
+        for fact in facts:
+            outNode = kb.nodeForElement(fact.element || inNode)  // makes it if necessary
+            multiply outNode.score by score  // No matter whether we're emitting redundant types or not. We want to be able to add rules that refine our understanding of certain nodes and adjust the score, without having to rewire the path of types that makes up the ruleset.
+            if fact.type not already in outNode.types:  // An efficiency boost: don't re-annotate a node with a type it already has. That would add new facts and lead to re-running dependent rules redundantly against them. (We shouldn't anticipate rules wanting to take in scribbles of a certain type and mess with them in place, without changing the type. That way is order dependence, by definition. Emit a new type if you want to do that.)
+                outNode.types.set(fact.type, fact.scribbles)
+                kb.indexNodeByType(outNode, fact.type)  // TODO: better encapsulation rather than indexing explicitly
+                nonterminalFacts.push([outNode, fact.type])
+
+}
+
 
 // Get a key of a map, first setting it to a default value if it's missing.
-function getDefault(map, key, defaultValue) {
+function getDefault(map, key, defaultMaker) {
     var value = map.get(key);
+    var defaultValue;
+
     if (value === undefined) {
+        defaultValue = defaultMaker();
         map.set(key, defaultValue);
         return defaultValue;
     }
@@ -87,31 +104,43 @@ function ruleset(...rules) {
 // type (used to dispatch further rules upon) and a result (arbitrary at the
 // moment, generally containing a score).
 function knowledgebase() {
-    var nodesByType = Map{'texty' -> [NodeA],
-                          'spiffy' -> [NodeA, NodeB]}
-        NodeA = {element: <someElement>,
-                 score: 8,  // global score. Add more with scribbles if you want.
-                 types: Map{'texty' -> {ownText: 'blah',
-                                        someOtherScribble: 'foo',
-                                        someCustomScore: 10},
-                            'fluffy' -> {}}}
-    var nodesByElement (if necessary)
+    var nodesByType = new Map();  // Map{'texty' -> [NodeA],
+                                  //     'spiffy' -> [NodeA, NodeB]}
+                                  // NodeA = {element: <someElement>,
+                                  //          score: 8,  // global score. Add custom ones with scribbles if you want.
+                                  //
+                                  //          // Types is a map of type names to scribbles:
+                                  //          types: Map{'texty' -> {ownText: 'blah',
+                                  //                                 someOtherScribble: 'foo',
+                                  //                                 someCustomScore: 10},
+                                  //                     'fluffy' -> {}}}
+    var nodesByElement = new Map();
 
-
-    var facts = new Map();
     return {
-        add: function (fact) {
-            getDefault(facts, fact.type, []).push(fact.result);
+        // Return the "node" (our own data structure that we control) that
+        // corresponds to a given DOM element, creating one if necessary.
+        nodeForElement: function (element) {
+            getDefault(nodesByElement,
+                       element,
+                       () => {element: element,
+                              score: 1,
+                              types: new Map()});
+        },
+
+        // Let the KB know that a new type has been added to an element.
+        indexNodeByType: function (node, type) {
+            getDefault(nodesByType, type, () => []).push(node);
         }
     };
 }
 
 
-// A ranker returns a score multiplier and 0 or more type declarations along
-// with optional typed scribbles.
+// A ranker returns 0 or more facts, each of which comprises a score multiplier and, optionally, an element (defaulting to the input one) and type (defaulting to none) and, even more optionally, scribbles (which must be {} if you don't want any). This enables a ranker to walk around the tree and say things about other nodes than the input one.
 function someRanker(node) {
-    return {scoreMultiplier: 3,
-            types: [{type: 'texty', scribbles: {}}]};
+    return [{scoreMultiplier: 3,
+             element: node.element,
+             type: 'texty',
+             scribbles: {}}]
 }
 
 
@@ -133,8 +162,8 @@ function *resultsOfDomRule(rule, fact) {
         newFact = rule.ranker(node(element), fact);  // NEXT: Figure out what rankers return: just int scores or objs full of type info like paragraphish(). I kinda do want them to be able to (1) scribble arbitrary stuff somewhere, (2) return >1 typed fact, (3) be short. Maybe I just have one NodeProxy (at most) for each DOM node, and it contains a ref to the DOM node and a Map of type -> scores-and-scribbles. What to pass to the rankers? At most, the whole NodeProxy. At least, an object which lets them add their typed scribbles to the map. It should go without saying that, once laid down, a typed scribble is immutable.
         // A NodeProxy has element, map of type -> scores and scribbles. Return [{score:int, type:blah}, {...}, ...] from ranker.
         // Actually, 1 score is plenty. That simplifies our data, our rankers, our type system (since we don't need to represent score axes), and our engine. If somebody wants more score axes, they can fake it themselves with scribbles, thus paying only for what they eat. (We can even provide functions that help with that.) Most rulesets will probably be concerned with scoring only 1 thing at a time anyway. So, rankers return a score multiplier + 0 or more new categories with optional scribbles. Facts can never be deleted from the KB by rankers (or order would start to matter); after all, they're *facts*.
-        
-        
+
+
         ////meh Return int to just insert {score: int}. Return an obj to insert the obj.
         newFact.element = element;
         // We preserve any other scribbles the ranker made on its result.
@@ -224,7 +253,7 @@ function dom(selector) {
 }
 
 
-// Return a condition discriminates on nodes of the knowledgebase by type.
+// Return a condition that discriminates on nodes of the knowledgebase by type.
 function typed(inputType) {
     return {
         kind: 'typed',
