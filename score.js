@@ -3,69 +3,6 @@ import {flatMap, forEach, map, sum} from 'lodash';
 var jsdom = require("jsdom");
 
 
-// Wrap a DOM element to provide a handier API for scoring and tagging.
-// If we end up not doing our work directly to the DOM tree in the future, this
-// saves us rewriting all our transformers.
-// function node(element) {
-//     return {
-//         __proto__: element,
-//         rate
-// }
-
-
-// Iterate over a DOM tree or subtree, computing scores for interesting nodes
-// and adding them to my knowledgebase.
-//
-// This is the "rank" portion of the rank-and-yank algorithm.
-function score(tree, rules) {
-    var kb = knowledgebase();
-    var newFacts;
-
-    // Merge adjacent text nodes so inlineTexts() and similar rankers can be
-    // simple.
-    tree.normalize();
-
-    // We start with an empty KB, so we'd better bootstrap it by running the
-    // rules which use the DOM as a source:
-    //forEach(rules.ofKind('dom'), dirtyRules.add);
-
-    forEach(rules.ofKind('dom'),
-            rule => forEach(resultsOf(rule), result => kb.add));
-
-    // Introduce the whole DOM into the KB as type 'dom' to get things started:
-    newFacts = [{type: 'dom', score: 1, tree: tree};];
-
-    // While there are new facts, run the applicable rules over them to
-    // generate even newer facts. Repeat until everything's fully digested.
-    // Rules run in no particular guaranteed order.
-    while (let fact = newFacts.pop()) {
-        for (let rule of rules.taking(fact.type)) {
-            results = Array.from(resultsOf(rule, fact));
-            newFacts.push(...results);
-            forEach(results, kb.add);
-        }
-    }
-
-    return kb;
-}
-
-while there are things in nonterminalFacts {
-    [inNode, inType] = nonterminalFacts.pop();  // A fact is a node + a type.
-    // TODO: We could get an efficiency boost by knowing ahead of time what types a rule can emit and not running those rules on nodes already tagged with that type. We can thus also avoid re-running rules against that new-newly-tagged node redundantly.
-    // Actually, we want rules to be able to added which mess with the score. Those are refining rules, and we anticipate refinements.
-    for each rule that takes inType:
-        facts = runThatRule(inNode and inType perhaps packaged together)
-        for fact in facts:
-            outNode = kb.nodeForElement(fact.element || inNode)  // makes it if necessary
-            multiply outNode.score by score  // No matter whether we're emitting redundant types or not. We want to be able to add rules that refine our understanding of certain nodes and adjust the score, without having to rewire the path of types that makes up the ruleset.
-            if fact.type not already in outNode.types:  // An efficiency boost: don't re-annotate a node with a type it already has. That would add new facts and lead to re-running dependent rules redundantly against them. (We shouldn't anticipate rules wanting to take in scribbles of a certain type and mess with them in place, without changing the type. That way is order dependence, by definition. Emit a new type if you want to do that.)
-                outNode.types.set(fact.type, fact.scribbles)
-                kb.indexNodeByType(outNode, fact.type)  // TODO: better encapsulation rather than indexing explicitly
-                nonterminalFacts.push([outNode, fact.type])
-
-}
-
-
 // Get a key of a map, first setting it to a default value if it's missing.
 function getDefault(map, key, defaultMaker) {
     var value = map.get(key);
@@ -83,18 +20,73 @@ function getDefault(map, key, defaultMaker) {
 // Construct a collection of rules that we can query on the type of
 // node they operate on.
 function ruleset(...rules) {
-    var rulesByInputType = new Map();  // [someInputType: rule, ...]
+    var rulesByInputType = new Map();  // [someInputType: [rule, ...]]
 
-    // File each rule under its kind:
-    for (let rule of rules) {
-        rulesByInputType.set(rule.source.inputType, rule);
-    }
+    // File each rule under its input type:
+    forEach(rules,
+            rule => getDefault(rulesByInputType, rule.source.inputType, () => []).push(rule));
 
     return {
-        // Return a collection of rules which take facts of any of the given
-        // types as input.
-        taking: function (type) {
-            return rulesByInputType.get(type);
+        // Iterate over a DOM tree or subtree, building up a knowledgebase, a
+        // data structure holding scores and annotations for interesting
+        // elements. Return the knowledgebase.
+        //
+        // This is the "rank" portion of the rank-and-yank algorithm.
+        score: function (tree) {
+            var kb = knowledgebase();
+            var nonterminals;  // [[node, type], [node, type], ...]
+            var inNode, inType, outFacts;
+
+            // Merge adjacent text nodes so inlineTexts() and similar rankers
+            // can be simple.
+            tree.normalize();
+
+            // Introduce the whole DOM into the KB as type 'dom' to get things started:
+            // NEXT: Insert DOM tree as first fact in the pot. Implement resultsOf().
+
+            // While there are new facts, run the applicable rules over them to
+            // generate even newer facts. Repeat until everything's fully
+            // digested. Rules run in no particular guaranteed order.
+            while (nonterminals.length) {
+                [inNode, inType] = nonterminals.pop();
+                for (let rule of rulesByInputType.get(inType)) {
+                    outFacts = resultsOf(rule, inNode, inType);
+                    for (let fact of outFacts) {
+                        outNode = kb.nodeForElement(fact.element || inNode);
+                        
+                        // No matter whether or not this type has been emitted
+                        // before for this node, we multiply the score. We want
+                        // to be able to add rules that refine the scoring of a
+                        // node, without having to rewire the path of types
+                        // that winds through the ruleset.
+                        outNode.score *= fact.scoreMultiplier;
+                        
+                        // Add a new type annotation to a node--but only if
+                        // there wasn't an equivalent one already there;
+                        // otherwise there's no point.
+                        //
+                        // You might argue that we might want to modify an
+                        // existing scribble here, but that would be a bad
+                        // idea. Scribbles for a given type should be
+                        // considered immutable once laid down. Otherwise, the
+                        // order of execution of same-typed rules would matter,
+                        // and we don't want to live in that world. Emit a new
+                        // type and a new scribble if you want to do that.
+                        //
+                        // Also, choosing not to add a new fact to nonterminals
+                        // when we're not adding a new type saves the work of
+                        // running the rules against it, which would be
+                        // entirely redundant and perform no new work (unless
+                        // the rules were nondeterministic, but don't do that).
+                        if (!outNode.types.has(fact.type)) {
+                            outNode.types.set(fact.type, fact.scribbles);
+                            kb.indexNodeByType(outNode, fact.type)  // TODO: better encapsulation rather than indexing explicitly
+                            nonterminals.push([outNode, fact.type])
+                        }
+                    }
+                }
+            }
+            return kb;
         }
     };
 }
@@ -107,7 +99,11 @@ function knowledgebase() {
     var nodesByType = new Map();  // Map{'texty' -> [NodeA],
                                   //     'spiffy' -> [NodeA, NodeB]}
                                   // NodeA = {element: <someElement>,
-                                  //          score: 8,  // global score. Add custom ones with scribbles if you want.
+                                  //
+                                  //          // Global nodewide score. Add
+                                  //          // custom ones with scribbles if
+                                  //          // you want.
+                                  //          score: 8,
                                   //
                                   //          // Types is a map of type names to scribbles:
                                   //          types: Map{'texty' -> {ownText: 'blah',
@@ -234,7 +230,7 @@ function main() {
         // Give bonus for being in a semantically appropriate tag:
         rule(typed('paragraphish'), node => node.el.tagName == 'p' ? 1.5 : 1)
     );
-    console.log(score(doc, rules));
+    var knowledgebase = rules.score(doc);
 }
 
 
@@ -270,7 +266,7 @@ function rule(source, ranker) {
 }
 
 
-// NEXT: This set of rules might be the beginning of something that works. (It's modeled after what I do when I try to do this by hand: I look for balls of black text, and I look for them to be near each other, generally siblings: a "cluster" of them.) Order of rules matters (until we find a reason to add more complexity). (We can always help people insert new rules in the desired order by providing a way to insert them before or after such-and-such a named rule.) And it turned out we didn't use the types much, so maybe we should get rid of those or at least factor them out.
+// This set of rules might be the beginning of something that works. (It's modeled after what I do when I try to do this by hand: I look for balls of black text, and I look for them to be near each other, generally siblings: a "cluster" of them.) Order of rules matters (until we find a reason to add more complexity). (We can always help people insert new rules in the desired order by providing a way to insert them before or after such-and-such a named rule.) And it turned out we didn't use the types much, so maybe we should get rid of those or at least factor them out.
 // score on text length -> texty. We start with this because, no matter the other markup details, the main body text is definitely going to have a bunch of text. Every node starts with a score of 1, so we can just multiply all the time.
 rule(dom('p,div'), node => ['texty', len(node.mergedStrippedInnerTextNakedOrInInlineTags)] if > 0 else null)  // maybe log or sqrt(char_count) or something. Char count might work even for CJK. mergedInnerTextNakedOrInInInlineTags() doesn't count chars in, say, p (or any other block-level) tags within a div tag.
 rule(typed('texty'), node.linkDensity)
