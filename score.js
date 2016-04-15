@@ -41,8 +41,9 @@ function ruleset(...rules) {
             // can be simple.
             tree.normalize();
 
-            // Introduce the whole DOM into the KB as type 'dom' to get things started:
-            // NEXT: Insert DOM tree as first fact in the pot. Implement resultsOf().
+            // Introduce the whole DOM into the KB as type 'dom' to get things
+            // started:
+            nonterminals = [[{tree: tree}, 'dom']];
 
             // While there are new facts, run the applicable rules over them to
             // generate even newer facts. Repeat until everything's fully
@@ -52,7 +53,7 @@ function ruleset(...rules) {
                 for (let rule of rulesByInputType.get(inType)) {
                     outFacts = resultsOf(rule, inNode, inType);
                     for (let fact of outFacts) {
-                        outNode = kb.nodeForElement(fact.element || inNode);
+                        outNode = kb.nodeForElement(fact.element);
                         
                         // No matter whether or not this type has been emitted
                         // before for this node, we multiply the score. We want
@@ -69,7 +70,7 @@ function ruleset(...rules) {
                         // existing scribble here, but that would be a bad
                         // idea. Scribbles for a given type should be
                         // considered immutable once laid down. Otherwise, the
-                        // order of execution of same-typed rules would matter,
+                        // order of execution of same-typed rules could matter,
                         // and we don't want to live in that world. Emit a new
                         // type and a new scribble if you want to do that.
                         //
@@ -77,7 +78,8 @@ function ruleset(...rules) {
                         // when we're not adding a new type saves the work of
                         // running the rules against it, which would be
                         // entirely redundant and perform no new work (unless
-                        // the rules were nondeterministic, but don't do that).
+                        // the rankers were nondeterministic, but don't do
+                        // that).
                         if (!outNode.types.has(fact.type)) {
                             outNode.types.set(fact.type, fact.scribbles);
                             kb.indexNodeByType(outNode, fact.type)  // TODO: better encapsulation rather than indexing explicitly
@@ -109,7 +111,8 @@ function knowledgebase() {
                                   //          types: Map{'texty' -> {ownText: 'blah',
                                   //                                 someOtherScribble: 'foo',
                                   //                                 someCustomScore: 10},
-                                  //                     'fluffy' -> {}}}
+                                  //                     // This is an empty scribble:
+                                  //                     'fluffy' -> undefined}}
     var nodesByElement = new Map();
 
     return {
@@ -131,7 +134,7 @@ function knowledgebase() {
 }
 
 
-// A ranker returns 0 or more facts, each of which comprises a score multiplier and, optionally, an element (defaulting to the input one) and type (defaulting to none) and, even more optionally, scribbles (which must be {} if you don't want any). This enables a ranker to walk around the tree and say things about other nodes than the input one.
+// A ranker returns a collection of 0 or more facts, each of which comprises an optional score multiplier, an element (defaulting to the input one), a type (required on dom() rules, defaulting to the input one on typed() rules), and optional scribbles. This enables a ranker to walk around the tree and say things about other nodes than the input one.
 function someRanker(node) {
     return [{scoreMultiplier: 3,
              element: node.element,
@@ -141,32 +144,63 @@ function someRanker(node) {
 
 
 // Apply a rule (as returned by a call to rule()) to a fact, and return the
-// new fact that results.
-function resultsOf(rule, fact) {
+// new facts that result.
+function resultsOf(rule, node, type) {
     // If more types of rule pop up someday, do fancier dispatching here.
-    return rule.kind === 'typed' ? resultsOfTypedRule(rule, fact) : resultsOfDomRule(rule, fact);
+    return rule.source.kind === 'typed' ? resultsOfTypedRule(rule, node, type) : resultsOfDomRule(rule, node);
 }
 
 
 // Pull the DOM tree off the special property of the root "dom" fact, and query
 // against it.
-function *resultsOfDomRule(rule, fact) {
-    var matches = fact.tree.querySelectorAll(pattern);
-    var newFact;
+function *resultsOfDomRule(rule, node) {
+    // Use the special "tree" property of the special starting node:
+    var matches = node.tree.querySelectorAll(pattern);
+    var newFacts;
 
     for (let element of matches) {
-        newFact = rule.ranker(node(element), fact);  // NEXT: Figure out what rankers return: just int scores or objs full of type info like paragraphish(). I kinda do want them to be able to (1) scribble arbitrary stuff somewhere, (2) return >1 typed fact, (3) be short. Maybe I just have one NodeProxy (at most) for each DOM node, and it contains a ref to the DOM node and a Map of type -> scores-and-scribbles. What to pass to the rankers? At most, the whole NodeProxy. At least, an object which lets them add their typed scribbles to the map. It should go without saying that, once laid down, a typed scribble is immutable.
-        // A NodeProxy has element, map of type -> scores and scribbles. Return [{score:int, type:blah}, {...}, ...] from ranker.
-        // Actually, 1 score is plenty. That simplifies our data, our rankers, our type system (since we don't need to represent score axes), and our engine. If somebody wants more score axes, they can fake it themselves with scribbles, thus paying only for what they eat. (We can even provide functions that help with that.) Most rulesets will probably be concerned with scoring only 1 thing at a time anyway. So, rankers return a score multiplier + 0 or more new categories with optional scribbles. Facts can never be deleted from the KB by rankers (or order would start to matter); after all, they're *facts*.
-
-
-        ////meh Return int to just insert {score: int}. Return an obj to insert the obj.
-        newFact.element = element;
-        // We preserve any other scribbles the ranker made on its result.
-        // Other rules or yankers may well want to read them.
-        yield newFact;
+        // Yield a new fact:
+        newFacts = rule.ranker(kb.nodeForElement(element));
+        // 1 score per Node is plenty. That simplifies our data, our rankers, our type system (since we don't need to represent score axes), and our engine. If somebody wants more score axes, they can fake it themselves with scribbles, thus paying only for what they eat. (We can even provide functions that help with that.) Most rulesets will probably be concerned with scoring only 1 thing at a time anyway. So, rankers return a score multiplier + 0 or more new types with optional scribbles. Facts can never be deleted from the KB by rankers (or order would start to matter); after all, they're *facts*.
+        for (let fact of newFacts) {
+            if (newFact.type === undefined) {
+                throw "Rankers of dom() rules must return a type in each fact. Otherwise, there is no way for that fact to be used later.";
+            }
+            if (newFact.element === undefined) {
+                newFact.element = element;
+            }
+            yield newFact;
+        }
     }
 }
+
+
+function resultsOfTypedRule(rule, node, type) {
+    var newFacts = rule.ranker(node);
+    
+    for (let fact of newFacts) {
+        if (fact.scoreMultiplier === undefined) {
+            fact.scoreMultiplier = 1;
+        }
+        // If the ranker didn't specify a different element, assume it's
+        // talking about the one we passed in:
+        if (fact.element === undefined) {
+            fact.element = node.element;
+        }
+        if (fact.type === undefined) {
+            fact.type = type;
+        }
+        yield fact;
+    }
+}
+
+
+// TODO: For the moment, a lot of responsibility is on the rankers to return a
+// pretty big data structure of up to 4 properties. This is a bit verbose for
+// an arrow function (as I hope we can use most of the time) and the modal case
+// will probably be returning just a score multiplier. Make that case more
+// concise.
+
 
 // change vocab from "scribbles" to "notes": shorter and more accurate
 
@@ -244,6 +278,7 @@ main();
 function dom(selector) {
     return {
         kind: 'dom',
+        inputType: 'dom',
         selector: selector
     }
 }
