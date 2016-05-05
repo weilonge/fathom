@@ -1,3 +1,5 @@
+"use strict";
+
 const flatMap = require('lodash/flatMap');
 const forEach = require('lodash/forEach');
 const map = require('lodash/map');
@@ -37,7 +39,7 @@ function ruleset(...rules) {
         score: function (tree) {
             var kb = knowledgebase();
             var nonterminals;  // [[node, type], [node, type], ...]
-            var inNode, inType, outFacts;
+            var inNode, inType, outFacts, outNode;
 
             // Merge adjacent text nodes so inlineTexts() and similar rankers
             // can be simple.
@@ -52,8 +54,8 @@ function ruleset(...rules) {
             // digested. Rules run in no particular guaranteed order.
             while (nonterminals.length) {
                 [inNode, inType] = nonterminals.pop();
-                for (let rule of rulesByInputType.get(inType)) {
-                    outFacts = resultsOf(rule, inNode, inType);
+                for (let rule of getDefault(rulesByInputType, inType, () => [])) {
+                    outFacts = resultsOf(rule, inNode, inType, kb);
                     for (let fact of outFacts) {
                         outNode = kb.nodeForElement(fact.element);
 
@@ -131,6 +133,11 @@ function knowledgebase() {
         // Let the KB know that a new type has been added to an element.
         indexNodeByType: function (node, type) {
             getDefault(nodesByType, type, () => []).push(node);
+        },
+
+        // Return ndoesByType for debugging.
+        n: function () {
+            return nodesByType;
         }
     };
 }
@@ -147,17 +154,17 @@ function someRanker(node) {
 
 // Apply a rule (as returned by a call to rule()) to a fact, and return the
 // new facts that result.
-function resultsOf(rule, node, type) {
+function resultsOf(rule, node, type, kb) {
     // If more types of rule pop up someday, do fancier dispatching here.
-    return rule.source.kind === 'typed' ? resultsOfTypedRule(rule, node, type) : resultsOfDomRule(rule, node);
+    return rule.source.kind === 'typed' ? resultsOfTypedRule(rule, node, type) : resultsOfDomRule(rule, node, kb);
 }
 
 
 // Pull the DOM tree off the special property of the root "dom" fact, and query
 // against it.
-function *resultsOfDomRule(rule, specialDomNode) {
+function *resultsOfDomRule(rule, specialDomNode, kb) {
     // Use the special "tree" property of the special starting node:
-    var matches = specialDomNode.tree.querySelectorAll(rule.selector);
+    var matches = specialDomNode.tree.querySelectorAll(rule.source.selector);
     var newFacts;
 
     for (let element of matches) {
@@ -165,13 +172,13 @@ function *resultsOfDomRule(rule, specialDomNode) {
         newFacts = rule.ranker(kb.nodeForElement(element));
         // 1 score per Node is plenty. That simplifies our data, our rankers, our type system (since we don't need to represent score axes), and our engine. If somebody wants more score axes, they can fake it themselves with scribbles, thus paying only for what they eat. (We can even provide functions that help with that.) Most rulesets will probably be concerned with scoring only 1 thing at a time anyway. So, rankers return a score multiplier + 0 or more new types with optional scribbles. Facts can never be deleted from the KB by rankers (or order would start to matter); after all, they're *facts*.
         for (let fact of newFacts) {
-            if (newFact.type === undefined) {
+            if (fact.type === undefined) {
                 throw "Rankers of dom() rules must return a type in each fact. Otherwise, there is no way for that fact to be used later.";
             }
-            if (newFact.element === undefined) {
-                newFact.element = element;
+            if (fact.element === undefined) {
+                fact.element = element;
             }
-            yield newFact;
+            yield fact;
         }
     }
 }
@@ -306,9 +313,12 @@ function simpleExample() {
         '<p><a class="good" href="https://github.com/tmpvar/jsdom">jsdom!</a><a class="bad" href="https://github.com/tmpvar/jsdom">jsdom!</a></p>'
     );
     var rules = ruleset(
-        rule(dom('a[class=good]'), node => ({scoreMultiplier: 2, type: 'anchor'}))
+        rule(dom('a[class=good]'), node => ([{scoreMultiplier: 2, type: 'anchor'}]))
     );
     var knowledgebase = rules.score(doc);
+
+    const util = require('util');
+    console.log(util.inspect(knowledgebase.n(), {depth: null}));
 }
 
 
