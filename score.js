@@ -1,6 +1,8 @@
-import "babel-polyfill";
-import {flatMap, forEach, map, sum} from 'lodash';
-var jsdom = require("jsdom");
+const flatMap = require('lodash/flatMap');
+const forEach = require('lodash/forEach');
+const map = require('lodash/map');
+const sum = require('lodash/sum');
+const jsdom = require("jsdom");
 
 
 // Get a key of a map, first setting it to a default value if it's missing.

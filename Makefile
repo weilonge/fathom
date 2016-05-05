@@ -1,16 +1,10 @@
-all: build/score-bundle.js
+all:
 
-build:
-	mkdir -p build
+run:
+	node score.js
 
-build/score-bundle.js: build score.js
-	node_modules/babel-cli/bin/babel.js score.js -o build/score-bundle.js
-
-run: build/score-bundle.js
-	node build/score-bundle.js
-
-debug: build/score-bundle.js
-	node debug build/score-bundle.js
+debug:
+	node debug score.js
 
 clean:
 	rm -rf build
