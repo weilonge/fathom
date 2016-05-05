@@ -9,6 +9,9 @@ build/score-bundle.js: build score.js
 run: build/score-bundle.js
 	node build/score-bundle.js
 
+debug: build/score-bundle.js
+	node debug build/score-bundle.js
+
 clean:
 	rm -rf build
 
