@@ -8,7 +8,8 @@
     "lodash-es": "^4.10.0"
   },
   "devDependencies": {
-    "jshint": "^2.9.1"
+    "jshint": "^2.9.1",
+    "node-inspector": ">=0.12.8"
   },
   "engine": "node >= 6.0.0"
 }
