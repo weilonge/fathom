@@ -1,10 +1,10 @@
-"use strict";
+'use strict';
 
 const flatMap = require('lodash/flatMap');
 const forEach = require('lodash/forEach');
 const map = require('lodash/map');
 const sum = require('lodash/sum');
-const jsdom = require("jsdom");
+const jsdom = require('jsdom');
 
 
 // Get a key of a map, first setting it to a default value if it's missing.
@@ -168,7 +168,7 @@ function *resultsOfDomRule(rule, specialDomNode, kb) {
         // 1 score per Node is plenty. That simplifies our data, our rankers, our type system (since we don't need to represent score axes), and our engine. If somebody wants more score axes, they can fake it themselves with scribbles, thus paying only for what they eat. (We can even provide functions that help with that.) Most rulesets will probably be concerned with scoring only 1 thing at a time anyway. So, rankers return a score multiplier + 0 or more new types with optional scribbles. Facts can never be deleted from the KB by rankers (or order would start to matter); after all, they're *facts*.
         for (let fact of newFacts) {
             if (fact.type === undefined) {
-                throw "Rankers of dom() rules must return a type in each fact. Otherwise, there is no way for that fact to be used later.";
+                throw 'Rankers of dom() rules must return a type in each fact. Otherwise, there is no way for that fact to be used later.';
             }
             if (fact.element === undefined) {
                 fact.element = element;
@@ -242,7 +242,7 @@ function *inlineTexts(node) {
 
 
 function collapseWhitespace(str) {
-    return str.replace(/\s{2,}/g, " ");
+    return str.replace(/\s{2,}/g, ' ');
 }
 
 
