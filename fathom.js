@@ -133,11 +133,6 @@ function knowledgebase() {
         // Let the KB know that a new type has been added to an element.
         indexNodeByType: function (node, type) {
             getDefault(nodesByType, type, () => []).push(node);
-        },
-
-        // Return ndoesByType for debugging.
-        n: function () {
-            return nodesByType;
         }
     };
 }
@@ -307,22 +302,14 @@ function fancyExample() {
 }
 
 
-// NEXT: Get a trivial example running.
-function simpleExample() {
-    var doc = jsdom.jsdom(
-        '<p><a class="good" href="https://github.com/tmpvar/jsdom">jsdom!</a><a class="bad" href="https://github.com/tmpvar/jsdom">jsdom!</a></p>'
-    );
-    var rules = ruleset(
-        rule(dom('a[class=good]'), node => ([{scoreMultiplier: 2, type: 'anchor'}]))
-    );
-    var knowledgebase = rules.score(doc);
-
-    const util = require('util');
-    console.log(util.inspect(knowledgebase.n(), {depth: null}));
-}
+// NEXT: Write some more, harder tests. Then crunch down ranker definition verbosity, either by functional programming or by type introspection in score() (detecting iterables).
 
 
-simpleExample();
+module.exports = {
+    ruleset: ruleset,
+    rule: rule,
+    dom: dom
+};
 
 
 // This set of rules might be the beginning of something that works. (It's modeled after what I do when I try to do this by hand: I look for balls of black text, and I look for them to be near each other, generally siblings: a "cluster" of them.) Order of rules matters (until we find a reason to add more complexity). (We can always help people insert new rules in the desired order by providing a way to insert them before or after such-and-such a named rule.) And it turned out we didn't use the types much, so maybe we should get rid of those or at least factor them out.

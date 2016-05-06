@@ -8,3 +8,8 @@ debug:
 
 lint:
 	node_modules/.bin/jshint score.js
+
+test:
+	node_modules/.bin/mocha
+
+.PHONY: all run debug lint test
