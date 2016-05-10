@@ -211,9 +211,6 @@ function *resultsOfTypedRule(rule, node, type) {
 // concise.
 
 
-// change vocab from "scribbles" to "notes": shorter and more accurate
-
-
 // Iterate, depth first, over a DOM node.
 // shouldTraverse - a function on a node saying whether we should include it
 //     and its children
