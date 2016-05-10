@@ -5,7 +5,7 @@ const fathom = require('../fathom'),
       dom = fathom.dom,
       rule = fathom.rule,
       ruleset = fathom.ruleset,
-      typed = fathom.typed;
+      flavor = fathom.flavor;
 
 
 describe('Ranker', function() {
@@ -17,26 +17,26 @@ describe('Ranker', function() {
             </p>
         `);
         var rules = ruleset(
-            rule(dom('a[class=good]'), node => [{scoreMultiplier: 2, type: 'anchor'}])
+            rule(dom('a[class=good]'), node => [{scoreMultiplier: 2, flavor: 'anchor'}])
         );
         var kb = rules.score(doc);
         var node = kb.nodeForElement(doc.querySelectorAll('a[class=good]')[0]);
         assert.equal(node.score, 2);
-        assert.equal(node.types.get('anchor'), undefined);
+        assert.equal(node.flavors.get('anchor'), undefined);
     });
 
-    it('applies typed rules when there is input for them', function () {
+    it('applies flavored rules when there is input for them', function () {
         var doc = jsdom.jsdom(`
             <p>Hi</p>
             <div>Hooooooo</div>
         `);
         var rules = ruleset(
-            // 2 separate rules feed into the "paragraphish" type:
-            rule(dom('div'), node => [{type: 'paragraphish'}]),
-            rule(dom('p'), node => [{type: 'paragraphish', scoreMultiplier: 2}]),
+            // 2 separate rules feed into the "paragraphish" flavor:
+            rule(dom('div'), node => [{flavor: 'paragraphish'}]),
+            rule(dom('p'), node => [{flavor: 'paragraphish', scoreMultiplier: 2}]),
 
             // Then each paragraphish thing receives a bonus based on its length:
-            rule(typed('paragraphish'), node => [{scoreMultiplier: node.element.textContent.length}])
+            rule(flavor('paragraphish'), node => [{scoreMultiplier: node.element.textContent.length}])
         );
         var kb = rules.score(doc);
         var p = kb.nodeForElement(doc.querySelectorAll('p')[0]);
