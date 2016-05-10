@@ -73,12 +73,12 @@ function ruleset(...rules) {
                         // otherwise there's no point.
                         //
                         // You might argue that we might want to modify an
-                        // existing scribble here, but that would be a bad
-                        // idea. Scribbles for a given type should be
+                        // existing note here, but that would be a bad
+                        // idea. Notes for a given type should be
                         // considered immutable once laid down. Otherwise, the
                         // order of execution of same-typed rules could matter,
                         // hurting pluggability. Emit a new type and a new
-                        // scribble if you want to do that.
+                        // note if you want to do that.
                         //
                         // Also, choosing not to add a new fact to nonterminals
                         // when we're not adding a new type saves the work of
@@ -87,7 +87,7 @@ function ruleset(...rules) {
                         // the rankers were nondeterministic, but don't do
                         // that).
                         if (!outNode.types.has(fact.type)) {
-                            outNode.types.set(fact.type, fact.scribbles);
+                            outNode.types.set(fact.type, fact.notes);
                             kb.indexNodeByType(outNode, fact.type);  // TODO: better encapsulation rather than indexing explicitly
                             nonterminals.push([outNode, fact.type]);
                         }
@@ -109,15 +109,15 @@ function knowledgebase() {
                                   // NodeA = {element: <someElement>,
                                   //
                                   //          // Global nodewide score. Add
-                                  //          // custom ones with scribbles if
+                                  //          // custom ones with notes if
                                   //          // you want.
                                   //          score: 8,
                                   //
-                                  //          // Types is a map of type names to scribbles:
+                                  //          // Types is a map of type names to notes:
                                   //          types: Map{'texty' -> {ownText: 'blah',
-                                  //                                 someOtherScribble: 'foo',
+                                  //                                 someOtherNote: 'foo',
                                   //                                 someCustomScore: 10},
-                                  //                     // This is an empty scribble:
+                                  //                     // This is an empty note:
                                   //                     'fluffy' -> undefined}}
     var nodesByElement = new Map();
 
@@ -140,12 +140,12 @@ function knowledgebase() {
 }
 
 
-// A ranker returns a collection of 0 or more facts, each of which comprises an optional score multiplier, an element (defaulting to the input one), a type (required on dom() rules, defaulting to the input one on typed() rules), and optional scribbles. This enables a ranker to walk around the tree and say things about other nodes than the input one.
+// A ranker returns a collection of 0 or more facts, each of which comprises an optional score multiplier, an element (defaulting to the input one), a type (required on dom() rules, defaulting to the input one on typed() rules), and optional notes. This enables a ranker to walk around the tree and say things about other nodes than the input one.
 function someRanker(node) {
     return [{scoreMultiplier: 3,
              element: node.element,
              type: 'texty',
-             scribbles: {}}];
+             notes: {}}];
 }
 
 
@@ -167,7 +167,7 @@ function *resultsOfDomRule(rule, specialDomNode, kb) {
     for (let element of matches) {
         // Yield a new fact:
         newFacts = rule.ranker(kb.nodeForElement(element));
-        // 1 score per Node is plenty. That simplifies our data, our rankers, our type system (since we don't need to represent score axes), and our engine. If somebody wants more score axes, they can fake it themselves with scribbles, thus paying only for what they eat. (We can even provide functions that help with that.) Most rulesets will probably be concerned with scoring only 1 thing at a time anyway. So, rankers return a score multiplier + 0 or more new types with optional scribbles. Facts can never be deleted from the KB by rankers (or order would start to matter); after all, they're *facts*.
+        // 1 score per Node is plenty. That simplifies our data, our rankers, our type system (since we don't need to represent score axes), and our engine. If somebody wants more score axes, they can fake it themselves with notes, thus paying only for what they eat. (We can even provide functions that help with that.) Most rulesets will probably be concerned with scoring only 1 thing at a time anyway. So, rankers return a score multiplier + 0 or more new types with optional notes. Facts can never be deleted from the KB by rankers (or order would start to matter); after all, they're *facts*.
         for (let fact of newFacts) {
             if (fact.scoreMultiplier === undefined) {
                 fact.scoreMultiplier = 1;
