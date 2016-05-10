@@ -50,18 +50,35 @@ var titleFinder = ruleset(
 );
 ```
 
-Each rule is shaped like `rule(condition, ranker function)`. A **condition** specifies what the rule takes as input: at the moment, either nodes from the DOM tree that match a certain CSS selector or else nodes tagged with a certain flavor by other rules. The **ranker function** is an imperative bit of code which decides what to do with a node: whether to scale its score, assign a flavor, make an annotation on it, or some combination thereof.
+Each rule is shaped like `rule(condition, ranker function)`. A **condition** specifies what the rule takes as input: at the moment, either nodes from the DOM tree that match a certain CSS selector or else nodes tagged with a certain flavor by other rules.
 
-Please pardon the verbosity; we're waiting for patterns to shake out before choosing syntactic sugar.
+The **ranker function** is an imperative bit of code which decides what to do with a node: whether to scale its score, assign a flavor, make an annotation on it, or some combination thereof. A ranker returns a collection of 0 or more facts, each of which comprises...
+
+* An optional score multiplier
+* An element (defaulting to the input one). This enables a ranker to walk around the tree and say things about other nodes than the input one.
+* A flavor (required on dom() rules, defaulting to the input one on flavor() rules)
+* Optional notes
+
+For example...
+
+```javascript
+function someRanker(node) {
+    return [{scoreMultiplier: 3,
+             element: node.element,  // unnecessary, since this is the default
+             flavor: 'texty',
+             notes: {suspicious: true}}];
+}
+```
+
+Please pardon the verbosity of ranker functions; we're waiting for patterns to shake out before choosing syntactic sugar.
+
+Once the ruleset is defined, run a DOM tree through it:
 
 ```javascript
 // Run the rules above over a DOM tree, and return a knowledgebase of facts
 // about nodes which can be queried in various ways. This is the "rank" phase
 // of Fathom's 2-phase rank-and-yank algorithm.
 var knowledgebase = titleFinder.score(jsdom.jsdom("<html><head>...</html>"));
-
-// "Yank" out interesting nodes based on their flavors and scores. For example,
-// we might look for the highest-scoring node of a given flavor, or we might
-// look for a cluster of high-scoring nodes near each other. (The yank phase
-// has yet to be implemented.)
 ```
+
+Finally, "yank" out interesting nodes based on their flavors and scores. For example, we might look for the highest-scoring node of a given flavor, or we might look for a cluster of high-scoring nodes near each other. The yank phase has yet to be implemented.

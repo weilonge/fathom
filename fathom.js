@@ -139,15 +139,6 @@ function knowledgebase() {
 }
 
 
-// A ranker returns a collection of 0 or more facts, each of which comprises an optional score multiplier, an element (defaulting to the input one), a flavor (required on dom() rules, defaulting to the input one on flavor() rules), and optional notes. This enables a ranker to walk around the tree and say things about other nodes than the input one.
-function someRanker(node) {
-    return [{scoreMultiplier: 3,
-             element: node.element,
-             flavor: 'texty',
-             notes: {}}];
-}
-
-
 // Apply a rule (as returned by a call to rule()) to a fact, and return the
 // new facts that result.
 function resultsOf(rule, node, flavor, kb) {
@@ -288,22 +279,7 @@ function rule(source, ranker) {
 }
 
 
-function fancyExample() {
-    var doc = jsdom.jsdom(
-        '<p><a class="ad" href="https://github.com/tmpvar/jsdom">jsdom!</a></p>'
-    );
-    var rules = ruleset(
-        // Score by length of directly contained text:
-        rule(dom('p,div'), paragraphish),
-
-        // Give bonus for being in a semantically appropriate tag:
-        rule(flavor('paragraphish'), node => node.el.tagName == 'p' ? 1.5 : 1)
-    );
-    var knowledgebase = rules.score(doc);
-}
-
-
-// NEXT: Write some more, harder tests. Then crunch down ranker definition verbosity, either by functional programming or by type introspection in score() (detecting iterables).
+// NEXT: Crunch down ranker definition verbosity, either by functional programming or by type introspection in score() (detecting iterables).
 
 
 module.exports = {
