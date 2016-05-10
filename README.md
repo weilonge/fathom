@@ -12,9 +12,9 @@ A study of existing projects like Readability and Distiller suggests that purely
 
 Here are some specific areas we address:
 
-* Browser-native DOM nodes are mostly immutable, so storing intermediate data on them becomes an issue. Fathom addresses this by providing the **fathom node** (confusing name—will change), a proxy behind each DOM node which we can scribble on.
+* Browser-native DOM nodes are mostly immutable, so storing intermediate data on them is clumsy. Fathom addresses this by providing the **fathom node** (confusing name—will change), a proxy behind each DOM node which we can scribble on.
 * With imperative extractors, any experiments or site-specific customizations must be hard-coded in. Fathom's rulesets, on the other hand, are unordered and therefore decoupled, stitched together only by the **types** they consume and emit. External rules can thus be plugged into existing rulesets, making it easy to experiment (without maintaining a fork) or to provide dedicated rules for particularly intractable web sites.
-* Types provide a convenient way of tagging DOM nodes as belonging to certain categories, typically narrowing as the extractor's work progresses. A typical complex extractor would start by assigning a broad category to a set of candidate nodes, then fine-tuning by examining them more closely and assigning additional, more specific types in a later rule.
+* Types provide a convenient way of tagging DOM nodes as belonging to certain categories, typically narrowing as the extractor's work progresses. A typical complex extractor would start by assigning a broad category to a set of candidate nodes, then fine-tune by examining them more closely and assigning additional, more specific types in a later rule.
 * The type system also makes explicit the division between an extractor's public and private APIs: the types are public, and the imperative stuff that goes on inside ranker functions is private. Third-party rules can use the types as hook points to interpose themselves.
 * Persistent state is cordoned off in typed **scribbles** on fathom nodes. Thus, when a rule declares that it takes such-and-such a type as input, it can rightly assume there will be a scribble of that type on the fathom nodes that are passed in.
 
@@ -50,18 +50,18 @@ var titleFinder = ruleset(
 );
 ```
 
-Each rule is shaped like ~rule(condition, ranker function)~. A **condition** specifies what the rule takes as input: at the moment, either nodes from the DOM tree that match a certain CSS selector or else nodes tagged with a certain type by other rules. The **ranker function** is an imperative bit of code which decides what to do with a node: whether to scale its score, assign a type, or make an annotation on it.
+Each rule is shaped like `rule(condition, ranker function)`. A **condition** specifies what the rule takes as input: at the moment, either nodes from the DOM tree that match a certain CSS selector or else nodes tagged with a certain type by other rules. The **ranker function** is an imperative bit of code which decides what to do with a node: whether to scale its score, assign a type, make an annotation on it, or some combination thereof.
 
-Please pardon the verbosity; we're waiting for patterns to shake out before we choose syntactic sugar.
+Please pardon the verbosity; we're waiting for patterns to shake out before choosing syntactic sugar.
 
 ```javascript
 // Run the rules above over a DOM tree, and return a knowledgebase of facts
-// about nodes which can be queried in various ways. This is the "rank" part of
-// Fathom's 2-phase rank-and-yank algorithm.
+// about nodes which can be queried in various ways. This is the "rank" phase
+// of Fathom's 2-phase rank-and-yank algorithm.
 var knowledgebase = titleFinder.score(jsdom.jsdom("<html><head>...</html>"));
 
 // "Yank" out interesting nodes based on their types and scores. For example,
-// we might look for the highest scoring node of a given type, or we might be
-// looking for a cluster of high-scoring nodes near each other. (The yank phase
-// has yet to be implemented.)
+// we might look for the highest-scoring node of a given type, or we might look
+// for a cluster of high-scoring nodes near each other. (The yank phase has yet
+// to be implemented.)
 ```
