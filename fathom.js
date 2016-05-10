@@ -252,7 +252,16 @@ function paragraphish(node) {
 // Return a condition that uses a DOM selector to find its matches from the
 // original DOM tree.
 //
-// For consistency, Nodes will still be delivered to the transformers, but they'll have empty flavors and score = 1. If the ranker returns null, bail out and don't add the node to any indices.
+// For consistency, Nodes will still be delivered to the transformers, but
+// they'll have empty flavors and score = 1.
+//
+// Condition constructors like dom() and flavor() build stupid, introspectable
+// objects that the query engine can read. They don't actually do the query
+// themselves. That way, the query planner can be smarter than them, figuring
+// out which indices to use based on all of them. (We'll probably keep a heap
+// by each dimension's score and a hash by flavor name, for starters.) Someday,
+// fancy things like this may be possible: rule(and(tag('p'), klass('snork')),
+// ...)
 function dom(selector) {
     return {
         flavor: 'dom',
@@ -300,12 +309,6 @@ module.exports = {
 //rule(flavor('texty'), node => node.numCousinsOfAtLeastOfScore(200) * 1.5)
 // Find the texty with the highest score.
 
-// Let rules return multiple knowledgebase entries (even of multiple flavors), in case we need to label or score a node on 2 orthogonal axes.
-
-// A fancier selector design, with combinators:
-//rule(and(tag('p'), klass('snork')), scored('texty', node => node.word_count))  // and, tag, and klass are object constructors that the query engine can read. They don't actually do the query themselves. That way, a query planner can be smarter than them, figuring out which indices to use based on all of them. (We'll probably keep a heap by each dimension's score and a hash by flavor name, for starters.)
-
-// We don't need to know up front what flavors may be emitted; we can just observe which indices were touched and re-run the rules that take those flavors in, then the rules that take *those* emitted flavors in, etc.
 // How do we ensure blockquotes, h2s, uls, etc. that are part of the article are included? Maybe what we're really looking for is a single, high-scoring container (or span of a container?) and then taking either everything inside it or everything but certain excised bits (interstitial ads/relateds). There might be 2 phases: rank and yank.
 // Also do something about invisible nodes.
 
