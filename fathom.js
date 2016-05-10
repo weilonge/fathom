@@ -311,9 +311,10 @@ function fancyExample() {
 
 
 module.exports = {
-    ruleset: ruleset,
+    dom: dom,
     rule: rule,
-    dom: dom
+    ruleset: ruleset,
+    typed: typed
 };
 
 
