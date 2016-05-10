@@ -25,10 +25,10 @@ Fathom is under heavy development, and its design is still in flux. If you'd lik
 ### Parts that work so far
 
 * "Rank" phase: scoring of nodes found with a CSS selector
+* Type-driven rule dispatch
 
 ### Not working yet
 
-* Type-driven rule dispatch
 * Concise rule definitions
 * "Yank" phase
 
