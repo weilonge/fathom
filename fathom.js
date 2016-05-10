@@ -12,15 +12,14 @@ const jsdom = require('jsdom');
 
 // Get a key of a map, first setting it to a default value if it's missing.
 function getDefault(map, key, defaultMaker) {
-    var value = map.get(key);
     var defaultValue;
 
-    if (value === undefined) {
-        defaultValue = defaultMaker();
-        map.set(key, defaultValue);
-        return defaultValue;
+    if (map.has(key)) {
+        return map.get(key);
     }
-    return value;
+    defaultValue = defaultMaker();
+    map.set(key, defaultValue);
+    return defaultValue;
 }
 
 
