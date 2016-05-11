@@ -4,7 +4,7 @@ debug:
 	@node_modules/.bin/node-debug fathom.js
 
 lint:
-	@node_modules/.bin/jshint fathom.js
+	@node_modules/.bin/eslint .
 
 test:
 	@node_modules/.bin/mocha
