@@ -3,11 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
  'use strict';
 
-const flatMap = require('lodash/flatMap');
 const forEach = require('lodash/forEach');
-const map = require('lodash/map');
-const sum = require('lodash/sum');
-const jsdom = require('jsdom');
 
 
 // Get a key of a map, first setting it to a default value if it's missing.

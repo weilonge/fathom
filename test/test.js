@@ -47,6 +47,9 @@ describe('Ranker', function() {
 
     it("takes a decent shot at doing Readability's job");
     function piecesOfTheReadabilityTestCase() {
+        const map = require('lodash/map');
+        const sum = require('lodash/sum');
+
         var doc = jsdom.jsdom(`
             <p>
                 <a class="good" href="https://github.com/jsdom">Good!</a>
