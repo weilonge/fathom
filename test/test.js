@@ -1,11 +1,7 @@
 const assert = require('chai').assert;
-const jsdom = require('../node_modules/jsdom');
+const jsdom = require('jsdom');
 
-const fathom = require('../fathom'),
-      dom = fathom.dom,
-      rule = fathom.rule,
-      ruleset = fathom.ruleset,
-      flavor = fathom.flavor;
+const { dom, rule, ruleset, flavor } = require('../fathom');
 
 
 describe('Ranker', function() {
@@ -64,8 +60,8 @@ describe('Ranker', function() {
         function *walk(node, shouldTraverse) {
             if (shouldTraverse(node)) {
                 yield node;
-                for (let child of node.childNodes) {
-                    for (let w of walk(child, shouldTraverse)) {
+                for (const child of node.childNodes) {
+                    for (const w of walk(child, shouldTraverse)) {
                         yield w;
                     }
                 }
@@ -75,7 +71,7 @@ describe('Ranker', function() {
         // Yield strings of text nodes within a normalized DOM node and its children,
         // without venturing into any contained block elements.
         function *inlineTexts(node) {
-            for (let child of walk(node, node => !(isBlock(node) ||
+            for (const child of walk(node, node => !(isBlock(node) ||
                                                    node.tagName === 'script' &&
                                                    node.tagName === 'style'))) {
                 if (child.nodeType === child.TEXT_NODE) {

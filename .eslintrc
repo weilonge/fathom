@@ -7,7 +7,7 @@ extends:
   - eslint:recommended
 
 rules:
-  no-unused-vars:
-    - 2
-    - vars: all
-      args: none
+  indent: [2, 4]
+  no-unused-vars: [2, {vars: all, args: none}]
+  object-shorthand: [2, properties]
+  prefer-const: 1
