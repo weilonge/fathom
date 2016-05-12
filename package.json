@@ -13,5 +13,9 @@
     "mocha": "^2.4.5",
     "node-inspector": ">=0.12.8"
   },
-  "engine": "node >= 6.0.0"
+  "engine": "node >= 6.0.0",
+  "scripts": {
+    "lint": "make lint",
+    "test": "make test"
+  }
 }

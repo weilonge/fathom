@@ -1,7 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
- 'use strict';
+
+'use strict';
 
 const forEach = require('lodash/forEach');
 
@@ -44,16 +45,16 @@ function ruleset(...rules) {
 
             // Introduce the whole DOM into the KB as flavor 'dom' to get
             // things started:
-            nonterminals = [[{tree: tree}, 'dom']];
+            nonterminals = [[{tree}, 'dom']];
 
             // While there are new facts, run the applicable rules over them to
             // generate even newer facts. Repeat until everything's fully
             // digested. Rules run in no particular guaranteed order.
             while (nonterminals.length) {
                 [inNode, inFlavor] = nonterminals.pop();
-                for (let rule of getDefault(rulesByInputFlavor, inFlavor, () => [])) {
+                for (const rule of getDefault(rulesByInputFlavor, inFlavor, () => [])) {
                     outFacts = resultsOf(rule, inNode, inFlavor, kb);
-                    for (let fact of outFacts) {
+                    for (const fact of outFacts) {
                         outNode = kb.nodeForElement(fact.element);
 
                         // No matter whether or not this flavor has been
@@ -122,7 +123,7 @@ function knowledgebase() {
         nodeForElement: function (element) {
             return getDefault(nodesByElement,
                               element,
-                              () => ({element: element,
+                              () => ({element,
                                       score: 1,
                                       flavors: new Map()}));
         },
@@ -150,11 +151,11 @@ function *resultsOfDomRule(rule, specialDomNode, kb) {
     var matches = specialDomNode.tree.querySelectorAll(rule.source.selector);
     var newFacts;
 
-    for (let element of matches) {
+    for (const element of matches) {
         // Yield a new fact:
         newFacts = rule.ranker(kb.nodeForElement(element));
         // 1 score per Node is plenty. That simplifies our data, our rankers, our flavor system (since we don't need to represent score axes), and our engine. If somebody wants more score axes, they can fake it themselves with notes, thus paying only for what they eat. (We can even provide functions that help with that.) Most rulesets will probably be concerned with scoring only 1 thing at a time anyway. So, rankers return a score multiplier + 0 or more new flavors with optional notes. Facts can never be deleted from the KB by rankers (or order would start to matter); after all, they're *facts*.
-        for (let fact of newFacts) {
+        for (const fact of newFacts) {
             if (fact.scoreMultiplier === undefined) {
                 fact.scoreMultiplier = 1;
             }
@@ -162,7 +163,7 @@ function *resultsOfDomRule(rule, specialDomNode, kb) {
                 fact.element = element;
             }
             if (fact.flavor === undefined) {
-                throw 'Rankers of dom() rules must return a flavor in each fact. Otherwise, there is no way for that fact to be used later.';
+                throw new Error('Rankers of dom() rules must return a flavor in each fact. Otherwise, there is no way for that fact to be used later.');
             }
             yield fact;
         }
@@ -173,7 +174,7 @@ function *resultsOfDomRule(rule, specialDomNode, kb) {
 function *resultsOfFlavorRule(rule, node, flavor) {
     var newFacts = rule.ranker(node);
 
-    for (let fact of newFacts) {
+    for (const fact of newFacts) {
         if (fact.scoreMultiplier === undefined) {
             fact.scoreMultiplier = 1;
         }
@@ -214,7 +215,7 @@ function dom(selector) {
     return {
         flavor: 'dom',
         inputFlavor: 'dom',
-        selector: selector
+        selector
     };
 }
 
@@ -223,24 +224,24 @@ function dom(selector) {
 function flavor(inputFlavor) {
     return {
         flavor: 'flavor',
-        inputFlavor: inputFlavor
+        inputFlavor
     };
 }
 
 
 function rule(source, ranker) {
     return {
-        source: source,
-        ranker: ranker
+        source,
+        ranker
     };
 }
 
 
 module.exports = {
-    dom: dom,
-    rule: rule,
-    ruleset: ruleset,
-    flavor: flavor
+    dom,
+    rule,
+    ruleset,
+    flavor
 };
 
 
