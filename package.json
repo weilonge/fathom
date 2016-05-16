@@ -27,6 +27,7 @@
   },
   "scripts": {
     "lint": "make lint",
+    "pretest": "npm run lint",
     "test": "mocha"
   }
 }
