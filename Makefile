@@ -7,7 +7,7 @@ lint:
 	@node_modules/.bin/eslint .
 
 test:
-	@node_modules/.bin/mocha
+	@npm test
 
 debugtest:
 	@node_modules/.bin/mocha -d
