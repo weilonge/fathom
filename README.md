@@ -1,5 +1,7 @@
 # Fathom
 
+[![Build Status](https://travis-ci.org/mozilla/fathom.svg?branch=master)](https://travis-ci.org/mozilla/fathom)
+
 Find meaning in the web.
 
 ## Introduction
