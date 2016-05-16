@@ -1,7 +1,7 @@
 const assert = require('chai').assert;
 const jsdom = require('jsdom');
 
-const { dom, rule, ruleset, flavor } = require('../fathom');
+const {dom, rule, ruleset, flavor} = require('../fathom');
 
 
 describe('Ranker', function() {
