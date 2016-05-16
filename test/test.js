@@ -6,27 +6,27 @@ const {dom, rule, ruleset, flavor} = require('../fathom');
 
 describe('Ranker', function() {
     it('scores a node with a simple DOM rule and inserts an empty scribble', function () {
-        var doc = jsdom.jsdom(`
+        const doc = jsdom.jsdom(`
             <p>
                 <a class="good" href="https://github.com/jsdom">Good!</a>
                 <a class="bad" href="https://github.com/jsdom">Bad!</a>
             </p>
         `);
-        var rules = ruleset(
+        const rules = ruleset(
             rule(dom('a[class=good]'), node => [{scoreMultiplier: 2, flavor: 'anchor'}])
         );
-        var kb = rules.score(doc);
-        var node = kb.nodeForElement(doc.querySelectorAll('a[class=good]')[0]);
+        const kb = rules.score(doc);
+        const node = kb.nodeForElement(doc.querySelectorAll('a[class=good]')[0]);
         assert.equal(node.score, 2);
         assert.equal(node.flavors.get('anchor'), undefined);
     });
 
     it('applies flavored rules when there is input for them', function () {
-        var doc = jsdom.jsdom(`
+        const doc = jsdom.jsdom(`
             <p>Hi</p>
             <div>Hooooooo</div>
         `);
-        var rules = ruleset(
+        const rules = ruleset(
             // 2 separate rules feed into the "paragraphish" flavor:
             rule(dom('div'), node => [{flavor: 'paragraphish'}]),
             rule(dom('p'), node => [{flavor: 'paragraphish', scoreMultiplier: 2}]),
@@ -34,9 +34,9 @@ describe('Ranker', function() {
             // Then each paragraphish thing receives a bonus based on its length:
             rule(flavor('paragraphish'), node => [{scoreMultiplier: node.element.textContent.length}])
         );
-        var kb = rules.score(doc);
-        var p = kb.nodeForElement(doc.querySelectorAll('p')[0]);
-        var div = kb.nodeForElement(doc.querySelectorAll('div')[0]);
+        const kb = rules.score(doc);
+        const p = kb.nodeForElement(doc.querySelectorAll('p')[0]);
+        const div = kb.nodeForElement(doc.querySelectorAll('div')[0]);
         assert.equal(p.score, 4);
         assert.equal(div.score, 8);
     });
@@ -46,13 +46,12 @@ describe('Ranker', function() {
         const map = require('lodash/map');
         const sum = require('lodash/sum');
 
-        var doc = jsdom.jsdom(`
+        const doc = jsdom.jsdom(`
             <p>
                 <a class="good" href="https://github.com/jsdom">Good!</a>
                 <a class="bad" href="https://github.com/jsdom">Bad!</a>
             </p>
         `);
-        var rules, kb;
 
         // Iterate, depth first, over a DOM node.
         // shouldTraverse - a function on a node saying whether we should include it
@@ -98,9 +97,9 @@ describe('Ranker', function() {
             };
         }
 
-        rules = ruleset(
+        const rules = ruleset(
             rule(dom('a[class=good]'), node => [{scoreMultiplier: 2, flavor: 'anchor'}])
         );
-        kb = rules.score(doc);
+        const kb = rules.score(doc);
     }
 });

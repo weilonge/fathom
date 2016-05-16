@@ -10,4 +10,6 @@ rules:
   indent: [2, 4]
   no-unused-vars: [2, {vars: all, args: none}]
   object-shorthand: [2, properties]
+  no-var: 1
+  no-use-before-define: [error, {functions: false, classes: false}]
   prefer-const: 1

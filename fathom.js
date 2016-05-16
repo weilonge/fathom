@@ -9,12 +9,10 @@ const forEach = require('lodash/forEach');
 
 // Get a key of a map, first setting it to a default value if it's missing.
 function getDefault(map, key, defaultMaker) {
-    var defaultValue;
-
     if (map.has(key)) {
         return map.get(key);
     }
-    defaultValue = defaultMaker();
+    const defaultValue = defaultMaker();
     map.set(key, defaultValue);
     return defaultValue;
 }
@@ -22,7 +20,7 @@ function getDefault(map, key, defaultMaker) {
 
 // Construct a filtration network of rules.
 function ruleset(...rules) {
-    var rulesByInputFlavor = new Map();  // [someInputFlavor: [rule, ...]]
+    const rulesByInputFlavor = new Map();  // [someInputFlavor: [rule, ...]]
 
     // File each rule under its input flavor:
     forEach(rules,
@@ -35,9 +33,7 @@ function ruleset(...rules) {
         //
         // This is the "rank" portion of the rank-and-yank algorithm.
         score: function (tree) {
-            var kb = knowledgebase();
-            var nonterminals;  // [[node, flavor], [node, flavor], ...]
-            var inNode, inFlavor, outFacts, outNode;
+            const kb = knowledgebase();
 
             // Merge adjacent text nodes so inlineTexts() and similar rankers
             // can be simple.
@@ -45,17 +41,17 @@ function ruleset(...rules) {
 
             // Introduce the whole DOM into the KB as flavor 'dom' to get
             // things started:
-            nonterminals = [[{tree}, 'dom']];
+            const nonterminals = [[{tree}, 'dom']];  // [[node, flavor], [node, flavor], ...]
 
             // While there are new facts, run the applicable rules over them to
             // generate even newer facts. Repeat until everything's fully
             // digested. Rules run in no particular guaranteed order.
             while (nonterminals.length) {
-                [inNode, inFlavor] = nonterminals.pop();
+                const [inNode, inFlavor] = nonterminals.pop();
                 for (const rule of getDefault(rulesByInputFlavor, inFlavor, () => [])) {
-                    outFacts = resultsOf(rule, inNode, inFlavor, kb);
+                    const outFacts = resultsOf(rule, inNode, inFlavor, kb);
                     for (const fact of outFacts) {
-                        outNode = kb.nodeForElement(fact.element);
+                        const outNode = kb.nodeForElement(fact.element);
 
                         // No matter whether or not this flavor has been
                         // emitted before for this node, we multiply the score.
@@ -100,7 +96,7 @@ function ruleset(...rules) {
 // flavor (used to dispatch further rules upon) and a result (arbitrary at the
 // moment, generally containing a score).
 function knowledgebase() {
-    var nodesByFlavor = new Map();  // Map{'texty' -> [NodeA],
+    const nodesByFlavor = new Map();  // Map{'texty' -> [NodeA],
                                     //     'spiffy' -> [NodeA, NodeB]}
                                     // NodeA = {element: <someElement>,
                                     //
@@ -115,7 +111,7 @@ function knowledgebase() {
                                     //                                 someCustomScore: 10},
                                     //                       // This is an empty note:
                                     //                       'fluffy' -> undefined}}
-    var nodesByElement = new Map();
+    const nodesByElement = new Map();
 
     return {
         // Return the "node" (our own data structure that we control) that
@@ -148,12 +144,11 @@ function resultsOf(rule, node, flavor, kb) {
 // against it.
 function *resultsOfDomRule(rule, specialDomNode, kb) {
     // Use the special "tree" property of the special starting node:
-    var matches = specialDomNode.tree.querySelectorAll(rule.source.selector);
-    var newFacts;
+    const matches = specialDomNode.tree.querySelectorAll(rule.source.selector);
 
     for (const element of matches) {
         // Yield a new fact:
-        newFacts = rule.ranker(kb.nodeForElement(element));
+        const newFacts = rule.ranker(kb.nodeForElement(element));
         // 1 score per Node is plenty. That simplifies our data, our rankers, our flavor system (since we don't need to represent score axes), and our engine. If somebody wants more score axes, they can fake it themselves with notes, thus paying only for what they eat. (We can even provide functions that help with that.) Most rulesets will probably be concerned with scoring only 1 thing at a time anyway. So, rankers return a score multiplier + 0 or more new flavors with optional notes. Facts can never be deleted from the KB by rankers (or order would start to matter); after all, they're *facts*.
         for (const fact of newFacts) {
             if (fact.scoreMultiplier === undefined) {
@@ -172,7 +167,7 @@ function *resultsOfDomRule(rule, specialDomNode, kb) {
 
 
 function *resultsOfFlavorRule(rule, node, flavor) {
-    var newFacts = rule.ranker(node);
+    const newFacts = rule.ranker(node);
 
     for (const fact of newFacts) {
         if (fact.scoreMultiplier === undefined) {
@@ -243,6 +238,9 @@ module.exports = {
     ruleset,
     flavor
 };
+
+
+// TODO: Integrate jkerim's static-scored, short-circuiting rules into the design. We can make rankers more introspectable. Rankers become hashes. If you return a static score for all matches, just stick an int in there like {score: 5}. Then the ruleset can be smart enough to run the rules emitting a given type in order of decreasing possible score. (Dynamically scored rules will always be run.) Of course, we'll also have to declare what types a rule can emit: {emits: ['titley']}. Move to a more declarative ranker also moves us closer to a machine-learning-based rule deriver (or at least tuner).
 
 
 // This set of rules might be the beginning of something that works. (It's modeled after what I do when I try to do this by hand: I look for balls of black text, and I look for them to be near each other, generally siblings: a "cluster" of them.) Order of rules matters (until we find a reason to add more complexity). (We can always help people insert new rules in the desired order by providing a way to insert them before or after such-and-such a named rule.) And it turned out we didn't use the flavors much, so maybe we should get rid of those or at least factor them out.
