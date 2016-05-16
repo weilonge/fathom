@@ -42,7 +42,8 @@ describe('Ranker', function() {
     });
 
     it("takes a decent shot at doing Readability's job");
-    function piecesOfTheReadabilityTestCase() {
+    // HACK: We shouldn't ignore unused code.
+    function piecesOfTheReadabilityTestCase() { // eslint-disable-line no-unused-vars
         const map = require('lodash/map');
         const sum = require('lodash/sum');
 
@@ -70,7 +71,8 @@ describe('Ranker', function() {
         // Yield strings of text nodes within a normalized DOM node and its children,
         // without venturing into any contained block elements.
         function *inlineTexts(node) {
-            for (const child of walk(node, node => !(isBlock(node) ||
+            // HACK: Not sure why `isBlock()` is undefined below.
+            for (const child of walk(node, node => !(isBlock(node) || // eslint-disable-line no-undef
                                                    node.tagName === 'script' &&
                                                    node.tagName === 'style'))) {
                 if (child.nodeType === child.TEXT_NODE) {
@@ -89,7 +91,8 @@ describe('Ranker', function() {
 
         // Return a fact that scores a DOM node based on how much it resembles a
         // maximally tight block element full of text.
-        function paragraphish(node) {
+        // HACK: We shouldn't ignore unused code.
+        function paragraphish(node) { // eslint-disable-line no-unused-vars
             return {
                 flavor: 'paragraphish',
                 score: sum(map(inlineTexts(node),
@@ -100,6 +103,7 @@ describe('Ranker', function() {
         const rules = ruleset(
             rule(dom('a[class=good]'), node => [{scoreMultiplier: 2, flavor: 'anchor'}])
         );
-        const kb = rules.score(doc);
+        // HACK: We shouldn't ignore unused code.
+        const kb = rules.score(doc); // eslint-disable-line no-unused-vars
     }
 });
