@@ -1,44 +1,37 @@
 const assert = require('chai').assert;
 const jsdom = require('jsdom');
 
-const {dom, rule, ruleset, flavor} = require('../fathom');
+const {dom, rule, ruleset} = require('../fathom');
 
 
-describe('Ranker', function() {
-    it('scores a node with a simple DOM rule and inserts an empty scribble', function () {
+describe('Design-driving demos', function() {
+    it('Handles a simple series of short-circuiting rules', function () {
+        // TODO: Short-circuiting isn't implemented yet. The motivation here is
+        // to inspire changes to ranker functions that make them more
+        // declarative, such that the engine can be smart enough to run the
+        // highest-possible-scoring flavor-chain of rules first and, if it
+        // succeeds, omit the others.
         const doc = jsdom.jsdom(`
-            <p>
-                <a class="good" href="https://github.com/jsdom">Good!</a>
-                <a class="bad" href="https://github.com/jsdom">Bad!</a>
-            </p>
+            <meta name="hdl" content="HDL">
+            <meta property="og:title" content="OpenGraph">
+            <meta property="twitter:title" content="Twitter">
+            <title>Title</title>
         `);
         const rules = ruleset(
-            rule(dom('a[class=good]'), node => [{scoreMultiplier: 2, flavor: 'anchor'}])
+            rule(dom('meta[property="og:title"]'),
+                 node => [{scoreMultiplier: 40, flavor: 'titley', notes: node.element.content}]),
+            rule(dom('meta[property="twitter:title"]'),
+                 node => [{scoreMultiplier: 30, flavor: 'titley', notes: node.element.content}]),
+            rule(dom('meta[name="hdl"]'),
+                 node => [{scoreMultiplier: 20, flavor: 'titley', notes: node.element.content}]),
+            rule(dom('title'),
+                 node => [{scoreMultiplier: 10, flavor: 'titley', notes: node.element.text}])
         );
         const kb = rules.score(doc);
-        const node = kb.nodeForElement(doc.querySelectorAll('a[class=good]')[0]);
-        assert.equal(node.score, 2);
-        assert.equal(node.flavors.get('anchor'), undefined);
-    });
-
-    it('applies flavored rules when there is input for them', function () {
-        const doc = jsdom.jsdom(`
-            <p>Hi</p>
-            <div>Hooooooo</div>
-        `);
-        const rules = ruleset(
-            // 2 separate rules feed into the "paragraphish" flavor:
-            rule(dom('div'), node => [{flavor: 'paragraphish'}]),
-            rule(dom('p'), node => [{flavor: 'paragraphish', scoreMultiplier: 2}]),
-
-            // Then each paragraphish thing receives a bonus based on its length:
-            rule(flavor('paragraphish'), node => [{scoreMultiplier: node.element.textContent.length}])
-        );
-        const kb = rules.score(doc);
-        const p = kb.nodeForElement(doc.querySelectorAll('p')[0]);
-        const div = kb.nodeForElement(doc.querySelectorAll('div')[0]);
-        assert.equal(p.score, 4);
-        assert.equal(div.score, 8);
+        // TODO: Design a max() yanker, and use it here instead of nodeForElement().
+        const node = kb.nodeForElement(doc.querySelectorAll('meta[property="og:title"]')[0]);
+        assert.equal(node.score, 40);
+        assert.equal(node.flavors.get('titley'), 'OpenGraph');
     });
 
     it("takes a decent shot at doing Readability's job");
