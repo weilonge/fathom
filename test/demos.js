@@ -29,7 +29,7 @@ describe('Design-driving demos', function() {
         );
         const kb = rules.score(doc);
         // TODO: Design a max() yanker, and use it here instead of nodeForElement().
-        const node = kb.nodeForElement(doc.querySelectorAll('meta[property="og:title"]')[0]);
+        const node = kb.max('titley');
         assert.equal(node.score, 40);
         assert.equal(node.flavors.get('titley'), 'OpenGraph');
     });

@@ -4,7 +4,7 @@
 
 'use strict';
 
-const forEach = require('lodash/forEach');
+const {forEach, maxBy} = require('lodash');
 
 
 // Get a key of a map, first setting it to a default value if it's missing.
@@ -93,24 +93,24 @@ function ruleset(...rules) {
 
 
 // Construct a container for storing and querying facts, where a fact has a
-// flavor (used to dispatch further rules upon) and a result (arbitrary at the
-// moment, generally containing a score).
+// flavor (used to dispatch further rules upon), a corresponding DOM element, a
+// score, and some other arbitrary notes opaque to fathom.
 function knowledgebase() {
     const nodesByFlavor = new Map();  // Map{'texty' -> [NodeA],
-                                    //     'spiffy' -> [NodeA, NodeB]}
-                                    // NodeA = {element: <someElement>,
-                                    //
-                                    //          // Global nodewide score. Add
-                                    //          // custom ones with notes if
-                                    //          // you want.
-                                    //          score: 8,
-                                    //
-                                    //          // Flavors is a map of flavor names to notes:
-                                    //          flavors: Map{'texty' -> {ownText: 'blah',
-                                    //                                 someOtherNote: 'foo',
-                                    //                                 someCustomScore: 10},
-                                    //                       // This is an empty note:
-                                    //                       'fluffy' -> undefined}}
+                                      //     'spiffy' -> [NodeA, NodeB]}
+                                      // NodeA = {element: <someElement>,
+                                      //
+                                      //          // Global nodewide score. Add
+                                      //          // custom ones with notes if
+                                      //          // you want.
+                                      //          score: 8,
+                                      //
+                                      //          // Flavors is a map of flavor names to notes:
+                                      //          flavors: Map{'texty' -> {ownText: 'blah',
+                                      //                                   someOtherNote: 'foo',
+                                      //                                   someCustomScore: 10},
+                                      //                       // This is an empty note:
+                                      //                       'fluffy' -> undefined}}
     const nodesByElement = new Map();
 
     return {
@@ -122,6 +122,13 @@ function knowledgebase() {
                               () => ({element,
                                       score: 1,
                                       flavors: new Map()}));
+        },
+
+        // Return the highest-scored node of the given flavor, undefined if
+        // there is none.
+        max: function (flavor) {
+            const nodes = nodesByFlavor.get(flavor);
+            return nodes === undefined ? undefined : maxBy(nodes, node => node.score);
         },
 
         // Let the KB know that a new flavor has been added to an element.
