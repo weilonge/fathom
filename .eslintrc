@@ -11,6 +11,6 @@ rules:
   no-unused-vars: [2, {vars: all, args: none}]
   no-use-before-define: [error, {functions: false, classes: false}]
   no-var: 1
-  no-warning-comments: [1, {terms: [todo, fixme, hack], location: start}]
+  no-warning-comments: [1, {terms: [xxx, fixme, hack], location: start}]
   object-shorthand: [2, properties]
   prefer-const: 1
