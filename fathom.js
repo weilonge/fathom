@@ -4,7 +4,7 @@
 
 'use strict';
 
-const {forEach, maxBy} = require('lodash');
+const {forEach, isArray, maxBy} = require('lodash');
 
 
 // Get a key of a map, first setting it to a default value if it's missing.
@@ -167,12 +167,8 @@ function *resultsOfDomRule(rule, specialDomNode, kb) {
     const matches = specialDomNode.tree.querySelectorAll(rule.source.selector);
 
     for (const element of matches) {
-        // Yield a new fact:
-        const newFacts = rule.ranker(kb.nodeForElement(element));
+        const newFacts = explicitFacts(rule.ranker(kb.nodeForElement(element)));
         for (const fact of newFacts) {
-            if (fact.score === undefined) {
-                fact.score = 1;
-            }
             if (fact.element === undefined) {
                 fact.element = element;
             }
@@ -186,12 +182,9 @@ function *resultsOfDomRule(rule, specialDomNode, kb) {
 
 
 function *resultsOfFlavorRule(rule, node, flavor) {
-    const newFacts = rule.ranker(node);
+    const newFacts = explicitFacts(rule.ranker(node));
 
     for (const fact of newFacts) {
-        if (fact.score === undefined) {
-            fact.score = 1;
-        }
         // If the ranker didn't specify a different element, assume it's
         // talking about the one we passed in:
         if (fact.element === undefined) {
@@ -205,11 +198,30 @@ function *resultsOfFlavorRule(rule, node, flavor) {
 }
 
 
+// Take the possibly abbreviated output of a ranker function, and make it
+// explicitly an iterable with a defined score.
+//
+// Rankers can return undefined, which means "no facts", a single fact, or an
+// array of facts.
+function *explicitFacts(rankerResult) {
+    const array = (rankerResult === undefined) ? [] : (isArray(rankerResult) ? rankerResult : [rankerResult]);
+    for (const fact of array) {
+        if (fact.score === undefined) {
+            fact.score = 1;
+        }
+        yield fact;
+    }
+}
+
+
 // TODO: For the moment, a lot of responsibility is on the rankers to return a
 // pretty big data structure of up to 4 properties. This is a bit verbose for
 // an arrow function (as I hope we can use most of the time) and the usual case
 // will probably be returning just a score multiplier. Make that case more
 // concise.
+
+// TODO: It is likely that rankers should receive the notes of their input type
+// as a 2nd arg, for brevity.
 
 
 // Return a condition that uses a DOM selector to find its matches from the
