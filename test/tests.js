@@ -13,7 +13,7 @@ describe('Ranker tests', function() {
             </p>
         `);
         const rules = ruleset(
-            rule(dom('a[class=good]'), node => [{scoreMultiplier: 2, flavor: 'anchor'}])
+            rule(dom('a[class=good]'), node => [{score: 2, flavor: 'anchor'}])
         );
         const kb = rules.score(doc);
         const node = kb.nodeForElement(doc.querySelectorAll('a[class=good]')[0]);
@@ -29,10 +29,10 @@ describe('Ranker tests', function() {
         const rules = ruleset(
             // 2 separate rules feed into the "paragraphish" flavor:
             rule(dom('div'), node => [{flavor: 'paragraphish'}]),
-            rule(dom('p'), node => [{flavor: 'paragraphish', scoreMultiplier: 2}]),
+            rule(dom('p'), node => [{flavor: 'paragraphish', score: 2}]),
 
             // Then each paragraphish thing receives a bonus based on its length:
-            rule(flavor('paragraphish'), node => [{scoreMultiplier: node.element.textContent.length}])
+            rule(flavor('paragraphish'), node => [{score: node.element.textContent.length}])
         );
         const kb = rules.score(doc);
         const p = kb.nodeForElement(doc.querySelectorAll('p')[0]);

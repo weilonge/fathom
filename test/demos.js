@@ -19,16 +19,15 @@ describe('Design-driving demos', function() {
         `);
         const rules = ruleset(
             rule(dom('meta[property="og:title"]'),
-                 node => [{scoreMultiplier: 40, flavor: 'titley', notes: node.element.content}]),
+                 node => [{score: 40, flavor: 'titley', notes: node.element.content}]),
             rule(dom('meta[property="twitter:title"]'),
-                 node => [{scoreMultiplier: 30, flavor: 'titley', notes: node.element.content}]),
+                 node => [{score: 30, flavor: 'titley', notes: node.element.content}]),
             rule(dom('meta[name="hdl"]'),
-                 node => [{scoreMultiplier: 20, flavor: 'titley', notes: node.element.content}]),
+                 node => [{score: 20, flavor: 'titley', notes: node.element.content}]),
             rule(dom('title'),
-                 node => [{scoreMultiplier: 10, flavor: 'titley', notes: node.element.text}])
+                 node => [{score: 10, flavor: 'titley', notes: node.element.text}])
         );
         const kb = rules.score(doc);
-        // TODO: Design a max() yanker, and use it here instead of nodeForElement().
         const node = kb.max('titley');
         assert.equal(node.score, 40);
         assert.equal(node.flavors.get('titley'), 'OpenGraph');
@@ -94,7 +93,7 @@ describe('Design-driving demos', function() {
         }
 
         const rules = ruleset(
-            rule(dom('a[class=good]'), node => [{scoreMultiplier: 2, flavor: 'anchor'}])
+            rule(dom('a[class=good]'), node => [{score: 2, flavor: 'anchor'}])
         );
         // HACK: We shouldn't ignore unused code.
         const kb = rules.score(doc); // eslint-disable-line no-unused-vars

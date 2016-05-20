@@ -58,7 +58,20 @@ function ruleset(...rules) {
                         // We want to be able to add rules that refine the
                         // scoring of a node, without having to rewire the path
                         // of flavors that winds through the ruleset.
-                        outNode.score *= fact.scoreMultiplier;
+                        //
+                        // 1 score per Node is plenty. That simplifies our
+                        // data, our rankers, our flavor system (since we don't
+                        // need to represent score axes), and our engine. If
+                        // somebody wants more score axes, they can fake it
+                        // themselves with notes, thus paying only for what
+                        // they eat. (We can even provide functions that help
+                        // with that.) Most rulesets will probably be concerned
+                        // with scoring only 1 thing at a time anyway. So,
+                        // rankers return a score multiplier + 0 or more new
+                        // flavors with optional notes. Facts can never be
+                        // deleted from the KB by rankers (or order would start
+                        // to matter); after all, they're *facts*.
+                        outNode.score *= fact.score;
 
                         // Add a new annotation to a node--but only if there
                         // wasn't already one of the given flavor already
@@ -156,10 +169,9 @@ function *resultsOfDomRule(rule, specialDomNode, kb) {
     for (const element of matches) {
         // Yield a new fact:
         const newFacts = rule.ranker(kb.nodeForElement(element));
-        // 1 score per Node is plenty. That simplifies our data, our rankers, our flavor system (since we don't need to represent score axes), and our engine. If somebody wants more score axes, they can fake it themselves with notes, thus paying only for what they eat. (We can even provide functions that help with that.) Most rulesets will probably be concerned with scoring only 1 thing at a time anyway. So, rankers return a score multiplier + 0 or more new flavors with optional notes. Facts can never be deleted from the KB by rankers (or order would start to matter); after all, they're *facts*.
         for (const fact of newFacts) {
-            if (fact.scoreMultiplier === undefined) {
-                fact.scoreMultiplier = 1;
+            if (fact.score === undefined) {
+                fact.score = 1;
             }
             if (fact.element === undefined) {
                 fact.element = element;
@@ -177,8 +189,8 @@ function *resultsOfFlavorRule(rule, node, flavor) {
     const newFacts = rule.ranker(node);
 
     for (const fact of newFacts) {
-        if (fact.scoreMultiplier === undefined) {
-            fact.scoreMultiplier = 1;
+        if (fact.score === undefined) {
+            fact.score = 1;
         }
         // If the ranker didn't specify a different element, assume it's
         // talking about the one we passed in:
