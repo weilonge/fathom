@@ -1,11 +1,12 @@
 const assert = require('chai').assert;
 const jsdom = require('jsdom');
+const {map, sum} = require('lodash');
 
 const {dom, rule, ruleset} = require('../fathom');
 
 
 describe('Design-driving demos', function() {
-    it('Handles a simple series of short-circuiting rules', function () {
+    it('handles a simple series of short-circuiting rules', function () {
         // TODO: Short-circuiting isn't implemented yet. The motivation here is
         // to inspire changes to ranker functions that make them more
         // declarative, such that the engine can be smart enough to run the
@@ -33,19 +34,7 @@ describe('Design-driving demos', function() {
         assert.equal(node.flavors.get('titley'), 'OpenGraph');
     });
 
-    it("takes a decent shot at doing Readability's job");
-    // HACK: We shouldn't ignore unused code.
-    function piecesOfTheReadabilityTestCase() { // eslint-disable-line no-unused-vars
-        const map = require('lodash/map');
-        const sum = require('lodash/sum');
-
-        const doc = jsdom.jsdom(`
-            <p>
-                <a class="good" href="https://github.com/jsdom">Good!</a>
-                <a class="bad" href="https://github.com/jsdom">Bad!</a>
-            </p>
-        `);
-
+    it("takes a decent shot at doing Readability's job", function () {
         // Iterate, depth first, over a DOM node.
         // shouldTraverse - a function on a node saying whether we should include it
         //     and its children
@@ -63,12 +52,12 @@ describe('Design-driving demos', function() {
         // Yield strings of text nodes within a normalized DOM node and its children,
         // without venturing into any contained block elements.
         function *inlineTexts(node) {
-            // HACK: Not sure why `isBlock()` is undefined below.
-            for (const child of walk(node, node => !(isBlock(node) || // eslint-disable-line no-undef
-                                                   node.tagName === 'script' &&
-                                                   node.tagName === 'style'))) {
+            for (const child of walk(node,
+                                     node => !(isBlock(node) ||
+                                               node.tagName === 'script' &&
+                                               node.tagName === 'style'))) {
                 if (child.nodeType === child.TEXT_NODE) {
-                    // .wholeText is what needs the DOM tree to be normalized.
+                    // .wholeText needs the DOM tree to be normalized.
                     // Otherwise, it'll return the contents of adjacent text nodes,
                     // too, and we'll get those contents a second time when we traverse
                     // to them.
@@ -81,21 +70,51 @@ describe('Design-driving demos', function() {
             return str.replace(/\s{2,}/g, ' ');
         }
 
-        // Return a fact that scores a DOM node based on how much it resembles a
-        // maximally tight block element full of text.
-        // HACK: We shouldn't ignore unused code.
-        function paragraphish(node) { // eslint-disable-line no-unused-vars
+        // Score a node based on how much text is directly inside it and its
+        // inline-tag children.
+        function paragraphishByLength(node) {
             return {
                 flavor: 'paragraphish',
                 score: sum(map(inlineTexts(node),
-                               str => collapseWhitespace.length))
+                               text => collapseWhitespace(text).length))
             };
         }
 
+        const doc = jsdom.jsdom(`
+            <p>
+                <a class="good" href="/things">Things</a> / <a class="bad" href="/things/tongs">Tongs</a>
+            </p>
+            <p>
+                Once upon a time, there was a large bear named Sid. Sid was very large and bearish, and he had a bag of hammers.
+            </p>
+            <p>
+                One day, Sid traded the bag of hammers to a serial scribbler named Sam for a dozen doughnuts. It was a good trade. Sid lived happily ever after.
+            </p>
+        `);
+        // This set of rules might be the beginning of something that works.
+        // (It's modeled after what I do when I try to do this by hand: I look
+        // for balls of black text, and I look for them to be near each other,
+        // generally siblings: a "cluster" of them.)
         const rules = ruleset(
-            rule(dom('a[class=good]'), node => [{score: 2, flavor: 'anchor'}])
+            // Score on text length -> texty. We start with this because, no matter
+            // the other markup details, the main body text is definitely going to
+            // have a bunch of text.
+            rule(dom('p,div'), paragraphishByLength)
+
+            //rule(flavor('paragraphish'), node => ({score: linkDensity})),
+
+            // Give bonuses for being in p tags. TODO: article tags, too
+            //rule(flavor('texty'), node => ({score: node.el.tagName === 'p' ? 1.5 : 1})),
+
+            // Give bonuses for being (nth) cousins of other texties. IOW,
+            // texties that are the same-leveled children of a common ancestor
+            // get a bonus.
+            //rule(flavor('texty'), node => ({score: numCousinsOfAtLeastOfScore(node, 200) * 1.5}))
+
+            // TODO: How do we ensure blockquotes, h2s, uls, etc. that are part of the article are included? Maybe what we're really looking for is a single, high-scoring container (or span of a container?) and then taking either everything inside it or everything but certain excised bits (interstitial ads/relateds). There might be 2 phases: rank and yank.
+            // TODO: Also do something about invisible nodes.
         );
-        // HACK: We shouldn't ignore unused code.
-        const kb = rules.score(doc); // eslint-disable-line no-unused-vars
-    }
+        const kb = rules.score(doc);
+        debugger;
+    });
 });
