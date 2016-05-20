@@ -7,12 +7,12 @@
     "url": "https://github.com/mozilla/fathom/issues"
   },
   "dependencies": {
-    "jsdom": "^8.3.0",
     "lodash-es": "^4.10.0"
   },
   "devDependencies": {
     "chai": "^3.5.0",
     "eslint": "^2.9.0",
+    "jsdom": "^8.3.0",
     "mocha": "^2.4.5",
     "node-inspector": ">=0.12.8"
   },
