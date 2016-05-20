@@ -41,14 +41,14 @@ Fathom recognizes the significant parts of DOM trees. But what is significant? Y
 ```javascript
 var titleFinder = ruleset(
     // Give any title tag a score of 1, and tag it as title-ish:
-    rule(dom("title"), node => [{scoreMultiplier: 1, flavor: 'titley'}]),
+    rule(dom("title"), node => [{score: 1, flavor: 'titley'}]),
 
     // Give any OpenGraph meta tag a score of 2, and tag it as title-ish as well:
-    rule(dom("meta[og:title]") node => [{scoreMultiplier: 2, flavor: 'titley'}]),
+    rule(dom("meta[og:title]") node => [{score: 2, flavor: 'titley'}]),
 
     // Take all title-ish things, and punish them if they contain
     // navigational claptrap like colons or dashes:
-    rule(flavor("titley"), node => [{scoreMultiplier: containsColonsOrDashes(node.element) ? 2 : 1}])
+    rule(flavor("titley"), node => [{score: containsColonsOrDashes(node.element) ? 2 : 1}])
 );
 ```
 
@@ -65,7 +65,7 @@ For example...
 
 ```javascript
 function someRanker(node) {
-    return [{scoreMultiplier: 3,
+    return [{score: 3,
              element: node.element,  // unnecessary, since this is the default
              flavor: 'texty',
              notes: {suspicious: true}}];
