@@ -4,7 +4,36 @@
 
 'use strict';
 
-const {forEach, isArray, maxBy} = require('lodash');
+const {forEach} = require('wu');
+
+
+function identity(x) {
+    return x;
+}
+
+
+// Return the maximum item from an iterable, as defined by >.
+//
+// Works with any type that works with >. If multiple items are equally great,
+// return the first.
+//
+// by: a function that, given an item of the iterable, returns a value to
+//     compare
+function max(iterable, by = identity) {
+    let maxSoFar, maxKeySoFar;
+    let isFirst = true;
+    forEach(
+        function (item) {
+            const key = by(item);
+            if (key > maxKeySoFar || isFirst) {
+                maxSoFar = item;
+                maxKeySoFar = key;
+                isFirst = false;
+            }
+        },
+        iterable);
+    return maxSoFar;
+}
 
 
 // Get a key of a map, first setting it to a default value if it's missing.
@@ -23,8 +52,8 @@ function ruleset(...rules) {
     const rulesByInputFlavor = new Map();  // [someInputFlavor: [rule, ...]]
 
     // File each rule under its input flavor:
-    forEach(rules,
-            rule => getDefault(rulesByInputFlavor, rule.source.inputFlavor, () => []).push(rule));
+    forEach(rule => getDefault(rulesByInputFlavor, rule.source.inputFlavor, () => []).push(rule),
+            rules);
 
     return {
         // Iterate over a DOM tree or subtree, building up a knowledgebase, a
@@ -137,7 +166,7 @@ function knowledgebase() {
         // there is none.
         max: function (flavor) {
             const nodes = nodesByFlavor.get(flavor);
-            return nodes === undefined ? undefined : maxBy(nodes, node => node.score);
+            return nodes === undefined ? undefined : max(nodes, node => node.score);
         },
 
         // Let the KB know that a new flavor has been added to an element.
@@ -204,7 +233,7 @@ function *resultsOfFlavorRule(rule, node, flavor) {
 // Rankers can return undefined, which means "no facts", a single fact, or an
 // array of facts.
 function *explicitFacts(rankerResult) {
-    const array = (rankerResult === undefined) ? [] : (isArray(rankerResult) ? rankerResult : [rankerResult]);
+    const array = (rankerResult === undefined) ? [] : (Array.isArray(rankerResult) ? rankerResult : [rankerResult]);
     for (const fact of array) {
         if (fact.score === undefined) {
             fact.score = 1;

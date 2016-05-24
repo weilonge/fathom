@@ -7,7 +7,7 @@
     "url": "https://github.com/mozilla/fathom/issues"
   },
   "dependencies": {
-    "lodash-es": "^4.10.0"
+    "wu": "^2.1.0"
   },
   "devDependencies": {
     "chai": "^3.5.0",
@@ -18,7 +18,11 @@
   },
   "engine": "node >= 6.0.0",
   "homepage": "https://github.com/mozilla/fathom",
-  "keywords": ["semantic extraction", "scoring", "ranking"],
+  "keywords": [
+    "semantic extraction",
+    "scoring",
+    "ranking"
+  ],
   "license": "MPL-2.0",
   "main": "fathom.js",
   "repository": {

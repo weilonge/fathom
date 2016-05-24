@@ -1,8 +1,26 @@
 const assert = require('chai').assert;
 const jsdom = require('jsdom');
-const {map, sum} = require('lodash');
+const {forEach, map} = require('wu');
 
 const {dom, rule, ruleset} = require('../fathom');
+
+
+// Return the sum of an iterable, as defined by the + operator.
+function sum(iterable) {
+    let total;
+    let isFirst = true;
+    forEach(
+        function assignOrAdd(addend) {
+            if (isFirst) {
+                total = addend;
+                isFirst = false;
+            } else {
+                total += addend;
+            }
+        },
+        iterable);
+    return total;
+}
 
 
 describe('Design-driving demos', function() {
@@ -50,11 +68,11 @@ describe('Design-driving demos', function() {
         }
 
         const blockTags = new Set();
-        map(['ADDRESS', 'BLOCKQUOTE', 'BODY', 'CENTER', 'DIR', 'DIV', 'DL', 'FIELDSET',
-             'FORM', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'HR', 'ISINDEX', 'MENU',
-             'NOFRAMES', 'NOSCRIPT', 'OL', 'P', 'PRE', 'TABLE', 'UL', 'DD', 'DT',
-             'FRAMESET', 'LI', 'TBODY', 'TD', 'TFOOT', 'TH', 'THEAD', 'TR', 'HTML'],
-            blockTags.add.bind(blockTags));
+        forEach(blockTags.add.bind(blockTags),
+                ['ADDRESS', 'BLOCKQUOTE', 'BODY', 'CENTER', 'DIR', 'DIV', 'DL', 'FIELDSET',
+                 'FORM', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'HR', 'ISINDEX', 'MENU',
+                 'NOFRAMES', 'NOSCRIPT', 'OL', 'P', 'PRE', 'TABLE', 'UL', 'DD', 'DT',
+                 'FRAMESET', 'LI', 'TBODY', 'TD', 'TFOOT', 'TH', 'THEAD', 'TR', 'HTML']);
         // Return whether a DOM element is a block element by default (rather
         // than by styling).
         function isBlock(element) {
@@ -86,11 +104,10 @@ describe('Design-driving demos', function() {
         // Score a node based on how much text is directly inside it and its
         // inline-tag children.
         function paragraphishByLength(node) {
-            const texts = Array.from(inlineTexts(node.element));
             return {
                 flavor: 'paragraphish',
-                score: sum(map(texts,
-                               text => collapseWhitespace(text).length))
+                score: sum(map(text => collapseWhitespace(text).length,
+                               inlineTexts(node.element)))
             };
         }
 
