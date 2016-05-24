@@ -174,7 +174,7 @@ function knowledgebase() {
             getDefault(nodesByFlavor, flavor, () => []).push(node);
         },
 
-        nodesByFlavor: function (flavor) {
+        nodesOfFlavor: function (flavor) {
             return getDefault(nodesByFlavor, flavor, () => []);
         }
     };

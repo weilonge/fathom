@@ -69,19 +69,19 @@ describe('Design-driving demos', function() {
 
         const blockTags = new Set();
         forEach(blockTags.add.bind(blockTags),
-                ['ADDRESS', 'BLOCKQUOTE', 'BODY', 'CENTER', 'DIR', 'DIV', 'DL', 'FIELDSET',
-                 'FORM', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'HR', 'ISINDEX', 'MENU',
-                 'NOFRAMES', 'NOSCRIPT', 'OL', 'P', 'PRE', 'TABLE', 'UL', 'DD', 'DT',
-                 'FRAMESET', 'LI', 'TBODY', 'TD', 'TFOOT', 'TH', 'THEAD', 'TR', 'HTML']);
+                ['ADDRESS', 'BLOCKQUOTE', 'BODY', 'CENTER', 'DIR', 'DIV', 'DL',
+                 'FIELDSET', 'FORM', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'HR',
+                 'ISINDEX', 'MENU', 'NOFRAMES', 'NOSCRIPT', 'OL', 'P', 'PRE',
+                 'TABLE', 'UL', 'DD', 'DT', 'FRAMESET', 'LI', 'TBODY', 'TD',
+                 'TFOOT', 'TH', 'THEAD', 'TR', 'HTML']);
         // Return whether a DOM element is a block element by default (rather
         // than by styling).
         function isBlock(element) {
             return blockTags.has(element.tagName);
         }
 
-        // Yield strings of text nodes within a normalized DOM node and its children,
-        // without venturing into any contained block elements.
-        function *inlineTexts(element) {
+        // Yield strings of text nodes within a normalized DOM node and its
+        // children, without venturing into any contained block elements.
             for (const child of walk(element,
                                      element => !(isBlock(element) ||
                                                   element.tagName === 'script' &&
@@ -148,8 +148,8 @@ describe('Design-driving demos', function() {
             // TODO: Also do something about invisible nodes.
         );
         const kb = rules.score(doc);
-        const paragraphishes = kb.nodesByFlavor('paragraphish');
         assert.equal(paragraphishes[0].score, 16)
+        const paragraphishes = kb.nodesOfFlavor('paragraphish');
         assert.equal(paragraphishes[1].score, 114)
         assert.equal(paragraphishes[3].score, 146)
     });

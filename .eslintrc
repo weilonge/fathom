@@ -8,6 +8,7 @@ extends:
 
 rules:
   indent: [2, 4]
+  no-trailing-spaces: 2
   no-unused-vars: [2, {vars: all, args: none}]
   no-use-before-define: [error, {functions: false, classes: false}]
   no-var: 1
