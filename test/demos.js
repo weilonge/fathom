@@ -2,7 +2,7 @@ const assert = require('chai').assert;
 const jsdom = require('jsdom');
 const {forEach, map} = require('wu');
 
-const {dom, rule, ruleset} = require('../fathom');
+const {dom, flavor, rule, ruleset} = require('../fathom');
 
 
 // Return the sum of an iterable, as defined by the + operator.
@@ -82,10 +82,17 @@ describe('Design-driving demos', function() {
 
         // Yield strings of text nodes within a normalized DOM node and its
         // children, without venturing into any contained block elements.
+        //
+        // shouldTraverse: A function that specifies additional elements to
+        //     exclude by returning false
+        function *inlineTexts(element, shouldTraverse = element => true) {
+            // TODO: Could we just use querySelectorAll() with a really long
+            // selector rather than walk(), for speed?
             for (const child of walk(element,
                                      element => !(isBlock(element) ||
-                                                  element.tagName === 'script' &&
-                                                  element.tagName === 'style'))) {
+                                                  element.tagName === 'SCRIPT' &&
+                                                  element.tagName === 'STYLE')
+                                                && shouldTraverse(element))) {
                 if (child.nodeType === child.TEXT_NODE) {
                     // wholeText() is not implemented by jsdom, so we use
                     // textContent(). The result should be the same, since
@@ -97,6 +104,11 @@ describe('Design-driving demos', function() {
             }
         }
 
+        function inlineTextLength(element, shouldTraverse = element => true) {
+            return sum(map(text => collapseWhitespace(text).length,
+                           inlineTexts(element, shouldTraverse)));
+        }
+
         function collapseWhitespace(str) {
             return str.replace(/\s{2,}/g, ' ');
         }
@@ -104,11 +116,21 @@ describe('Design-driving demos', function() {
         // Score a node based on how much text is directly inside it and its
         // inline-tag children.
         function paragraphishByLength(node) {
+            const length = inlineTextLength(node.element);
             return {
                 flavor: 'paragraphish',
-                score: sum(map(text => collapseWhitespace(text).length,
-                               inlineTexts(node.element)))
+                score: length,
+                notes: {inlineLength: length}  // Store expensive inline length.
             };
+        }
+
+        // Return the ratio of the inline text length of the links in an
+        // element to the inline text length of the entire element.
+        function linkDensity(node) {
+            const length = node.flavors.get('paragraphish').inlineLength;
+            const lengthWithoutLinks = inlineTextLength(node.element,
+                                                        element => element.tagName !== 'A');
+            return (length - lengthWithoutLinks) / length;
         }
 
         const doc = jsdom.jsdom(`
@@ -132,9 +154,10 @@ describe('Design-driving demos', function() {
             // Score on text length -> texty. We start with this because, no matter
             // the other markup details, the main body text is definitely going to
             // have a bunch of text.
-            rule(dom('p,div'), paragraphishByLength)
+            rule(dom('p,div'), paragraphishByLength),
 
-            //rule(flavor('paragraphish'), node => ({score: linkDensity})),
+            // Scale it by inverse of link density:
+            rule(flavor('paragraphish'), node => ({score: 1 - linkDensity(node)}))
 
             // Give bonuses for being in p tags. TODO: article tags, too
             //rule(flavor('texty'), node => ({score: node.el.tagName === 'p' ? 1.5 : 1})),
@@ -144,12 +167,13 @@ describe('Design-driving demos', function() {
             // get a bonus.
             //rule(flavor('texty'), node => ({score: numCousinsOfAtLeastOfScore(node, 200) * 1.5}))
 
+            // Then do a nontrivial yanker which figures out which clump of high-scoring paragraphishes and the things between them to grab.
             // TODO: How do we ensure blockquotes, h2s, uls, etc. that are part of the article are included? Maybe what we're really looking for is a single, high-scoring container (or span of a container?) and then taking either everything inside it or everything but certain excised bits (interstitial ads/relateds). There might be 2 phases: rank and yank.
             // TODO: Also do something about invisible nodes.
         );
         const kb = rules.score(doc);
-        assert.equal(paragraphishes[0].score, 16)
         const paragraphishes = kb.nodesOfFlavor('paragraphish');
+        assert.equal(paragraphishes[0].score, 5)
         assert.equal(paragraphishes[1].score, 114)
         assert.equal(paragraphishes[3].score, 146)
     });
