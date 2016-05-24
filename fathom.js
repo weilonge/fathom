@@ -4,7 +4,36 @@
 
 'use strict';
 
-const {forEach, isArray, maxBy} = require('lodash');
+const {forEach} = require('wu');
+
+
+function identity(x) {
+    return x;
+}
+
+
+// Return the maximum item from an iterable, as defined by >.
+//
+// Works with any type that works with >. If multiple items are equally great,
+// return the first.
+//
+// by: a function that, given an item of the iterable, returns a value to
+//     compare
+function max(iterable, by = identity) {
+    let maxSoFar, maxKeySoFar;
+    let isFirst = true;
+    forEach(
+        function (item) {
+            const key = by(item);
+            if (key > maxKeySoFar || isFirst) {
+                maxSoFar = item;
+                maxKeySoFar = key;
+                isFirst = false;
+            }
+        },
+        iterable);
+    return maxSoFar;
+}
 
 
 // Get a key of a map, first setting it to a default value if it's missing.
@@ -23,8 +52,8 @@ function ruleset(...rules) {
     const rulesByInputFlavor = new Map();  // [someInputFlavor: [rule, ...]]
 
     // File each rule under its input flavor:
-    forEach(rules,
-            rule => getDefault(rulesByInputFlavor, rule.source.inputFlavor, () => []).push(rule));
+    forEach(rule => getDefault(rulesByInputFlavor, rule.source.inputFlavor, () => []).push(rule),
+            rules);
 
     return {
         // Iterate over a DOM tree or subtree, building up a knowledgebase, a
@@ -34,10 +63,6 @@ function ruleset(...rules) {
         // This is the "rank" portion of the rank-and-yank algorithm.
         score: function (tree) {
             const kb = knowledgebase();
-
-            // Merge adjacent text nodes so inlineTexts() and similar rankers
-            // can be simple.
-            tree.normalize();
 
             // Introduce the whole DOM into the KB as flavor 'dom' to get
             // things started:
@@ -141,12 +166,16 @@ function knowledgebase() {
         // there is none.
         max: function (flavor) {
             const nodes = nodesByFlavor.get(flavor);
-            return nodes === undefined ? undefined : maxBy(nodes, node => node.score);
+            return nodes === undefined ? undefined : max(nodes, node => node.score);
         },
 
         // Let the KB know that a new flavor has been added to an element.
         indexNodeByFlavor: function (node, flavor) {
             getDefault(nodesByFlavor, flavor, () => []).push(node);
+        },
+
+        nodesByFlavor: function (flavor) {
+            return getDefault(nodesByFlavor, flavor, () => []);
         }
     };
 }
@@ -204,7 +233,7 @@ function *resultsOfFlavorRule(rule, node, flavor) {
 // Rankers can return undefined, which means "no facts", a single fact, or an
 // array of facts.
 function *explicitFacts(rankerResult) {
-    const array = (rankerResult === undefined) ? [] : (isArray(rankerResult) ? rankerResult : [rankerResult]);
+    const array = (rankerResult === undefined) ? [] : (Array.isArray(rankerResult) ? rankerResult : [rankerResult]);
     for (const fact of array) {
         if (fact.score === undefined) {
             fact.score = 1;
@@ -274,19 +303,6 @@ module.exports = {
 // TODO: Integrate jkerim's static-scored, short-circuiting rules into the design. We can make rankers more introspectable. Rankers become hashes. If you return a static score for all matches, just stick an int in there like {score: 5}. Then the ruleset can be smart enough to run the rules emitting a given type in order of decreasing possible score. (Dynamically scored rules will always be run.) Of course, we'll also have to declare what types a rule can emit: {emits: ['titley']}. Move to a more declarative ranker also moves us closer to a machine-learning-based rule deriver (or at least tuner).
 
 
-// This set of rules might be the beginning of something that works. (It's modeled after what I do when I try to do this by hand: I look for balls of black text, and I look for them to be near each other, generally siblings: a "cluster" of them.) Order of rules matters (until we find a reason to add more complexity). (We can always help people insert new rules in the desired order by providing a way to insert them before or after such-and-such a named rule.) And it turned out we didn't use the flavors much, so maybe we should get rid of those or at least factor them out.
-// score on text length -> texty. We start with this because, no matter the other markup details, the main body text is definitely going to have a bunch of text. Every node starts with a score of 1, so we can just multiply all the time.
-//rule(dom('p,div'), node => ['texty', len(node.mergedStrippedInnerTextNakedOrInInlineTags)] if > 0 else null)  // maybe log or sqrt(char_count) or something. Char count might work even for CJK. mergedInnerTextNakedOrInInInlineTags() doesn't count chars in, say, p (or any other block-level) tags within a div tag.
-//rule(flavor('texty'), node.linkDensity)
-// give bonuses for being in p tags. TODO: article tags, too
-//rule(flavor('texty'), node => node.el.tagName === 'p' ? 1.5 : 1)
-// give bonuses for being (nth) cousins of other texties  // IOW, texties that are the same-leveled children of a common ancestor get a bonus.
-//rule(flavor('texty'), node => node.numCousinsOfAtLeastOfScore(200) * 1.5)
-// Find the texty with the highest score.
-
-// How do we ensure blockquotes, h2s, uls, etc. that are part of the article are included? Maybe what we're really looking for is a single, high-scoring container (or span of a container?) and then taking either everything inside it or everything but certain excised bits (interstitial ads/relateds). There might be 2 phases: rank and yank.
-// Also do something about invisible nodes.
-
 // Future possible fanciness:
 // * Metarules, e.g. specific rules for YouTube if it's extremely weird. Maybe they can just take simple predicates over the DOM: metarule(dom => !isEmpty(dom.querySelectorAll('body[youtube]')), rule(...)). Maybe they'll have to be worse: the result of a full rank-and-yank process themselves. Or maybe we can somehow implement them without having to have a special "meta" kind of rule at all.
 // * Different kinds of "mixing" than just multiplication, though this makes us care even more that rules execute in order and in series. An alternative may be to have rankers lay down the component numbers and a yanker do the fancier math.
@@ -298,7 +314,7 @@ module.exports = {
 // * It probably could use a declarative yanking system to go with the ranking one: the "reduce" to its "map". We may want to implement a few imperatively first, though, and see what patterns shake out.
 
 // Yankers:
-// max score (on some dimension)
+// max score (of some flavor)
 // max-scored sibling cluster (maybe a contiguous span of containers around high-scoring ones, like a blur algo allowing occasional flecks of low-scoring noise)
 // adjacent max-scored sibling clusters (like for Readability's remove-extra-paragraphs test, which has 2 divs, each containing <p>s)
 //
