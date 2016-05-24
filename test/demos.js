@@ -35,13 +35,13 @@ describe('Design-driving demos', function() {
     });
 
     it("takes a decent shot at doing Readability's job", function () {
-        // Iterate, depth first, over a DOM node.
+        // Iterate, depth first, over a DOM node. Return the original node first.
         // shouldTraverse - a function on a node saying whether we should include it
         //     and its children
-        function *walk(node, shouldTraverse) {
-            if (shouldTraverse(node)) {
-                yield node;
-                for (const child of node.childNodes) {
+        function *walk(element, shouldTraverse) {
+            yield element;
+            for (const child of element.childNodes) {
+                if (shouldTraverse(child)) {
                     for (const w of walk(child, shouldTraverse)) {
                         yield w;
                     }
@@ -49,19 +49,32 @@ describe('Design-driving demos', function() {
             }
         }
 
+        const blockTags = new Set();
+        map(['ADDRESS', 'BLOCKQUOTE', 'BODY', 'CENTER', 'DIR', 'DIV', 'DL', 'FIELDSET',
+             'FORM', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'HR', 'ISINDEX', 'MENU',
+             'NOFRAMES', 'NOSCRIPT', 'OL', 'P', 'PRE', 'TABLE', 'UL', 'DD', 'DT',
+             'FRAMESET', 'LI', 'TBODY', 'TD', 'TFOOT', 'TH', 'THEAD', 'TR', 'HTML'],
+            blockTags.add.bind(blockTags));
+        // Return whether a DOM element is a block element by default (rather
+        // than by styling).
+        function isBlock(element) {
+            return blockTags.has(element.tagName);
+        }
+
         // Yield strings of text nodes within a normalized DOM node and its children,
         // without venturing into any contained block elements.
-        function *inlineTexts(node) {
-            for (const child of walk(node,
-                                     node => !(isBlock(node) ||
-                                               node.tagName === 'script' &&
-                                               node.tagName === 'style'))) {
+        function *inlineTexts(element) {
+            for (const child of walk(element,
+                                     element => !(isBlock(element) ||
+                                                  element.tagName === 'script' &&
+                                                  element.tagName === 'style'))) {
                 if (child.nodeType === child.TEXT_NODE) {
-                    // .wholeText needs the DOM tree to be normalized.
-                    // Otherwise, it'll return the contents of adjacent text nodes,
-                    // too, and we'll get those contents a second time when we traverse
-                    // to them.
-                    yield child.wholeText;
+                    // wholeText() is not implemented by jsdom, so we use
+                    // textContent(). The result should be the same, since
+                    // we're calling it on only text nodes, but it may be
+                    // slower. On the positive side, it means we don't need to
+                    // normalize the DOM tree first.
+                    yield child.textContent;
                 }
             }
         }
@@ -73,9 +86,10 @@ describe('Design-driving demos', function() {
         // Score a node based on how much text is directly inside it and its
         // inline-tag children.
         function paragraphishByLength(node) {
+            const texts = Array.from(inlineTexts(node.element));
             return {
                 flavor: 'paragraphish',
-                score: sum(map(inlineTexts(node),
+                score: sum(map(texts,
                                text => collapseWhitespace(text).length))
             };
         }
@@ -87,9 +101,11 @@ describe('Design-driving demos', function() {
             <p>
                 Once upon a time, there was a large bear named Sid. Sid was very large and bearish, and he had a bag of hammers.
             </p>
-            <p>
-                One day, Sid traded the bag of hammers to a serial scribbler named Sam for a dozen doughnuts. It was a good trade. Sid lived happily ever after.
-            </p>
+            <div>
+                <p>
+                    One day, Sid traded the bag of hammers to a serial scribbler named Sam for a dozen doughnuts. It was a good trade. Sid lived happily ever after.
+                </p>
+            </div>
         `);
         // This set of rules might be the beginning of something that works.
         // (It's modeled after what I do when I try to do this by hand: I look
@@ -115,6 +131,9 @@ describe('Design-driving demos', function() {
             // TODO: Also do something about invisible nodes.
         );
         const kb = rules.score(doc);
-        debugger;
+        const paragraphishes = kb.nodesByFlavor('paragraphish');
+        assert.equal(paragraphishes[0].score, 16)
+        assert.equal(paragraphishes[1].score, 114)
+        assert.equal(paragraphishes[3].score, 146)
     });
 });

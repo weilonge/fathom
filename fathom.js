@@ -35,10 +35,6 @@ function ruleset(...rules) {
         score: function (tree) {
             const kb = knowledgebase();
 
-            // Merge adjacent text nodes so inlineTexts() and similar rankers
-            // can be simple.
-            tree.normalize();
-
             // Introduce the whole DOM into the KB as flavor 'dom' to get
             // things started:
             const nonterminals = [[{tree}, 'dom']];  // [[node, flavor], [node, flavor], ...]
@@ -147,6 +143,10 @@ function knowledgebase() {
         // Let the KB know that a new flavor has been added to an element.
         indexNodeByFlavor: function (node, flavor) {
             getDefault(nodesByFlavor, flavor, () => []).push(node);
+        },
+
+        nodesByFlavor: function (flavor) {
+            return getDefault(nodesByFlavor, flavor, () => []);
         }
     };
 }
