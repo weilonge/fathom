@@ -6,6 +6,16 @@ const jsdom = require('jsdom');
 const {distance} = require('../utils');
 
 
+// Assert that the distance between nodes a and b is greater in the `deep` DOM
+// tree than in the `shallow` one.
+function assertFarther(deep, shallow) {
+    assert.isAbove(distance(deep.getElementById('a'),
+                            deep.getElementById('b')),
+                   distance(shallow.getElementById('a'),
+                            shallow.getElementById('b')));
+}
+
+
 describe('Utils tests', function() {
     describe('distance()', function() {
         it('considers deeper nodes farther than shallower', function () {
@@ -37,10 +47,7 @@ describe('Utils tests', function() {
                     </div>
                 </body>
             `);
-            assert.isAbove(distance(deep.getElementById('a'),
-                                    deep.getElementById('b')),
-                           distance(shallow.getElementById('a'),
-                                    shallow.getElementById('b')));
+            assertFarther(deep, shallow);
         });
 
         it("doesn't trip over different-lengthed subtrees", function () {
@@ -60,7 +67,35 @@ describe('Utils tests', function() {
             `);
             assert.equal(distance(doc.getElementById('a'),
                                   doc.getElementById('b')),
-                         4);
+                         4);  // brittle
+        });
+
+        it('rates descents through similar tags as shorter', function () {
+            const dissimilar = jsdom.jsdom(`
+                <body>
+                    <center>
+                        <div id="a">
+                        </div>
+                    </center>
+                    <div>
+                        <div id="b">
+                        </div>
+                    </div>
+                </body>
+            `);
+            const similar = jsdom.jsdom(`
+                <body>
+                    <div>
+                        <div id="a">
+                        </div>
+                    </div>
+                    <div>
+                        <div id="b">
+                        </div>
+                    </div>
+                </body>
+            `);
+            assertFarther(dissimilar, similar);
         });
     });
 });
