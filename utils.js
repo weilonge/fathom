@@ -118,7 +118,7 @@ function distance(elementA, elementB) {
 
     // Make an ancestor stack for the right node too so we can walk
     // efficiently down to it:
-    while (!bAncestor.isSameNode(aAncestor)) {
+    while (bAncestor !== aAncestor) {
         bAncestor = bAncestor.parentNode;
         bAncestors.push(bAncestor);
     }
@@ -142,20 +142,19 @@ function distance(elementA, elementB) {
 
     return cost;
 
-    //let left
     // TODO: As we descend, we can use compareDocumentPosition() to tell which one's to the left, then walk from it nextSiblingward until we hit the right or run out of nodes (that'll take care of both the first level, when they'll be siblings, and others, when they won't), penalizing along the way. Actually, maybe count siblings between them on the first level, then just count additional nodes to the right of the left one and to the left of the right one at each later level.
     // TODO: Every time we ascend, keep track of how many siblings we've skipped over and add a proportionate penalty.
     // Note: for compareDocumentPosition(), inside implies after. Basically, before and after pertain to opening tags.
-
 }
 
 
 module.exports = {
-    distance,
-    walk,
-    isBlock,
-    inlineTexts,
-    inlineTextLength,
     collapseWhitespace,
-    linkDensity
+    distance,
+    inlineTextLength,
+    inlineTexts,
+    isBlock,
+    linkDensity,
+    sum,
+    walk
 };
