@@ -1,8 +1,5 @@
 all:
 
-debug:
-	@node_modules/.bin/node-debug fathom.js
-
 lint:
 	@node_modules/.bin/eslint .
 
@@ -16,4 +13,4 @@ debugtest:
 	# debugtest`, then open http://127.0.0.1:8080/debug?port=5858 in Chrome.
 	@node_modules/.bin/mocha -d
 
-.PHONY: all debug lint test
+.PHONY: all lint test debugtest

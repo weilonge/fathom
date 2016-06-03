@@ -1,7 +1,9 @@
+// Tests for fathom/index.js
+
 const assert = require('chai').assert;
 const jsdom = require('jsdom');
 
-const {dom, rule, ruleset, flavor} = require('../fathom');
+const {dom, rule, ruleset, flavor} = require('../index');
 
 
 describe('Ranker tests', function() {

@@ -14,7 +14,7 @@ A study of existing projects like Readability and Distiller suggests that purely
 
 Here are some specific areas we address:
 
-* Browser-native DOM nodes are mostly immutable, so storing intermediate data on them is clumsy. Fathom addresses this by providing the **fathom node** (confusing name—will change), a proxy behind each DOM node which we can scribble on.
+* Browser-native DOM nodes are mostly immutable, and `HTMLElement.dataset` is string-typed, so storing arbitrary intermediate data on nodes is clumsy. Fathom addresses this by providing the **fathom node** (confusing name—will change), a proxy around each DOM node which we can scribble on.
 * With imperative extractors, any experiments or site-specific customizations must be hard-coded in. Fathom's rulesets, on the other hand, are unordered and therefore decoupled, stitched together only by the **flavors** they consume and emit. External rules can thus be plugged into existing rulesets, making it easy to experiment (without maintaining a fork) or to provide dedicated rules for particularly intractable web sites.
 * Flavors provide a convenient way of tagging DOM nodes as belonging to certain categories, typically narrowing as the extractor's work progresses. A typical complex extractor would start by assigning a broad flavor to a set of candidate nodes, then fine-tune by examining them more closely and assigning additional, more specific flavors in a later rule.
 * The flavor system also makes explicit the division between an extractor's public and private APIs: the flavors are public, and the imperative stuff that goes on inside ranker functions is private. Third-party rules can use the flavors as hook points to interpose themselves.
@@ -28,11 +28,12 @@ Fathom is under heavy development, and its design is still in flux. If you'd lik
 
 * "Rank" phase: scoring of nodes found with a CSS selector
 * Flavor-driven rule dispatch
+* A simple "yanker" or two
 
 ### Not working yet
 
 * Concise rule definitions
-* "Yank" phase
+* Clustering yankers
 
 ## Example
 

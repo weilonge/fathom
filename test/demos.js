@@ -1,26 +1,8 @@
 const assert = require('chai').assert;
 const jsdom = require('jsdom');
-const {forEach, map} = require('wu');
 
-const {dom, flavor, rule, ruleset} = require('../fathom');
-
-
-// Return the sum of an iterable, as defined by the + operator.
-function sum(iterable) {
-    let total;
-    let isFirst = true;
-    forEach(
-        function assignOrAdd(addend) {
-            if (isFirst) {
-                total = addend;
-                isFirst = false;
-            } else {
-                total += addend;
-            }
-        },
-        iterable);
-    return total;
-}
+const {dom, flavor, rule, ruleset} = require('../index');
+const {inlineTextLength, linkDensity} = require('../utils');
 
 
 describe('Design-driving demos', function() {
@@ -53,66 +35,6 @@ describe('Design-driving demos', function() {
     });
 
     it("takes a decent shot at doing Readability's job", function () {
-        // Iterate, depth first, over a DOM node. Return the original node first.
-        // shouldTraverse - a function on a node saying whether we should include it
-        //     and its children
-        function *walk(element, shouldTraverse) {
-            yield element;
-            for (const child of element.childNodes) {
-                if (shouldTraverse(child)) {
-                    for (const w of walk(child, shouldTraverse)) {
-                        yield w;
-                    }
-                }
-            }
-        }
-
-        const blockTags = new Set();
-        forEach(blockTags.add.bind(blockTags),
-                ['ADDRESS', 'BLOCKQUOTE', 'BODY', 'CENTER', 'DIR', 'DIV', 'DL',
-                 'FIELDSET', 'FORM', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'HR',
-                 'ISINDEX', 'MENU', 'NOFRAMES', 'NOSCRIPT', 'OL', 'P', 'PRE',
-                 'TABLE', 'UL', 'DD', 'DT', 'FRAMESET', 'LI', 'TBODY', 'TD',
-                 'TFOOT', 'TH', 'THEAD', 'TR', 'HTML']);
-        // Return whether a DOM element is a block element by default (rather
-        // than by styling).
-        function isBlock(element) {
-            return blockTags.has(element.tagName);
-        }
-
-        // Yield strings of text nodes within a normalized DOM node and its
-        // children, without venturing into any contained block elements.
-        //
-        // shouldTraverse: A function that specifies additional elements to
-        //     exclude by returning false
-        function *inlineTexts(element, shouldTraverse = element => true) {
-            // TODO: Could we just use querySelectorAll() with a really long
-            // selector rather than walk(), for speed?
-            for (const child of walk(element,
-                                     element => !(isBlock(element) ||
-                                                  element.tagName === 'SCRIPT' &&
-                                                  element.tagName === 'STYLE')
-                                                && shouldTraverse(element))) {
-                if (child.nodeType === child.TEXT_NODE) {
-                    // wholeText() is not implemented by jsdom, so we use
-                    // textContent(). The result should be the same, since
-                    // we're calling it on only text nodes, but it may be
-                    // slower. On the positive side, it means we don't need to
-                    // normalize the DOM tree first.
-                    yield child.textContent;
-                }
-            }
-        }
-
-        function inlineTextLength(element, shouldTraverse = element => true) {
-            return sum(map(text => collapseWhitespace(text).length,
-                           inlineTexts(element, shouldTraverse)));
-        }
-
-        function collapseWhitespace(str) {
-            return str.replace(/\s{2,}/g, ' ');
-        }
-
         // Score a node based on how much text is directly inside it and its
         // inline-tag children.
         function paragraphishByLength(node) {
@@ -122,15 +44,6 @@ describe('Design-driving demos', function() {
                 score: length,
                 notes: {inlineLength: length}  // Store expensive inline length.
             };
-        }
-
-        // Return the ratio of the inline text length of the links in an
-        // element to the inline text length of the entire element.
-        function linkDensity(node) {
-            const length = node.flavors.get('paragraphish').inlineLength;
-            const lengthWithoutLinks = inlineTextLength(node.element,
-                                                        element => element.tagName !== 'A');
-            return (length - lengthWithoutLinks) / length;
         }
 
         const doc = jsdom.jsdom(`
@@ -173,8 +86,8 @@ describe('Design-driving demos', function() {
         );
         const kb = rules.score(doc);
         const paragraphishes = kb.nodesOfFlavor('paragraphish');
-        assert.equal(paragraphishes[0].score, 5)
-        assert.equal(paragraphishes[1].score, 114)
-        assert.equal(paragraphishes[3].score, 146)
+        assert.equal(paragraphishes[0].score, 5);
+        assert.equal(paragraphishes[1].score, 114);
+        assert.equal(paragraphishes[3].score, 146);
     });
 });
