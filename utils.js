@@ -94,6 +94,45 @@ function linkDensity(node) {
 }
 
 
+// Return the next sibling node of `element`, skipping over text nodes that
+// consist wholly of whitespace.
+function isWhitespace(element) {
+    return (element.nodeType === element.TEXT_NODE &&
+            element.textContent.trim().length === 0);
+}
+
+
+// Return the number of stride nodes between 2 DOM nodes at the same
+// level of the tree, without going up or down the tree.
+//
+// left xor right may also be undefined.
+function numStrides(left, right) {
+    let num = 0;
+
+    // Walk right from left node until we hit the right node or run out:
+    let sibling = left;
+    let shouldContinue = sibling && sibling !== right;
+    while (shouldContinue) {
+        sibling = sibling.nextSibling;
+        if ((shouldContinue = sibling && sibling !== right) &&
+            !isWhitespace(sibling)) {
+            num += 1;
+        }
+    }
+    if (sibling !== right) {  // Don't double-punish if left and right are siblings.
+        // Walk left from right node:
+        sibling = right;
+        while (sibling) {
+            sibling = sibling.previousSibling;
+            if (sibling && !isWhitespace(sibling)) {
+                num += 1;
+            }
+        }
+    }
+    return num;
+}
+
+
 // The Nokia paper starts with all nodes being their own cluster, then merges adjacent clusters that have minimal cost-of-merge (C(x, y)), then repeats until minimal cost-of-merge is infinity (that is, disallowed).
 // They keep siblings together by punishing mergings proportional to the number of nodes they repeat. (Segmentations always go all the way to the root.)
 
@@ -107,8 +146,14 @@ function linkDensity(node) {
 function distance(elementA, elementB) {
     let aAncestor = elementA;
     let bAncestor = elementB;
-    const aAncestors = [];
-    const bAncestors = [];
+
+    // These go from the common ancestor all the way to A and B:
+    const aAncestors = [elementA];
+    const bAncestors = [elementB];
+
+    if (elementA === elementB) {
+        return 0;
+    }
 
     // Ascend to common parent, stacking them up for later reference:
     while (!aAncestor.contains(elementB)) {
@@ -118,27 +163,49 @@ function distance(elementA, elementB) {
 
     // Make an ancestor stack for the right node too so we can walk
     // efficiently down to it:
-    while (bAncestor !== aAncestor) {
-        bAncestor = bAncestor.parentNode;
+    do {
+        bAncestor = bAncestor.parentNode;  // Assumes we've early-returned above if A === B.
         bAncestors.push(bAncestor);
+    } while (bAncestor !== aAncestor);
+
+    // Figure out which node is left and which is right, so we can follow
+    // sibling links in the appropriate directions when looking for stride
+    // nodes:
+    let left = aAncestors;
+    let right = bAncestors;
+    const comparison = elementA.compareDocumentPosition(elementB);
+    let cost = 0;
+    let mightStride;
+    if (comparison & elementA.DOCUMENT_POSITION_FOLLOWING) {
+        // A is before, so it could contain the other node.
+        mightStride = !(comparison & elementA.DOCUMENT_POSITION_CONTAINED_BY)
+        left = aAncestors;
+        right = bAncestors;
+    } else if (comparison & elementA.DOCUMENT_POSITION_PRECEDING) {
+        // A is after, so it might be contained by the other node.
+        mightStride = !(comparison & elementA.DOCUMENT_POSITION_CONTAINS)
+        left = bAncestors;
+        right = aAncestors;
     }
 
     // Descend to both nodes in parallel, discounting the traversal
     // cost iff the nodes we hit look similar, implying the nodes dwell
-    // within similar structures:
-    let longer = aAncestors,
-        shorter = bAncestors;
-    let cost = 0;
-    if (longer.length < shorter.length) {
-        [longer, shorter] = [shorter, longer];
-    }
+    // within similar structures.
     // None of the following cost numbers are tested or tuned yet.
-    while (shorter.length) {
-        const l = longer.pop();
-        const s = shorter.pop();
-        cost += (l.tagName === s.tagName) ? 1 : 2;
+    while (left.length || right.length) {
+        const l = left.pop();
+        const r = right.pop();
+        if (l === undefined || r === undefined) {
+            // Punishment for being at different depths: same as ordinary
+            // dissimilarity punishment for now
+            cost += 2;
+        } else {
+            cost += l.tagName === r.tagName ? 1 : 2;
+        }
+        if (mightStride) {
+            cost += numStrides(l, r) * 1;
+        }
     }
-    cost += longer.length * 2;  // Punishment for being at different depths: same as ordinary dissimilarity punishment for now
 
     return cost;
 
