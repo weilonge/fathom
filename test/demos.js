@@ -89,5 +89,14 @@ describe('Design-driving demos', function() {
         assert.equal(paragraphishes[0].score, 5);
         assert.equal(paragraphishes[1].score, 114);
         assert.equal(paragraphishes[3].score, 146);
+
+//         assert.equal(clusters(paragraphishes),
+//                      [[paragraphishes[0],
+//                        paragraphishes[1]],
+//                       [paragraphishes[3]]]);
+        // Then pick the cluster with the highest sum of scores or the cluster around the highest-scoring node or the highest-scoring cluster by some formula (num typed nodes * scores of the nodes), and contiguous() it so things like ads are excluded but short paragraphs are included.
     });
 });
+
+// Right now, I'm writing features. We can use a supervised learning algorithm to find their coefficients. Someday, we can stop writing features and have deep learning algorithm come up with them. TODO: Grok unsupervised learning, and apply it to OpenCrawl.
+// If we ever end up doing actual processing server-side, consider cheeriojs instead of jsdom. It may be 8x faster, though with a different API.

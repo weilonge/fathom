@@ -102,8 +102,12 @@ function isWhitespace(element) {
 }
 
 
-// Return the number of stride nodes between 2 DOM nodes at the same
-// level of the tree, without going up or down the tree.
+// Return the number of stride nodes between 2 DOM nodes *at the same
+// level of the tree*, without going up or down the tree.
+//
+// Stride nodes are {(1) siblings or (2) siblings of ancestors} that lie
+// between the 2 nodes. These interposed nodes make it less likely that the 2
+// nodes should be together in a cluster.
 //
 // left xor right may also be undefined.
 function numStrides(left, right) {
@@ -133,27 +137,33 @@ function numStrides(left, right) {
 }
 
 
-// The Nokia paper starts with all nodes being their own cluster, then merges adjacent clusters that have minimal cost-of-merge (C(x, y)), then repeats until minimal cost-of-merge is infinity (that is, disallowed).
-// They keep siblings together by punishing mergings proportional to the number of nodes they repeat. (Segmentations always go all the way to the root.)
-
 // Return a distance measurement between 2 DOM nodes.
 //
-// left: the node a depth-first, post-order traversal would hit first. (This will matter only if we later make this care about sibling-skipping. // XXX: walk() is pre-order, I think.
-//
 // I was thinking of something that adds little cost for siblings.
-// Also consider similarity of tagName and classList.
 // Up should probably be more expensive than down (see middle example in the Nokia paper).
 function distance(elementA, elementB) {
-    let aAncestor = elementA;
-    let bAncestor = elementB;
-
-    // These go from the common ancestor all the way to A and B:
-    const aAncestors = [elementA];
-    const bAncestors = [elementB];
+    // TODO: Test and tune these costs. They're off-the-cuff at the moment.
+    //
+    // Cost for each level deeper one is than the other below their common
+    // ancestor:
+    const DIFFERENT_DEPTH_COST = 2;
+    // Cost for a level below the common ancestor where tagNames differ:
+    const DIFFERENT_TAG_COST = 2;
+    // Cost for a level below the common ancestor where tagNames are the same:
+    const SAME_TAG_COST = 1;
+    // Cost for each stride node between A and B:
+    const STRIDE_COST = 1;
 
     if (elementA === elementB) {
         return 0;
     }
+
+    // Stacks that go from the common ancestor all the way to A and B:
+    const aAncestors = [elementA];
+    const bAncestors = [elementB];
+
+    let aAncestor = elementA;
+    let bAncestor = elementB;
 
     // Ascend to common parent, stacking them up for later reference:
     while (!aAncestor.contains(elementB)) {
@@ -173,6 +183,8 @@ function distance(elementA, elementB) {
     // nodes:
     let left = aAncestors;
     let right = bAncestors;
+    // In compareDocumentPosition()'s opinion, inside implies after. Basically,
+    // before and after pertain to opening tags.
     const comparison = elementA.compareDocumentPosition(elementB);
     let cost = 0;
     let mightStride;
@@ -191,28 +203,37 @@ function distance(elementA, elementB) {
     // Descend to both nodes in parallel, discounting the traversal
     // cost iff the nodes we hit look similar, implying the nodes dwell
     // within similar structures.
-    // None of the following cost numbers are tested or tuned yet.
     while (left.length || right.length) {
         const l = left.pop();
         const r = right.pop();
         if (l === undefined || r === undefined) {
             // Punishment for being at different depths: same as ordinary
             // dissimilarity punishment for now
-            cost += 2;
+            cost += DIFFERENT_DEPTH_COST;
         } else {
-            cost += l.tagName === r.tagName ? 1 : 2;
+            // TODO: Consider similarity of classList.
+            cost += l.tagName === r.tagName ? SAME_TAG_COST : DIFFERENT_TAG_COST;
         }
         if (mightStride) {
-            cost += numStrides(l, r) * 1;
+            cost += numStrides(l, r) * STRIDE_COST;
         }
     }
 
     return cost;
-
-    // TODO: As we descend, we can use compareDocumentPosition() to tell which one's to the left, then walk from it nextSiblingward until we hit the right or run out of nodes (that'll take care of both the first level, when they'll be siblings, and others, when they won't), penalizing along the way. Actually, maybe count siblings between them on the first level, then just count additional nodes to the right of the left one and to the left of the right one at each later level.
-    // TODO: Every time we ascend, keep track of how many siblings we've skipped over and add a proportionate penalty.
-    // Note: for compareDocumentPosition(), inside implies after. Basically, before and after pertain to opening tags.
 }
+
+
+// The Nokia paper starts with all nodes being their own cluster, then merges adjacent clusters that have minimal cost-of-merge (C(x, y)), then repeats until minimal cost-of-merge is infinity (that is, disallowed).
+// They keep siblings together by punishing mergings proportional to the number of nodes they repeat. (Segmentations always go all the way to the root.)
+
+// Divide the given nodes into one or more clusters by position in the DOM tree.
+// Maybe later we'll consider score or notes.
+//
+// Worst case: every node is in its own cluster.
+// function clusters(nodes) {
+//
+// }
+
 
 
 module.exports = {

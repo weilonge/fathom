@@ -112,10 +112,8 @@ describe('Utils tests', function() {
             assertFarther(dissimilar, similar);
         });
 
+        // NEXT: To join the clusters, choose a "linkage criterion", likely the min distance between any node in X and any node in Y, because we're interested in finding adjacent clusters, not overlapping ones.
         it('punishes the existence of stride nodes', function () {
-            // "Stride" nodes are {(1) siblings or (2) siblings of ancestors}
-            // that lie between the 2 nodes. These interposed nodes make it
-            // less likely that the 2 nodes should be together in a cluster.
             const noStride = jsdom.jsdom(`
                 <body>
                     <div>
