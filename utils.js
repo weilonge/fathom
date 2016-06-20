@@ -1,4 +1,4 @@
-const {forEach, map} = require('wu');
+const {flatten, forEach, map} = require('wu');
 
 
 function identity(x) {
@@ -40,6 +40,9 @@ function max(iterable, by = identity) {
 }
 
 
+function min(iterable, by = identity) {
+    return best(iterable, by, (a, b) => a < b);
+}
 
 
 // Return the sum of an iterable, as defined by the + operator.
@@ -57,6 +60,15 @@ function sum(iterable) {
         },
         iterable);
     return total;
+}
+
+
+function length(iterable) {
+    let num = 0;
+    for (const item of iterable) {
+        num++;
+    }
+    return num;
 }
 
 
@@ -182,10 +194,11 @@ function numStrides(left, right) {
 //
 // I was thinking of something that adds little cost for siblings.
 // Up should probably be more expensive than down (see middle example in the Nokia paper).
+// O(n log n)
 function distance(elementA, elementB) {
     // TODO: Test and tune these costs. They're off-the-cuff at the moment.
     //
-    // Cost for each level deeper one is than the other below their common
+    // Cost for each level deeper one node is than the other below their common
     // ancestor:
     const DIFFERENT_DEPTH_COST = 2;
     // Cost for a level below the common ancestor where tagNames differ:
@@ -255,6 +268,7 @@ function distance(elementA, elementB) {
             // TODO: Consider similarity of classList.
             cost += l.tagName === r.tagName ? SAME_TAG_COST : DIFFERENT_TAG_COST;
         }
+        // Optimization: strides might be a good dimension to eliminate.
         if (mightStride) {
             cost += numStrides(l, r) * STRIDE_COST;
         }
@@ -264,29 +278,168 @@ function distance(elementA, elementB) {
 }
 
 
-// The Nokia paper starts with all nodes being their own cluster, then merges adjacent clusters that have minimal cost-of-merge (C(x, y)), then repeats until minimal cost-of-merge is infinity (that is, disallowed).
-// They keep siblings together by punishing mergings proportional to the number of nodes they repeat. (Segmentations always go all the way to the root.)
+// A lower-triangular matrix of inter-cluster distances
+// TODO: Allow distance function to be passed in, making this generally useful
+// and not tied to the DOM.
+class DistanceMatrix {
+    constructor (elements) {
+        // A sparse adjacency matrix:
+        // {A => {},
+        //  B => {A => 4},
+        //  C => {A => 4, B => 4},
+        //  D => {A => 4, B => 4, C => 4}
+        //  E => {A => 4, B => 4, C => 4, D => 4}}
+        //
+        // A, B, etc. are arrays of [arrays of arrays of...] DOM nodes, each
+        // array being a cluster. In this way, they not only accumulate a
+        // cluster but retain the steps along the way.
+        //
+        // This is an efficient data structure in terms of CPU and memory, in
+        // that we don't have to slide a lot of memory around when we delete a
+        // row or column from the middle of the matrix while merging. Of
+        // course, we lose some practical efficiency by using hash tables, and
+        // maps in particular are slow in their early implementations.
+        this._matrix = new Map();
 
-// Divide the given nodes into one or more clusters by position in the DOM tree.
+        // Convert elements to clusters:
+        const clusters = elements.map(el => [el]);
+
+        // Init matrix:
+        for (const outerCluster of clusters) {
+            const innerMap = new Map();
+            for (const innerCluster of this._matrix.keys()) {
+                innerMap.set(innerCluster, distance(outerCluster[0],
+                                                    innerCluster[0]));
+            }
+            this._matrix.set(outerCluster, innerMap);
+        }
+    }
+
+    // Return (distance, a: clusterA, b: clusterB) of closest-together clusters.
+    // Replace this to change linkage criterion.
+    closest () {
+        const self = this;
+
+        // Return the distances between every pair of clusters.
+        function *clustersAndDistances() {
+            for (const [outerKey, row] of self._matrix.entries()) {
+                for (const [innerKey, storedDistance] of row.entries()) {
+                    yield {a: outerKey, b: innerKey, distance: storedDistance};
+                }
+            }
+        }
+        return min(clustersAndDistances(), x => x.distance);
+    }
+
+    // Look up the distance between 2 clusters in me. Try the lookup in the
+    // other direction if the first one falls in the nonexistent half of the
+    // triangle.
+    _cachedDistance (clusterA, clusterB) {
+        let ret = this._matrix.get(clusterA).get(clusterB);
+        if (ret === undefined) {
+            ret = this._matrix.get(clusterB).get(clusterA);
+        }
+        return ret;
+    }
+
+    // Merge two clusters.
+    merge (clusterA, clusterB) {
+        // An example showing how rows merge:
+        //  A: {}
+        //  B: {A: 1}
+        //  C: {A: 4, B: 4},
+        //  D: {A: 4, B: 4, C: 4}
+        //  E: {A: 4, B: 4, C: 2, D: 4}}
+        //
+        // Step 2:
+        //  C: {}
+        //  D: {C: 4}
+        //  E: {C: 2, D: 4}}
+        //  AB: {C: 4, D: 4, E: 4}
+        //
+        // Step 3:
+        //  D:  {}
+        //  AB: {D: 4}
+        //  CE: {D: 4, AB: 4}
+
+        // Construct new row, finding min distances from either subcluster of
+        // the new cluster to old clusters.
+        //
+        // There will be no repetition in the matrix because, after all,
+        // nothing pointed to this new cluster before it existed.
+        const newRow = new Map();
+        for (const outerKey of this._matrix.keys()) {
+            if (outerKey !== clusterA && outerKey !== clusterB) {
+                newRow.set(outerKey, Math.min(this._cachedDistance(clusterA, outerKey),
+                                              this._cachedDistance(clusterB, outerKey)));
+            }
+        }
+
+        // Delete the rows of the clusters we're merging.
+        this._matrix.delete(clusterA);
+        this._matrix.delete(clusterB);
+
+        // Remove inner refs to the clusters we're merging.
+        for (const inner of this._matrix.values()) {
+            inner.delete(clusterA);
+            inner.delete(clusterB);
+        }
+
+        // Attach new row.
+        this._matrix.set([clusterA, clusterB], newRow);
+    }
+
+    numClusters () {
+        return length(this._matrix.keys());  // TODO: Store so we needn't scan over keys.
+    }
+
+    // Return an Array of nodes for each cluster in me.
+    clusters () {
+        // TODO: Can't get wu.map to work here. Don't know why.
+        return Array.from(this._matrix.keys()).map(e => Array.from(flatten(false, e)));
+    }
+}
+
+
+// Partition the given nodes into one or more clusters by position in the DOM
+// tree.
+//
+// elements: An Array of DOM nodes
+// tooFar: The closest-nodes distance() beyond which we will not attempt to
+//     unify 2 clusters
+//
+// This implements an agglomerative clustering. It uses single linkage, since
+// we're talking about adjacency here more than Euclidean proximity: the
+// clusters we're talking about in the DOM will tend to be adjacent, not
+// overlapping. We haven't tried other linkage criteria yet.
+//
 // Maybe later we'll consider score or notes.
-//
-// Worst case: every node is in its own cluster.
-// function clusters(nodes) {
-//
-// }
+function clusters(elements, tooFar) {
+    const matrix = new DistanceMatrix(elements);
+    let closest;
 
+    // TODO: Move all this into DistanceMatrix so we might not need a public numClusters().
+    while (matrix.numClusters() > 1 && (closest = matrix.closest()).distance < tooFar) {
+        matrix.merge(closest.a, closest.b);
+    }
+
+    return matrix.clusters();
+}
 
 
 module.exports = {
     best,
     collapseWhitespace,
+    clusters,
     distance,
     identity,
     inlineTextLength,
     inlineTexts,
     isBlock,
+    length,
     linkDensity,
     max,
+    min,
     sum,
     walk
 };

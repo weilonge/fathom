@@ -3,7 +3,7 @@
 const assert = require('chai').assert;
 const jsdom = require('jsdom').jsdom;
 
-const {distance} = require('../utils');
+const {distance, clusters} = require('../utils');
 
 
 // Assert that the distance between nodes a and b is greater in the `deep` DOM
@@ -112,7 +112,6 @@ describe('Utils tests', function() {
             assertFarther(dissimilar, similar);
         });
 
-        // NEXT: To join the clusters, choose a "linkage criterion", likely the min distance between any node in X and any node in Y, because we're interested in finding adjacent clusters, not overlapping ones.
         it('punishes the existence of stride nodes', function () {
             const noStride = jsdom(`
                 <body>
@@ -183,6 +182,50 @@ describe('Utils tests', function() {
             assertFarther(edgeSiblings, noStride);
             assertFarther(stride, noStride);
             assertFarther(interposedSiblings, noSiblings);
+        });
+    });
+
+    describe('clusters()', function() {
+        it('groups nearby similar nodes together', function() {
+            const doc = jsdom(`
+                <body>
+                    <div>
+                        <a id="A">A</a>
+                        <a id="B">B</a>
+                        <a id="C">C</a>
+                    </div>
+                    <div>
+                        <a id="D">D</a>
+                        <a id="E">E</a>
+                        <a id="F">F</a>
+                    </div>
+                    <div>
+                    </div>
+                    <div>
+                    </div>
+                    <div>
+                    </div>
+                    <div>
+                        <div>
+                            <div>
+                                <a id="G">G</a>
+                            </div>
+                        </div>
+                    </div>
+                </body>
+            `);
+            // The first 2 sets of <a> tags should be in one cluster, and the
+            // last, at a different depth and separated by stride nodes, should
+            // be in another.
+            const TOO_FAR = 10;
+            const theClusters = clusters(Array.from(doc.querySelectorAll('a')),
+                                         TOO_FAR);
+
+            // Here's a hacky way to compare Arrays by value. You can't do it
+            // with Sets either. JS is an awful language.
+            const readableClusters = JSON.stringify(theClusters.map(cluster => cluster.map(el => el.getAttribute('id'))));
+            assert.equal(readableClusters, '[["G"],["E","D","F","B","A","C"]]');
+            // The order of any of the 3 arrays is deterministic but doesn't matter.
         });
     });
 });

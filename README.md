@@ -30,11 +30,11 @@ Fathom is under heavy development, and its design is still in flux. If you'd lik
 * Flavor-driven rule dispatch
 * A simple "yanker" or two
 * A notion of DOM node distance influenced by structural similarity
+* Clustering
 
 ### Not working yet
 
 * Concise rule definitions
-* Clustering yankers
 
 ## Example
 
