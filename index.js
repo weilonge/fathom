@@ -5,35 +5,7 @@
 'use strict';
 
 const {forEach} = require('wu');
-
-
-function identity(x) {
-    return x;
-}
-
-
-// Return the maximum item from an iterable, as defined by >.
-//
-// Works with any type that works with >. If multiple items are equally great,
-// return the first.
-//
-// by: a function that, given an item of the iterable, returns a value to
-//     compare
-function max(iterable, by = identity) {
-    let maxSoFar, maxKeySoFar;
-    let isFirst = true;
-    forEach(
-        function (item) {
-            const key = by(item);
-            if (key > maxKeySoFar || isFirst) {
-                maxSoFar = item;
-                maxKeySoFar = key;
-                isFirst = false;
-            }
-        },
-        iterable);
-    return maxSoFar;
-}
+const {max} = require('./utils');
 
 
 // Get a key of a map, first setting it to a default value if it's missing.

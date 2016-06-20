@@ -1,6 +1,47 @@
 const {forEach, map} = require('wu');
 
 
+function identity(x) {
+    return x;
+}
+
+
+// From an iterable return the best item, according to an arbitrary comparator
+// function. In case of a tie, the first item wins.
+function best(iterable, by, isBetter) {
+    let bestSoFar, bestKeySoFar;
+    let isFirst = true;
+    forEach(
+        function (item) {
+            const key = by(item);
+            if (isBetter(key, bestKeySoFar) || isFirst) {
+                bestSoFar = item;
+                bestKeySoFar = key;
+                isFirst = false;
+            }
+        },
+        iterable);
+    if (isFirst) {
+        throw 'Tried to call best() on empty iterable';
+    }
+    return bestSoFar;
+}
+
+
+// Return the maximum item from an iterable, as defined by >.
+//
+// Works with any type that works with >. If multiple items are equally great,
+// return the first.
+//
+// by: a function that, given an item of the iterable, returns a value to
+//     compare
+function max(iterable, by = identity) {
+    return best(iterable, by, (a, b) => a > b);
+}
+
+
+
+
 // Return the sum of an iterable, as defined by the + operator.
 function sum(iterable) {
     let total;
@@ -237,12 +278,15 @@ function distance(elementA, elementB) {
 
 
 module.exports = {
+    best,
     collapseWhitespace,
     distance,
+    identity,
     inlineTextLength,
     inlineTexts,
     isBlock,
     linkDensity,
+    max,
     sum,
     walk
 };
