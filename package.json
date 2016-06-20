@@ -1,7 +1,7 @@
 {
-  "name": "fathom",
+  "name": "fathom-web",
   "description": "Find meaning in the web.",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "author": "Erik Rose <erik@mozilla.com> (https://www.grinchcentral.com/)",
   "bugs": {
     "url": "https://github.com/mozilla/fathom/issues"
@@ -23,7 +23,8 @@
   "keywords": [
     "semantic extraction",
     "scoring",
-    "ranking"
+    "ranking",
+    "clustering"
   ],
   "license": "MPL-2.0",
   "repository": {
