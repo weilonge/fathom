@@ -22,7 +22,7 @@ function best(iterable, by, isBetter) {
         },
         iterable);
     if (isFirst) {
-        throw 'Tried to call best() on empty iterable';
+        throw new Error('Tried to call best() on empty iterable');
     }
     return bestSoFar;
 }
