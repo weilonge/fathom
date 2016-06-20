@@ -1,7 +1,7 @@
 // Tests for fathom/utils.js
 
 const assert = require('chai').assert;
-const jsdom = require('jsdom');
+const jsdom = require('jsdom').jsdom;
 
 const {distance} = require('../utils');
 
@@ -22,7 +22,7 @@ describe('Utils tests', function() {
         // fitness function to search for optimal values of cost coefficients.
 
         it('considers a node 0 distance from itself', function () {
-            const doc = jsdom.jsdom(`
+            const doc = jsdom(`
                 <body>
                     <div id="a">
                     </div>
@@ -34,7 +34,7 @@ describe('Utils tests', function() {
         });
 
         it('considers deeper nodes farther than shallower', function () {
-            const shallow = jsdom.jsdom(`
+            const shallow = jsdom(`
                 <body>
                     <div>
                         <div id="a">
@@ -46,7 +46,7 @@ describe('Utils tests', function() {
                     </div>
                 </body>
             `);
-            const deep = jsdom.jsdom(`
+            const deep = jsdom(`
                 <body>
                     <div>
                         <div>
@@ -66,7 +66,7 @@ describe('Utils tests', function() {
         });
 
         it("doesn't crash over different-lengthed subtrees", function () {
-            const doc = jsdom.jsdom(`
+            const doc = jsdom(`
                 <body>
                     <div>
                         <div>
@@ -85,7 +85,7 @@ describe('Utils tests', function() {
         });
 
         it('rates descents through similar tags as shorter', function () {
-            const dissimilar = jsdom.jsdom(`
+            const dissimilar = jsdom(`
                 <body>
                     <center>
                         <div id="a">
@@ -97,7 +97,7 @@ describe('Utils tests', function() {
                     </div>
                 </body>
             `);
-            const similar = jsdom.jsdom(`
+            const similar = jsdom(`
                 <body>
                     <div>
                         <div id="a">
@@ -114,7 +114,7 @@ describe('Utils tests', function() {
 
         // NEXT: To join the clusters, choose a "linkage criterion", likely the min distance between any node in X and any node in Y, because we're interested in finding adjacent clusters, not overlapping ones.
         it('punishes the existence of stride nodes', function () {
-            const noStride = jsdom.jsdom(`
+            const noStride = jsdom(`
                 <body>
                     <div>
                         <div id="a">
@@ -126,7 +126,7 @@ describe('Utils tests', function() {
                     </div>
                 </body>
             `);
-            const edgeSiblings = jsdom.jsdom(`
+            const edgeSiblings = jsdom(`
                 <body>
                     <div>
                         <div id="a">
@@ -140,7 +140,7 @@ describe('Utils tests', function() {
                     </div>
                 </body>
             `);
-            const stride = jsdom.jsdom(`
+            const stride = jsdom(`
                 <body>
                     <div>
                         <div id="a">
@@ -155,7 +155,7 @@ describe('Utils tests', function() {
                 </body>
             `);
 
-            const noSiblings = jsdom.jsdom(`
+            const noSiblings = jsdom(`
                 <body>
                     <div>
                         <div id="a">
@@ -167,7 +167,7 @@ describe('Utils tests', function() {
                     </div>
                 </body>
             `);
-            const interposedSiblings = jsdom.jsdom(`
+            const interposedSiblings = jsdom(`
                 <body>
                     <div>
                         <div id="a">
