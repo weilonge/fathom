@@ -313,12 +313,17 @@ class DistanceMatrix {
             }
             this._matrix.set(outerCluster, innerMap);
         }
+        this._numClusters = clusters.length;
     }
 
     // Return (distance, a: clusterA, b: clusterB) of closest-together clusters.
     // Replace this to change linkage criterion.
     closest () {
         const self = this;
+
+        if (this._numClusters < 2) {
+            throw new Error('There must be at least 2 clusters in order to return the closest() ones.');
+        }
 
         // Return the distances between every pair of clusters.
         function *clustersAndDistances() {
@@ -387,10 +392,13 @@ class DistanceMatrix {
 
         // Attach new row.
         this._matrix.set([clusterA, clusterB], newRow);
+
+        // There is a net decrease of 1 cluster:
+        this._numClusters -= 1;
     }
 
     numClusters () {
-        return length(this._matrix.keys());  // TODO: Store so we needn't scan over keys.
+        return this._numClusters;
     }
 
     // Return an Array of nodes for each cluster in me.
@@ -418,7 +426,6 @@ function clusters(elements, tooFar) {
     const matrix = new DistanceMatrix(elements);
     let closest;
 
-    // TODO: Move all this into DistanceMatrix so we might not need a public numClusters().
     while (matrix.numClusters() > 1 && (closest = matrix.closest()).distance < tooFar) {
         matrix.merge(closest.a, closest.b);
     }

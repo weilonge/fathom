@@ -7,8 +7,8 @@ const {inlineTextLength, linkDensity} = require('../utils');
 
 describe('Design-driving demos', function() {
     it('handles a simple series of short-circuiting rules', function () {
-        // TODO: Short-circuiting isn't implemented yet. The motivation here is
-        // to inspire changes to ranker functions that make them more
+        // TODO: Short-circuiting isn't implemented yet. The motivation of this
+        // test is to inspire changes to ranker functions that make them more
         // declarative, such that the engine can be smart enough to run the
         // highest-possible-scoring flavor-chain of rules first and, if it
         // succeeds, omit the others.
