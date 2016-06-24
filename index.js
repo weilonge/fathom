@@ -45,9 +45,9 @@ function ruleset(...rules) {
             // digested. Rules run in no particular guaranteed order.
             while (nonterminals.length) {
                 const [inNode, inFlavor] = nonterminals.pop();
-                for (const rule of getDefault(rulesByInputFlavor, inFlavor, () => [])) {
+                for (let rule of getDefault(rulesByInputFlavor, inFlavor, () => [])) {
                     const outFacts = resultsOf(rule, inNode, inFlavor, kb);
-                    for (const fact of outFacts) {
+                    for (let fact of outFacts) {
                         const outNode = kb.nodeForElement(fact.element);
 
                         // No matter whether or not this flavor has been
@@ -167,9 +167,9 @@ function *resultsOfDomRule(rule, specialDomNode, kb) {
     // Use the special "tree" property of the special starting node:
     const matches = specialDomNode.tree.querySelectorAll(rule.source.selector);
 
-    for (const element of matches) {
+    for (let element of matches) {
         const newFacts = explicitFacts(rule.ranker(kb.nodeForElement(element)));
-        for (const fact of newFacts) {
+        for (let fact of newFacts) {
             if (fact.element === undefined) {
                 fact.element = element;
             }
@@ -185,7 +185,7 @@ function *resultsOfDomRule(rule, specialDomNode, kb) {
 function *resultsOfFlavorRule(rule, node, flavor) {
     const newFacts = explicitFacts(rule.ranker(node));
 
-    for (const fact of newFacts) {
+    for (let fact of newFacts) {
         // If the ranker didn't specify a different element, assume it's
         // talking about the one we passed in:
         if (fact.element === undefined) {
@@ -206,7 +206,7 @@ function *resultsOfFlavorRule(rule, node, flavor) {
 // array of facts.
 function *explicitFacts(rankerResult) {
     const array = (rankerResult === undefined) ? [] : (Array.isArray(rankerResult) ? rankerResult : [rankerResult]);
-    for (const fact of array) {
+    for (let fact of array) {
         if (fact.score === undefined) {
             fact.score = 1;
         }
