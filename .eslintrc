@@ -14,6 +14,5 @@ rules:
   no-var: 1
   no-warning-comments: [1, {terms: [xxx, fixme, hack], location: start}]
   object-shorthand: [2, properties]
-  prefer-const: 1
   guard-for-in: 1  # There's nothing wrong with for..in if you know what you're doing. This is here just to keep me from accidentally saying "for..in" when I mean "for..of". Delete this and come up with a better solution if we ever need to use "for..in".
   no-throw-literal: 2
