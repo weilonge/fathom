@@ -95,3 +95,12 @@ Finally, "yank" out interesting nodes based on their flavors and scores. For exa
 ## More Examples
 
 Our docs are a little sparse so far, but [our tests](https://github.com/mozilla/fathom/tree/master/test) might help you in the meantime.
+
+## Version History
+
+### 1.0
+* Initial release
+
+### 1.1
+* Stop using `const` in `for...of` loops. This lets Fathom run within Firefox, which does not allow this due to a bug in its ES implementation.
+* Optimize DistanceMatrix.numClusters(), which should make clustering a bit faster.
