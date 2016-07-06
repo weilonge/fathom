@@ -104,3 +104,6 @@ Our docs are a little sparse so far, but [our tests](https://github.com/mozilla/
 ### 1.1
 * Stop using `const` in `for...of` loops. This lets Fathom run within Firefox, which does not allow this due to a bug in its ES implementation.
 * Optimize DistanceMatrix.numClusters(), which should make clustering a bit faster.
+
+### 1.1.1
+* No changes. Just bump the version in an attempt to get the npm index page to update.
