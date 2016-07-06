@@ -4,6 +4,9 @@ node_js:
   - 6
 
 notifications:
+  email:
+    on_success: change
+    on_failure: always
   irc:
     channels:
       - "irc.mozilla.org#fathom"
