@@ -96,6 +96,13 @@ Finally, "yank" out interesting nodes based on their flavors and scores. For exa
 
 Our docs are a little sparse so far, but [our tests](https://github.com/mozilla/fathom/tree/master/test) might help you in the meantime.
 
+## Test coverage
+```
+  npm test
+```
+
+You can find the coverage report under coverage/ directory and the html version under coverage/lcov-report/index.html.
+
 ## Version History
 
 ### 1.0
