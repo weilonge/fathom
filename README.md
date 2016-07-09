@@ -51,7 +51,7 @@ var titleFinder = ruleset(
     rule(dom("title"), node => [{score: 1, flavor: 'titley'}]),
 
     // Give any OpenGraph meta tag a score of 2, and tag it as title-ish as well:
-    rule(dom("meta[og:title]") node => [{score: 2, flavor: 'titley'}]),
+    rule(dom("meta[og:title]"), node => [{score: 2, flavor: 'titley'}]),
 
     // Take all title-ish things, and punish them if they contain
     // navigational claptrap like colons or dashes:
