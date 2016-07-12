@@ -96,6 +96,10 @@ Finally, "yank" out interesting nodes based on their flavors and scores. For exa
 
 Our docs are a little sparse so far, but [our tests](https://github.com/mozilla/fathom/tree/master/test) might help you in the meantime.
 
+## Get Involved
+
+Join us in IRC at #fathom on irc.mozilla.org.
+
 ## Version History
 
 ### 1.0
