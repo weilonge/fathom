@@ -12,6 +12,7 @@
   "devDependencies": {
     "chai": "^3.5.0",
     "eslint": "^2.9.0",
+    "istanbul": "^0.4.4",
     "jsdom": "^8.3.0",
     "mocha": "^2.4.5",
     "node-inspector": ">=0.12.8"
@@ -34,6 +35,6 @@
   "scripts": {
     "lint": "make lint",
     "pretest": "npm run lint",
-    "test": "mocha"
+    "test": "istanbul cover _mocha"
   }
 }
