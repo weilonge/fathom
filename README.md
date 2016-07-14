@@ -124,3 +124,7 @@ Join us in IRC at #fathom on irc.mozilla.org.
 
 ### 1.1.1
 * No changes. Just bump the version in an attempt to get the npm index page to update.
+
+### 1.1.2
+* Stop assuming querySelectorAll() results conform to the iterator protocol. This fixes compatibility with Chrome.
+* Add test coverage reporting.
