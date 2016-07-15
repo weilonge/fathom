@@ -23,7 +23,7 @@ Here are some specific areas we address:
 
 ## Status
 
-Fathom is under heavy development, and its design is still in flux. If you'd like to use it at such an early stage, you should remain in close contact with us.
+Fathom is under heavy development, and its design is still in flux. If you'd like to use it at such an early stage, you should remain in close contact with us. Join us in IRC: #fathom on irc.mozilla.org.
 
 ### Parts that work so far
 
@@ -56,7 +56,7 @@ var titleFinder = ruleset(
 
     // Take all title-ish things, and punish them if they contain
     // navigational claptrap like colons or dashes:
-    rule(flavor("titley"), node => [{score: containsColonsOrDashes(node.element) ? 2 : 1}])
+    rule(flavor("titley"), node => [{score: containsColonsOrDashes(node.element) ? .5 : 1}])
 );
 ```
 
@@ -91,7 +91,33 @@ Once the ruleset is defined, run a DOM tree through it:
 var knowledgebase = titleFinder.score(jsdom.jsdom("<html><head>...</html>"));
 ```
 
-Finally, "yank" out interesting nodes based on their flavors and scores. For example, we might look for the highest-scoring node of a given flavor, or we might look for a cluster of high-scoring nodes near each other.
+Finally, "yank" out interesting nodes based on their flavors and scores. For example, we might look for the highest-scoring node of a given flavor:
+
+```javascript
+bestTitle = knowledgebase.max('titley');
+```
+
+Or we might simply want all the title-ish things so we can do further computation on them:
+
+```javascript
+allTitles = knowledgebase.nodesOfFlavor('titley');
+```
+
+Or if you have ahold of a DOM element somehow, you can look up the score, flavors, and notes Fathom attached to it:
+
+```javascript
+someTitle = knowledgebase.nodeForElement(dom.getElementById('aTitle'));
+```
+
+Or we might look to group a collection of nodes into clusters:
+
+```javascript
+const {cluster} = require('fathom/utils');
+theClusters = clusters(anArrayOfNodes, 4);
+// 4 is the distance beyond which Fathom will decide nodes belong in separate
+// clusters. Turn it up to more aggressively invite nearby nodes into a
+// cluster. Turn it down to keep a stricter definition of "nearby".
+```
 
 ## More Examples
 
@@ -109,9 +135,6 @@ This will also run the linter and analyze test coverage. You can find the covera
 
 If you're in the midst of a tornado of rapid development and the fancy stuff is too slow, you can invoke `make test` to run "just the tests, ma'am".
 
-## Get Involved
-
-Join us in IRC at #fathom on irc.mozilla.org.
 
 ## Version History
 
