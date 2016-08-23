@@ -18,8 +18,8 @@ class BoundRuleset {
 
         // Private, for the use of only helper classes:
         this.ruleCache = new Map();  // Rule instance => results (as Array of fnodes)
-        this.maxCache = new Map();  // type => max fnode(s?) of this type (Array). Multiple will be tricky. We'd have to store a marker about whether the list is exhaustive or not and compute further if more than we have are requested.
-        this.typeCache = new Map();  // type => fnodes of this type (Array)
+        this.maxCache = new Map();  // type => max fnode (or fnodes, if tied) of this type (Array)
+        this.typeCache = new Map();  // type => all fnodes of this type (Array)
 
         // TODO: Assemble a hash of out rules by name in this._outRules.
     }
@@ -137,16 +137,15 @@ class TypeLhs extends Lhs {
     }
 
     // Return a new LHS constrained to return only the max-scoring node of
-    // a type or, if maxN is provided, the top N max-scoring nodes. If there
-    // is a tie, more than maxN nodes may be selected.
-    max (maxN) {
-        return new TypeMaxLhs(this.type, maxN);
+    // a type. If there is a tie, more than 1 node may be selected.
+    max () {
+        return new TypeMaxLhs(this.type);
     }
 }
 
 
 // Internal representation of a LHS that has both type and max([NUMBER])
-// constraints.
+// constraints. max(NUMBER) support is not yet implemented.
 class TypeMaxLhs extends TypeLhs {
     constructor (type, maxN) {
         super(type, maxN || 1);
