@@ -20,12 +20,13 @@ class BoundRuleset {
         this.ruleCache = new Map();  // Rule instance => results (as Array of fnodes)
         this.maxCache = new Map();  // type => max fnode (or fnodes, if tied) of this type (Array)
         this.typeCache = new Map();  // type => all fnodes of this type (Array)
+        this.elementCache = new Map();  // DOM element => fnode about it
 
         // TODO: Assemble a hash of out rules by name in this._outRules.
     }
 
     // Return an array of zero or more fnodes.
-    // `thing` can be...
+    // thing: can be...
     //   * A string which matches up with an "out" rule in the ruleset
     //   * An arbitrary LHS which we'll calculate and return the results of.
     //     (Note: LHSs passed in like this will be taken as part of the ruleset
@@ -49,9 +50,9 @@ class BoundRuleset {
     }
 
     _fnodeForElement (element) {
-        return setDefault(this._nodeCache,
+        return setDefault(this.elementCache,
                           element,
-                          () => new Fnode (element));
+                          () => new Fnode(element));
     }
 }
 
