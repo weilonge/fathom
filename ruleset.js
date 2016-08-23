@@ -152,10 +152,10 @@ class TypeMaxLhs extends TypeLhs {
 
 
 class Fnode {
-    constructor (element, score, types) {
+    constructor (element, score, typesAndNotes) {
         this.element = element;
         this.score = score === undefined ? 1 : score;
-        this.types = types === undefined ? new Map() : types;
+        this.typesAndNotes = typesAndNotes === undefined ? new Map() : typesAndNotes;
     }
 }
 
