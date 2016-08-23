@@ -123,17 +123,17 @@ class DomLhs extends Lhs {
 
 // Internal representation of a LHS constrained by type
 class TypeLhs extends Lhs {
-    constructor (type, maxN) {
+    constructor (type) {
         if (type === undefined) {
             throw new Error('A type name is required when calling type().');
         }
         this.type = type;
-        this.maxN = maxN;
     }
 
     // Override the type previously specified by this constraint.
     type (inputType) {
-        return this.constructor(inputType, self.maxN);
+        // Preserve the class in case this is a TypeMaxLhs.
+        return this.constructor(inputType);
     }
 
     // Return a new LHS constrained to return only the max-scoring node of
@@ -145,11 +145,8 @@ class TypeLhs extends Lhs {
 
 
 // Internal representation of a LHS that has both type and max([NUMBER])
-// constraints. max(NUMBER) support is not yet implemented.
+// constraints. max(NUMBER != 1) support is not yet implemented.
 class TypeMaxLhs extends TypeLhs {
-    constructor (type, maxN) {
-        super(type, maxN || 1);
-    }
 }
 
 
