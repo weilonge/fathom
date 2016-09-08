@@ -80,8 +80,8 @@ class BoundRuleset {
 
     // Return an iterable of rules which might add a given type to fnodes.
     // We return any rule we can't prove doesn't add the type. None, it
-    // follows, are OutRules. Also, note that if a rule both takes and emits a
-    // certain type, it is not considered to "add" it.
+    // follows, are OutwardRules. Also, note that if a rule both takes and
+    // emits a certain type, it is not considered to "add" it.
     rulesWhichMightAdd (type) {
         // TODO. Have InwardRhs make some notations on the rhs when type() is called. Read those here.
     }

@@ -16,17 +16,17 @@ function out(key) {
 // properties explicitly from your func, even if they are no-ops (like {score:
 // 1, note: undefined, type: undefined}).
 class InwardRhs {
-    constructor () {
-        this._calls = [];
-        this._max = Infinity;
-        this._types = new Set();
+    constructor (calls = [], max = Infinity, types = []) {
+        this._calls = calls.slice();
+        this._max = max;
+        this._types = new Set(types);
     }
 
     // Declare that the maximum returned score multiplier is such and such.
     // This doesn't force it to be true; it merely throws an error if it isn't.
     // This overrides any previous calls to .max().
     max (score) {
-        this._max = score;
+        return new this.constructor(this._calls, score, this._types);
     }
 
     _checkMax(fact) {
@@ -48,12 +48,16 @@ class InwardRhs {
                 },
                 SUBFACTS);
         }
+        // Thse are the subfacts this call could affect:
         assignSubfacts.type = true;
         assignSubfacts.note = true;
         assignSubfacts.score = true;
         assignSubfacts.element = true;
+
         assignSubfacts.kind = 'func';
-        this._calls.push(assignSubfacts);
+        return new this.constructor(this._calls.concat(assignSubfacts),
+                                    this._max,
+                                    this._types);
     }
 
     // This overrides any previous calls to .type().
@@ -62,7 +66,6 @@ class InwardRhs {
     // use would be rather to override part of what a previous .func() call
     // provides.
     type (...types) {
-        this._types.clear();
         if (types.length === 1) {
             // Actually emit a given type.
             function assignType(result) {
@@ -72,10 +75,13 @@ class InwardRhs {
             }
             assignType.type = true;
             assignType.kind = 'type';
-            this._calls.push(assignType);
+            return new this.constructor(this._calls.concat(assignType),
+                                        this._max);  // Clear this._types.
         } else if (types.length > 1) {
             // Constrain us to emit 1 of a set of given types.
-            forEach(type => this._types.add(type), types);
+            return new this.constructor(this._calls,
+                                        this._max,
+                                        types);
         }
     }
 
@@ -96,7 +102,9 @@ class InwardRhs {
         }
         assignNote.note = true;
         assignNote.kind = 'note';
-        this._calls.push(assignNote);
+        return new this.constructor(this._calls.concat(assignNote),
+                                    this._max,
+                                    this._types);
     }
 
     // This overrides any previous calls to .score().
@@ -112,7 +120,9 @@ class InwardRhs {
         }
         assignScore.score = true;
         assignScore.kind = 'score';
-        this._calls.push(assignScore);
+        return new this.constructor(this._calls.concat(assignScore),
+                                    this._max,
+                                    this._types);
     }
 
     // Future: why not have an .element() method for completeness?
@@ -151,13 +161,13 @@ class InwardRhs {
 
 
 class OutwardRhs {
-    constructor (key) {
+    constructor (key, through = x => x) {
         this._key = key;
-        this.through = x => x;
+        this.through = through;
     }
 
     through (callback) {
-        this.through = callback;
+        return new this.constructor(this._key, callback);
     }
 }
 

@@ -98,7 +98,7 @@ class TypeLhs extends Lhs {
     // Override the type previously specified by this constraint.
     type (inputType) {
         // Preserve the class in case this is a TypeMaxLhs.
-        return this.constructor(inputType);
+        return new this.constructor(inputType);
     }
 
     // Return a new LHS constrained to return only the max-scoring node of
