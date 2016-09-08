@@ -431,6 +431,16 @@ function clusters(elements, tooFar) {
     }
 
     return matrix.clusters();
+
+
+// Get a key of a map, first setting it to a default value if it's missing.
+function setDefault(map, key, defaultMaker) {
+    if (map.has(key)) {
+        return map.get(key);
+    }
+    const defaultValue = defaultMaker();
+    map.set(key, defaultValue);
+    return defaultValue;
 }
 
 
