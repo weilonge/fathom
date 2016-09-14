@@ -111,8 +111,13 @@ class InwardRhs {
     }
 
     // Whatever the callback returns (even undefined) becomes the note of the
-    // fact.
-    // This overrides any previous call to .note().
+    // fact. This overrides any previous call to .note().
+    //
+    // When you query for fnodes of a certain type, you can expect to find
+    // notes of any form you specified on any RHS with that type. If no note is
+    // specified, it will be undefined. However, if two RHSs emits a given
+    // type, one adding a note and the other not adding one (or adding an
+    // undefined one), the meaningful note overrides the undefined one.
     note (callback) {
         function assignNote(result, fnode) {
             // We can do this unconditionally, because fact() optimizes me
