@@ -12,11 +12,12 @@ function out(key) {
 // now, the rightmost takes precedence. Similarly, if func(), which can return
 // multiple properties of a fact (element, note, score, and type), is missing
 // any of these properties, we will continue searching to the left for anything
-// that fills them in (including other func()s). To prevent this, return all
-// properties explicitly from your func, even if they are no-ops (like {score:
-// 1, note: undefined, type: undefined}).
+// that fills them in (excepting other func()s--if you want that, write a
+// combinator, and use it to combine the 2 functions you want)). To prevent
+// this, return all properties explicitly from your func, even if they are
+// no-ops (like {score: 1, note: undefined, type: undefined}).
 class InwardRhs {
-    constructor (calls = [], max = Infinity, types = []) {
+    constructor (calls = [], max = Infinity, types) {
         this._calls = calls.slice();
         this._max = max;
         this._types = new Set(types);
@@ -24,19 +25,20 @@ class InwardRhs {
 
     // Declare that the maximum returned score multiplier is such and such.
     // This doesn't force it to be true; it merely throws an error if it isn't.
-    // This overrides any previous calls to .max().
-    max (score) {
+    // This overrides any previous call to .scoreUpTo(). To lift a .scoreUpTo()
+    // constraint, call .scoreUpTo() with no args.
+    scoreUpTo (score) {
         return new this.constructor(this._calls, score, this._types);
     }
 
-    _checkMax(fact) {
+    _checkScoreUpTo(fact) {
         if (fact.score !== undefined && fact.score > this._max) {
-            throw new Error(`Score of ${fact.score} exceeds the declared max of ${this._max}.`);
+            throw new Error(`Score of ${fact.score} exceeds the declared scoreUpTo(${this._max}).`);
         }
     }
 
     // Determine any of type, note, score, and element using a callback.
-    // This overrides any previous calls to .func().
+    // This overrides any previous call to .func().
     func (callback) {
         function assignSubfacts(result, fnode) {
             const subfacts = callback(fnode);
@@ -60,40 +62,57 @@ class InwardRhs {
                                     this._types);
     }
 
-    // This overrides any previous calls to .type().
+    // Set the type applied to fnodes processed by this RHS. This overrides any
+    // previous call to .type().
+    //
     // In the future, we might also support providing a callback that receives
     // the fnode and returns a type. We couldn't reason based on these, but the
     // use would be rather to override part of what a previous .func() call
     // provides.
-    type (...types) {
-        if (types.length === 1) {
-            // Actually emit a given type.
-            function assignType(result) {
-                // We can do this unconditionally, because fact() optimizes me
-                // out if a type has already been provided.
-                result.type = types[0];
-            }
-            assignType.type = true;
-            assignType.kind = 'type';
-            return new this.constructor(this._calls.concat(assignType),
-                                        this._max);  // Clear this._types.
-        } else if (types.length > 1) {
-            // Constrain us to emit 1 of a set of given types.
-            return new this.constructor(this._calls,
-                                        this._max,
-                                        types);
+    type (type) {
+        // Actually emit a given type.
+        function assignType(result) {
+            // We can do this unconditionally, because fact() optimizes me
+            // out if a type has already been provided.
+            result.type = type;
         }
+        assignType.type = true;
+        assignType.kind = 'type';
+        return new this.constructor(this._calls.concat(assignType),
+                                    this._max,
+                                    this._types);
     }
 
-    function _checkType(result) {
+    // Constrain us to emit 1 of a set of given types. This overrides any
+    // previous call to .typeIn(). Pass no args to clear a previous call to
+    // typeIn().
+    //
+    // This is mostly a hint for the optimizer when you're emitting types
+    // dynamically from functions, but it also checks conformance at runtime to
+    // ensure validity.
+    //
+    // Rationale: If we used the spelling "type('a', 'b', ...)" instead of
+    // this, one might expect type('a', 'b').type(fn) to have the latter call
+    // override, while expecting type(fn).type('a', 'b') to keep both in
+    // effect. Then different calls to type() don't consistently override each
+    // other, and the rules get complicated. Plus you can't inherit a type
+    // constraint and then sub in another type-returning function that still
+    // gets the constraint applied.
+    function typeIn(...types) {
+        return new this.constructor(this._calls,
+                                    this._max,
+                                    types);
+    }
+
+    function _checkTypeIn(result) {
         if (this._types.size > 0 && !this._types.has(result.type)) {
-            throw new Error(`A right-hand side claimed to emit one of the types ${types} but actually emitted ${result.type}.`);
+            throw new Error(`A right-hand side claimed, via typeIn(...) to emit one of the types ${types} but actually emitted ${result.type}.`);
         }
     }
 
     // Whatever the callback returns (even undefined) becomes the note of the
     // fact.
-    // This overrides any previous calls to .note().
+    // This overrides any previous call to .note().
     note (callback) {
         function assignNote(result, fnode) {
             // We can do this unconditionally, because fact() optimizes me
@@ -107,7 +126,9 @@ class InwardRhs {
                                     this._types);
     }
 
-    // This overrides any previous calls to .score().
+    // Set the returned score multiplier. This overrides any previous calls to
+    // .score().
+    //
     // In the future, we might also support providing a callback that receives
     // the fnode and returns a score. We couldn't reason based on these, but
     // the use would be rather to override part of what a previous .func() call
@@ -126,6 +147,8 @@ class InwardRhs {
     }
 
     // Future: why not have an .element() method for completeness?
+
+    // -------- Methods below this point are private to the framework. --------
 
     // Run all my func().type().notes().score() stuff across a given fnode,
     // enforce my max() stuff, and return a fact ({element, type, score,
@@ -149,8 +172,8 @@ class InwardRhs {
                     },
                     SUBFACTS);
         // TODO: Have this.maxScore (or maybe rule.maxScore) that can be read from the outside.
-        this._checkMax(result);
-        this._checkType(result);
+        this._checkScoreUpTo(result);
+        this._checkTypeIn(result);
         return result;
     }
 }
