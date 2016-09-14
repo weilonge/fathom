@@ -220,7 +220,7 @@ function distance(elementA, elementB) {
     let bAncestor = elementB;
 
     // Ascend to common parent, stacking them up for later reference:
-    while (!aAncestor.contains(elementB)) {
+    while (!aAncestor.contains(elementB)) {  // Note: an element does contain() itself.
         aAncestor = aAncestor.parentNode;
         aAncestors.push(aAncestor);
     }
@@ -431,6 +431,7 @@ function clusters(elements, tooFar) {
     }
 
     return matrix.clusters();
+}
 
 
 // Get a key of a map, first setting it to a default value if it's missing.
