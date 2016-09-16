@@ -44,6 +44,8 @@ Fathom works against the DOM API, so you can use it server-side with jsdom (whic
 
 Kate Hudson has put together [a Firefox add-on that lets you see the results of Fathom rulesets against the currently loaded page](https://github.com/k88hudson/ffmetadata), as a new pane of the Developer Tools.
 
+Michael Comella [got Fathom running on Android](https://github.com/mcomella/fathom-android-experiments), returning results to Java via a WebView.
+
 ## Example
 
 Fathom recognizes the significant parts of DOM trees. But what is significant? You decide, by providing a declarative set of rules. This simple one finds DOM nodes that could contain a useful page title and scores them according to how likely that is:
