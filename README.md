@@ -42,6 +42,8 @@ Fathom is under heavy development, and its design is still in flux. If you'd lik
 
 Fathom works against the DOM API, so you can use it server-side with jsdom (which the test harness uses) or another implementation, or you can embed it in a browser and pass it a native DOM.
 
+Kate Hudson has put together [a Firefox add-on that lets you see the results of Fathom rulesets against the currently loaded page](https://github.com/k88hudson/ffmetadata), as a new pane of the Developer Tools.
+
 ## Example
 
 Fathom recognizes the significant parts of DOM trees. But what is significant? You decide, by providing a declarative set of rules. This simple one finds DOM nodes that could contain a useful page title and scores them according to how likely that is:
