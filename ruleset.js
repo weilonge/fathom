@@ -59,6 +59,11 @@ class BoundRuleset {
                 }
             }
             return this.fnodeForElement(thing);
+            // TODO: How can we be more efficient about this, for classifying
+            // pages (in which case the classifying types end up attached to a
+            // high-level element like <html>)? Maybe we care only about some
+            // of the classification types in this ruleset: let's not run the
+            // others.
         } else {
             throw new Error('ruleset.get() expects a string, an expression like on the left-hand side of a rule, or a DOM node.');
         }
@@ -155,7 +160,7 @@ class InwardRule extends Rule {
         if (fact.type !== undefined) {  // A type is given.
             if (fact.note !== undefined) {  // A note is given.
                 if (rightFnode.note !== undefined) {
-                    throw new Error(`The right-hand side of a rule tried to add a note of type ${fact.type}, but there is already one of that type on that element. Overwriting notes it not allowed, since it would make the order of rules matter.`);
+                    throw new Error(`The right-hand side of a rule tried to add a note of type ${fact.type}, but there is already one of that type on that element. Overwriting notes is not allowed, since it would make the order of rules matter.`);
                 }
             }
         } else {

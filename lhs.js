@@ -84,7 +84,7 @@ class TypeLhs extends Lhs {
             ruleset.typeCache,
             this.type,
             function allFnodesOfType () {
-                // We don't really care of the rule *adds* the given
+                // We don't really care if the rule *adds* the given
                 // type, just that we find all the fnodes of that type.
                 const fnodesMaybeOfType = flatten(true,
                                                   map(rule => rule.results(),
@@ -134,6 +134,8 @@ class TypeMaxLhs extends TypeLhs {
             ruleset.maxCache,
             this.type,
             function maxFnodesOfType () {
+                // Future optimization: we could use ruleset.typeCache iff it
+                // is filled out.
                 const rules = Array.from(ruleset.rulesWhichMightAdd(this.type));
                 let maxFnodes = new Set();
                 let maxActualScore = 0;  // the highest score actually found so far
