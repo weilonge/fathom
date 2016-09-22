@@ -77,18 +77,13 @@ class BoundRuleset {
 
     // -------- Methods below this point are private to the framework. --------
 
-    // Run all the rules that could result in the given type of fnode, and
-    // return their results.
-    fnodesOfType(type) {
-        // This is responsible for maintaining this.typeCache.
-    }
-
     // Return an iterable of rules which might add a given type to fnodes.
     // We return any rule we can't prove doesn't add the type. None, it
     // follows, are OutwardRules. Also, note that if a rule both takes and
     // emits a certain type, it is not considered to "add" it.
     rulesWhichMightAdd (type) {
-        // TODO. Have InwardRhs make some notations on the rhs when type() is called. Read those here.
+        // The work this does is cached in this.typeCache by the Lhs.
+        return filter(rule => rule.mightAdd(type), this._rules);
     }
 
     // Return the Fathom node that describes the given DOM element.
@@ -152,6 +147,22 @@ class InwardRule extends Rule {
             });
     }
 
+    // Return false if we can prove I never add the given type to fnodes.
+    // Otherwise, return true.
+    mightAdd (type) {
+        const inputType = this.lhs.guaranteedType();
+        const outputTypes = this.rhs.possibleTypes();
+
+        if (type === inputType) {
+            // Can't *add* a type that's already on the incoming fnodes
+            return false;
+        }
+        if (outputTypes.size > 0) {
+            return outputTypes.has(type);
+        }
+        return true;
+    }
+
     // Throw an error if something is wrong with a given fact.
     _checkFact (fact, rightFnode) {
         if (fact.element === undefined) {
@@ -182,6 +193,11 @@ class OutwardRule extends Rule {
             ruleset.ruleCache,
             this,
             () => map(this.rhs.through, this.lhs.fnodes(ruleset)));
+    }
+
+    // out() rules never set any types on fnodes.
+    mightAdd (type) {
+        return false;
     }
 }
 

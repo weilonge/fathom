@@ -445,6 +445,14 @@ function setDefault(map, key, defaultMaker) {
 }
 
 
+// Return an backward iterator over an Array.
+function *reversed(array) {
+    for (let i = array.length - 1; i >= 0; i--) {
+        yield array[i];
+    }
+}
+
+
 module.exports = {
     best,
     collapseWhitespace,
@@ -458,6 +466,7 @@ module.exports = {
     linkDensity,
     max,
     min,
+    reversed,
     sum,
     walk
 };

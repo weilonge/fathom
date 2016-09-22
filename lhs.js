@@ -1,3 +1,5 @@
+// The left-hand side of rules
+
 const {filter, map, unique} = require('wu');
 const {setDefault} = require('./utils');
 
@@ -24,7 +26,9 @@ function type(inputType) {
 // causes one to need to be cleared, you'll need to clear many more as well.
 //
 // Lhses are responsible for maintaining ruleset.typeCache and ruleset.maxCache.
-class Lhs {
+//
+// Lhs and its subclasses are private to the Fathom framework.
+class Lhs {  // abstract
     constructor (firstCall) {
         if (firstCall.method === 'dom') {
             return new DomLhs(...firstCall.args);
@@ -42,6 +46,11 @@ class Lhs {
     // Check that a RHS-emitted fact is legal for this kind of LHS, and throw
     // an error if it isn't.
     checkFact (fact) {
+    }
+
+    // Return the single type the output of the LHS is guaranteed to have.
+    // Return undefined if there is no such single type we can ascertain.
+    guaranteedType () {
     }
 }
 
@@ -105,6 +114,10 @@ class TypeLhs extends Lhs {
     // a type. If there is a tie, more than 1 node may be selected.
     max () {
         return new TypeMaxLhs(this.type);
+    }
+
+    guaranteedType () {
+        return this.type;
     }
 }
 

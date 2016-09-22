@@ -1,3 +1,5 @@
+const {reversed} = require('./utils');
+
 const SUBFACTS = ['type', 'note', 'score', 'element'];
 
 
@@ -20,7 +22,7 @@ class InwardRhs {
     constructor (calls = [], max = Infinity, types) {
         this._calls = calls.slice();
         this._max = max;
-        this._types = new Set(types);
+        this._types = new Set(types);  // empty set if unconstrained
     }
 
     // Declare that the maximum returned score multiplier is such and such.
@@ -77,6 +79,7 @@ class InwardRhs {
             result.type = type;
         }
         assignType.type = true;
+        assignType.theType = type;
         assignType.kind = 'type';
         return new this.constructor(this._calls.concat(assignType),
                                     this._max,
@@ -180,6 +183,23 @@ class InwardRhs {
         this._checkScoreUpTo(result);
         this._checkTypeIn(result);
         return result;
+    }
+
+    // Return a Set of types I am constrained to emit, if we can prove such
+    // a constraint. Otherwise, return an empty Set.
+    possibleTypes () {
+        // If there is a typeIn() constraint or there is a type() call to the
+        // right of all func() calls, we have a constraint. We hunt for the
+        // tightest constraint we can find, favoring a type() call because it
+        // gives us a single type but then falling back to a typeIn().
+        for (call of reversed(this._calls)) {
+            if (call.kind === 'func') {
+                break;
+            } else if (call.kind === 'type') {
+                return new Set([call.theType]);
+            }
+        }
+        return this._types;
     }
 }
 
