@@ -40,7 +40,9 @@ class InwardRhs {
     }
 
     // Determine any of type, note, score, and element using a callback.
-    // This overrides any previous call to .func().
+    // This overrides any previous call to .func() and, depending on what
+    // properties of the callback's return value are filled out, may override
+    // the effects of other previous calls as well.
     func (callback) {
         function assignSubfacts(result, fnode) {
             const subfacts = callback(fnode);
@@ -69,8 +71,8 @@ class InwardRhs {
     //
     // In the future, we might also support providing a callback that receives
     // the fnode and returns a type. We couldn't reason based on these, but the
-    // use would be rather to override part of what a previous .func() call
-    // provides.
+    // use would be rather a consise way to to override part of what a previous
+    // .func() call provides.
     type (type) {
         // Actually emit a given type.
         function assignType(result) {
@@ -87,8 +89,8 @@ class InwardRhs {
     }
 
     // Constrain us to emit 1 of a set of given types. This overrides any
-    // previous call to .typeIn(). Pass no args to clear a previous call to
-    // typeIn().
+    // previous call to .typeIn(). Pass no args to lift a previous typeIn()
+    // constraint.
     //
     // This is mostly a hint for the optimizer when you're emitting types
     // dynamically from functions, but it also checks conformance at runtime to
