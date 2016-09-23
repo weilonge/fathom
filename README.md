@@ -16,7 +16,7 @@ A study of existing projects like Readability and Distiller suggests that purely
 Here are some specific areas we address:
 
 * Browser-native DOM nodes are mostly immutable, and `HTMLElement.dataset` is string-typed, so storing arbitrary intermediate data on nodes is clumsy. Fathom addresses this by providing the fathom node (or **fnode**), a proxy around each DOM node which we can scribble on.
-* With imperative extractors, any experiments or site-specific customizations must be hard-coded in. Fathom's rulesets, on the other hand, are unordered and therefore decoupled, stitched together only by the **flavors** they consume and emit. External rules can thus be plugged into existing rulesets, making it easy to experiment (without maintaining a fork) or to provide dedicated rules for particularly intractable web sites.
+* With imperative extractors, any experiments or site-specific customizations must be hard-coded in. Fathom's rulesets, on the other hand, are unordered and thereby decoupled, stitched together only by the **flavors** they consume and emit. External rules can thus be plugged into existing rulesets, making it easy to experiment (without maintaining a fork) or to provide dedicated rules for particularly intractable web sites.
 * Flavors provide a convenient way of tagging DOM nodes as belonging to certain categories, typically narrowing as the extractor's work progresses. A typical complex extractor would start by assigning a broad flavor to a set of candidate nodes, then fine-tune by examining them more closely and assigning additional, more specific flavors in a later rule.
 * The flavor system also makes explicit the division between an extractor's public and private APIs: the flavors are public, and the imperative stuff that goes on inside ranker functions is private. Third-party rules can use the flavors as hook points to interpose themselves.
 * Persistent state is cordoned off in flavored **notes** on fathom nodes. Thus, when a rule declares that it takes such-and-such a flavor as input, it can rightly assume (if rules are written consistently) there will be a note of that flavor on the fathom nodes that are passed in.
@@ -38,78 +38,117 @@ Fathom is under heavy development, and its design is still in flux. If you'd lik
 * Concise rule definitions
 * Global optimization for efficient execution
 
-## Environments
+### Environments
 
-Fathom works against the DOM API, so you can use it server-side with jsdom (which the test harness uses) or another implementation, or you can embed it in a browser and pass it a native DOM.
+Fathom works against the DOM API, so you can use it server-side with `jsdom` (which the test harness uses) or another implementation, or you can embed it in a browser and pass it a native DOM.
 
 ## Example
 
-Fathom recognizes the significant parts of DOM trees. But what is significant? You decide, by providing a declarative set of rules. This simple one finds DOM nodes that could contain a useful page title and scores them according to how likely that is:
+Think of Fathom as a tiny programming language that recognizes the significant parts of DOM trees by means of its programs, Fathom *rulesets*. A ruleset is an unordered bag of rules, each of which takes in DOM nodes and annotates them with scores, types, and notes to influence future rules. At the end of the chain of rules, out pops one or more pieces of output—typically high-scoring nodes of certain *flavors*—to inform the surrounding imperative program.
+
+This simple ruleset one finds DOM nodes that could contain a useful page title and scores them according to how likely that is:
 
 ```javascript
-var titleFinder = ruleset(
-    // Give any title tag a score of 1, and tag it as title-ish:
-    rule(dom("title"), node => [{score: 1, flavor: 'titley'}]),
+var rules = ruleset(
+    // Give any title tag the (default) score of 1, and tag it as title-ish:
+    rule(dom('title'), flavor('titley')),
 
     // Give any OpenGraph meta tag a score of 2, and tag it as title-ish as well:
-    rule(dom("meta[og:title]"), node => [{score: 2, flavor: 'titley'}]),
+    rule(dom('meta[og:title]'), flavor('titley').score(2)),
 
     // Take all title-ish things, and punish them if they contain
     // navigational claptrap like colons or dashes:
-    rule(flavor("titley"), node => [{score: containsColonsOrDashes(node.element) ? .5 : 1}])
+    rule(flavor('titley'), func(node => {score: containsColonsOrDashes(node.element) ? .5 : 1})),
+
+    // Offer the max-scoring title-ish node under the output key "title":
+    rule(flavor('titley').max(), out('title'))
 );
 ```
 
-Each rule is shaped like `rule(condition, ranker function)`. A **condition** specifies what the rule takes as input: at the moment, either nodes from the DOM tree that match a certain CSS selector (`dom(...)`) or else nodes tagged with a certain flavor by other rules (`flavor(...)`).
+Each rule is shaped like `rule(left-hand side, right-hand side)`. The **left-hand side** (LHS) pulls in one or more DOM nodes as input: either ones that match a certain CSS selector (`dom(...)`) or ones tagged with a certain flavor by other rules (`flavor(...)`). The **right-hand side** (RHS) then decides what to do with those nodes: assigning an additional flavor, scaling the score, assigning a flavor, scribbling a note on it, or some combination thereof. Envision the rule as a pipeline, with the DOM flowing in one end, nodes being picked and passed along to RHSs which twiddle them, and then finally falling out right side, where they might flow into other rules whose LHSs pick them up.
 
-The **ranker function** is an imperative bit of code which decides what to do with a node: whether to scale its score, assign a flavor, make an annotation on it, or some combination thereof. A ranker returns a collection of 0 or more facts, each of which comprises...
+It's snakey sort of flow. This rule, which takes in fnodes that have previously been identified as text containers and adds a word-count annotation...
 
-* An optional score multiplier
-* An element, defaulting to the input one. Overriding the default enables a ranker to walk around the tree and say things about nodes other than the input one.
-* A flavor (required on dom() rules, defaulting to the input one on flavor() rules)
-* Optional notes
-
-For example...
-
-```javascript
-function someRanker(node) {
-    return [{score: 3,
-             element: node.element,  // unnecessary, since this is the default
-             flavor: 'texty',
-             notes: {suspicious: true}}];
-}
+```
+rule(type('textContainer'), type('countedWords').note(fnode => fnode.element.textContent.split(/\s+/).length))
 ```
 
-Please pardon the verbosity of ranker functions; we're waiting for patterns to shake out before choosing syntactic sugar.
+...can be thought of as...
+
+```
+textContainer fnodes emitted        assign "countedWords" type
+     from other rules          ->        and a word count        ->   changed nodes --\
+                                                                                      |
+ ____________________________________________________________________________________ /
+/
+|
+\->  other rules' LHSs         ->   ...                          ->   ...          -->  ...
+```
+
+Remember that Fathom's rulesets are unordered, so any rule's output can flow into any other rule, not just ones that happen to come lexically after it.
 
 Once the ruleset is defined, run a DOM tree through it:
 
 ```javascript
-// Run the rules above over a DOM tree, and return a knowledgebase of facts
-// about nodes which can be queried in various ways. This is the "rank" phase
-// of Fathom's 2-phase rank-and-yank algorithm.
-var knowledgebase = titleFinder.score(jsdom.jsdom("<html><head>...</html>"));
+// Tell the ruleset which DOM to run against, yielding a "bound ruleset" where
+// some performance-enhancing caches live.
+var boundRules = rules.against(jsdom.jsdom("<html><head>...</html>"));
 ```
 
-Finally, "yank" out interesting nodes based on their flavors and scores. For example, we might look for the highest-scoring node of a given flavor:
+Then, ask the bound ruleset for the answer: in this case, we want the max-scoring title, which the ruleset happens to provide under the "title" output key:
 
 ```javascript
-bestTitle = knowledgebase.max('titley');
+var bestTitle = boundRules.get('title');
 ```
 
-Or we might simply want all the title-ish things so we can do further computation on them:
+If the ruleset doesn't anticipate the output you want, you can ask for it more explicitly by passing a full LHS to `get()`. For example, if you simply want all the title-ish things so you can do further computation on them...
 
 ```javascript
-allTitles = knowledgebase.nodesOfFlavor('titley');
+var allTitles = boundRules.get(type('titley'));
 ```
 
-Or if you have ahold of a DOM element somehow, you can look up the score, flavors, and notes Fathom attached to it:
+Or if you have a reference to a DOM element somehow, you can look up the scores, flavors, and notes Fathom attached to it:
 
 ```javascript
-someTitle = knowledgebase.nodeForElement(dom.getElementById('aTitle'));
+var fnode = boundRuleset.get(dom.getElementById('aTitle'));
 ```
 
-Or we might look to group a collection of nodes into clusters:
+## Reference
+
+### LHSs
+
+
+### RHSs
+
+To do:
+- precedence rules (rightmost same-named wins)
+- definitions of unmentioned calls
+- optimizer hints
+
+
+#### `func()`
+
+The `func()` call returns...
+
+* An optional score multiplier
+* A flavor (required on dom() rules, defaulting to the input one on flavor() rules)
+* Optional notes
+* An element, defaulting to the input one. Overriding the default enables a ranker to walk around the tree and say things about nodes other than the input one.
+
+For example...
+
+```javascript
+function callback(fnode) {
+    return [{score: 3,
+             element: fnode.element,  // unnecessary, since this is the default
+             flavor: 'texty',
+             note: {suspicious: true}}];
+}
+```
+
+### Clustering
+
+Fathom also provides a hierarchal clustering algorithm that helps you group nodes into clusters based on their proximity and similarity of ancestral structure:
 
 ```javascript
 const {cluster} = require('fathom/utils');
@@ -137,6 +176,25 @@ If you're in the midst of a tornado of rapid development and the fancy stuff is 
 
 
 ## Version History
+
+### 2.0
+Fathom 2.0 pulls more into the ruleset—yanking, thresholds—so it's less focused on emitting the entire scored world for the surrounding imperative program to examine and more on emitting just useful answers.
+
+Fathom 2.0 enables optimization within the rule executor to make short-circuiting sets of rules efficient. It also introduces new yankers like `max()`, which provide a way to map assertions about fuzzy scores down to the boolean statements of type: it's a "cut", and it helps with ruleset efficiency. Of course, if you still want to imbibe the entire scored corpus of nodes in your surrounding program, you can simply yank all nodes of a type the `type()` yanker: just point it to a string, and the results will appear in the yanked data under that key.
+
+It's also lazy.
+
+It also expands the domain of concern of a ruleset from a single dimension ("Find just the ads!") to multiple ones ("Find the ads and the navigation and the products and the prices!"), if you like.
+
+It sugars the RHS syntax to…
+* be both shorter and easier to read in a lot of cases and
+* perhaps more importantly, surface more info declaratively so the optimizer can take advantage of it
+* allow you to concisely factor up repeated parts of complex RHSs
+
+#### Backward-incompatible changes
+
+* Ranker functions can no longer return multiple facts, which simplifies both syntax and design. For now, use multiple rules, each emitting one fact, and share expensive intermediate computations in notes. If this proves a problem in practice, we'll switch back, but I never saw anyone return multiple facts in the wild.
+* Scores are now per-type. This lets you deliver multiple independent scores per ruleset. It also lets Fathom optimize out downstream rules in many cases, since downstream rules' scores no longer back-propagate to upstream types. In the future, per-type scores will enable complex computations with types as composable units of abstraction, open the possibility of over-such-and-such-a-score yankers, and make non-multiplication-based score factors a possibility. The old behavior remains largely available (TODO: cite the syntax), with a few corner-case exceptions (overlapping dom() selectors?).
 
 ### 1.0
 * Initial release
