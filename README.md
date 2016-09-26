@@ -125,6 +125,10 @@ To do:
 - definitions of unmentioned calls
 - optimizer hints
 
+#### Notes
+
+`undefined` is not considered a note. So, though notes cannot in general be overwritten, a note that is `undefined` can. Symmetrically, an `undefined` returned from a `.note()` or `.func()` or the like will quietly decline to overwrite an existing defined note.
+
 
 #### `func()`
 

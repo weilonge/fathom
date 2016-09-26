@@ -137,7 +137,7 @@ class InwardRule extends Rule {
                             rightFnode.score *= fact.score;
                         }
                         if (fact.type !== undefined) {
-                            rightFnode.typesAndNotes.set(fact.type, fact.note);
+                            rightFnode.setNote(fact.type, fact.note);
                         }
                         returnedNodes.add(rightFnode);
                     },
@@ -165,16 +165,7 @@ class InwardRule extends Rule {
 
     // Throw an error if something is wrong with a given fact.
     _checkFact (fact, rightFnode) {
-        if (fact.element === undefined) {
-            throw new Error(`The right-hand side of a rule failed to specify the element it's talking about. All it said was ${fact}.`);
-        }
-        if (fact.type !== undefined) {  // A type is given.
-            if (fact.note !== undefined) {  // A note is given.
-                if (rightFnode.note !== undefined) {
-                    throw new Error(`The right-hand side of a rule tried to add a note of type ${fact.type}, but there is already one of that type on that element. Overwriting notes is not allowed, since it would make the order of rules matter.`);
-                }
-            }
-        } else {
+        if (fact.type === undefined) {  // No type is given.
             if (fact.note !== undefined) {  // A note is given but no type is given.
                 throw new Error(`The right-hand side of a rule specified a note (${fact.note}) without a type.`);
             }
@@ -209,10 +200,42 @@ function rule(rhs, lhs) {
 
 
 class Fnode {
-    constructor (element, score, typesAndNotes) {
+    constructor (element, score, types) {
+        if (element === undefined) {
+            throw new Error("Someone tried to make a fnode without specifying the element they're talking about.");
+        }
         this.element = element;
         this.score = score === undefined ? 1 : score;
-        this.typesAndNotes = typesAndNotes === undefined ? new Map() : typesAndNotes;
+        this.types = types === undefined ? new Map() : types;
+    }
+
+    // Return whether the given type is one of the ones attached to this node.
+    hasType (type) {
+        return this.types.has(type);
+    }
+
+    // Return the note for the given type, undefined if none.
+    getNote (type) {
+        const scoreAndNote = this.types.get(type);
+        if (scoreAndNote !== undefined) {
+            return scoreAndNote.note;
+        }
+    }
+
+    // Return whether this node has a note for the given type.
+    // Undefined is not considered a note and may be overwritten with impunity.
+    hasNote (type) {
+        return this.getNote(type) !== undefined;
+    }
+
+    setNote (type, note) {
+        if (note !== undefined) {
+            if (this.hasNote(type)) {
+                throw new Error(`Someone (likely the right-hand side of a rule) tried to add a note of type ${type} to an element, but one of that type already exists. Overwriting notes is not allowed, since it would make the order of rules matter.`);
+            } else {
+                setDefault(this.types, type, () => {score: 1}).note = note;
+            }
+        }
     }
 }
 

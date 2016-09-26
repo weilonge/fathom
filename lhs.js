@@ -98,7 +98,7 @@ class TypeLhs extends Lhs {
                 const fnodesMaybeOfType = flatten(true,
                                                   map(rule => rule.results(),
                                                       ruleset.rulesWhichMightAdd(this.type)));
-                const fnodesOfType = filter(fnode => fnode.typesAndNotes.has(this.type),
+                const fnodesOfType = filter(fnode => fnode.hasType(this.type),
                                             fnodesMaybeOfType);
                 return Array.from(unique(fnodesOfType));
             });
@@ -161,7 +161,7 @@ class TypeMaxLhs extends TypeLhs {
                 // current maxes:
                 for (let rule of rules) {
                     if (rule.maxScore >= maxActualScore) {
-                        const resultsOfCorrectType = filter(fnode => fnode.typesAndNotes.has(this.type),
+                        const resultsOfCorrectType = filter(fnode => fnode.hasType(this.type),
                                                             rule.results());
                         maxActualScore = addMaxes(maxActualScore,
                                                   maxFnodes,
