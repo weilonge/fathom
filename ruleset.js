@@ -200,13 +200,12 @@ function rule(rhs, lhs) {
 
 
 class Fnode {
-    constructor (element, score, types) {
+    constructor (element) {
         if (element === undefined) {
             throw new Error("Someone tried to make a fnode without specifying the element they're talking about.");
         }
         this.element = element;
-        this.score = score === undefined ? 1 : score;
-        this.types = types === undefined ? new Map() : types;
+        this.types = new Map();
     }
 
     // Return whether the given type is one of the ones attached to this node.
