@@ -134,7 +134,7 @@ class InwardRule extends Rule {
                         const rightFnode = ruleset.fnodeForElement(fact.element || leftFnode.element);
                         this._checkFact(fact, rightFnode);
                         if (fact.score !== undefined) {
-                            rightFnode.score *= fact.score;
+                            rightFnode.multiplyScore(fact.type, fact.score);
                         }
                         if (fact.type !== undefined) {
                             rightFnode.setNote(fact.type, fact.note);
@@ -166,6 +166,9 @@ class InwardRule extends Rule {
     // Throw an error if something is wrong with a given fact.
     _checkFact (fact, rightFnode) {
         if (fact.type === undefined) {  // No type is given.
+            if (fact.score !== undefined) {  // A score is given but no type is given.
+                throw new Error(`The right-hand side of a rule specified a score (${fact.score}) without a type.`);
+            }
             if (fact.note !== undefined) {  // A note is given but no type is given.
                 throw new Error(`The right-hand side of a rule specified a note (${fact.note}) without a type.`);
             }
@@ -205,20 +208,32 @@ class Fnode {
             throw new Error("Someone tried to make a fnode without specifying the element they're talking about.");
         }
         this.element = element;
-        this.types = new Map();
+
+        // A map of type => {score: number, note: anything}. `score` is always
+        // present and defaults to 1. A note is set iff `note` is present and
+        // not undefined.
+        this._types = new Map();
     }
 
     // Return whether the given type is one of the ones attached to this node.
     hasType (type) {
-        return this.types.has(type);
+        return this._types.has(type);
+    }
+
+    // Return our score for the given type, 1 by default.
+    getScore (type) {
+        return _typeRecordForGetting(type).score;
+    }
+
+    // Multiply one of our per-type scores by a given number. Implicitly assign
+    // us the given type.
+    multiplyScore (type, score) {
+        this._typeRecordForSetting(type).score *= score;
     }
 
     // Return the note for the given type, undefined if none.
     getNote (type) {
-        const scoreAndNote = this.types.get(type);
-        if (scoreAndNote !== undefined) {
-            return scoreAndNote.note;
-        }
+        return _typeRecordForGetting(type).note;
     }
 
     // Return whether this node has a note for the given type.
@@ -227,14 +242,28 @@ class Fnode {
         return this.getNote(type) !== undefined;
     }
 
+    // Set the note attached to one of our types. Implicitly assign us that
+    // type if we don't have it already.
     setNote (type, note) {
         if (note !== undefined) {
             if (this.hasNote(type)) {
                 throw new Error(`Someone (likely the right-hand side of a rule) tried to add a note of type ${type} to an element, but one of that type already exists. Overwriting notes is not allowed, since it would make the order of rules matter.`);
             } else {
-                setDefault(this.types, type, () => {score: 1}).note = note;
+                this._typeRecordForSetting(type).note = note;
             }
         }
+    }
+
+    // Return a score/note record for a type, creating it if it doesn't exist.
+    _typeRecordForSetting (type) {
+        return setDefault(this._types, type, () => {score: 1})
+    }
+
+    // Manifest a temporary type record for reading, working around the lack of
+    // a .? operator in JS.
+    _typeRecordForGetting (type) {
+        const typeRecord = this._types.get(type);
+        return typeRecord === undefined ? {score: 1} : typeRecord;
     }
 }
 

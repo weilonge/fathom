@@ -127,7 +127,7 @@ To do:
 
 #### Notes
 
-`undefined` is not considered a note. So, though notes cannot in general be overwritten, a note that is `undefined` can. Symmetrically, an `undefined` returned from a `.note()` or `.func()` or the like will quietly decline to overwrite an existing defined note.
+`undefined` is not considered a note. So, though notes cannot in general be overwritten, a note that is `undefined` can. Symmetrically, an `undefined` returned from a `.note()` or `.func()` or the like will quietly decline to overwrite an existing defined note, where any other value would cause an error. Rationale: letting `undefined` be a valid note value would mean you couldn't shadow a leftward note in a RHS without introducing a new singleton value to serve as a "no value" flag. It's not worth the complexity and the potential differences between fact and fnode note value semantics.
 
 
 #### `func()`
