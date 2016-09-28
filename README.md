@@ -184,7 +184,9 @@ If you're in the midst of a tornado of rapid development and the fancy stuff is 
 ## Version History
 
 ### 2.0
-Fathom 2.0 pulls more into the ruleset—yanking, thresholds—so it's less focused on emitting the entire scored world for the surrounding imperative program to examine and more on emitting just useful answers.
+The focii for 2.0 are syntactic sugar and support for larger-scale, more powerful rulesets. Everything else falls out of those.
+
+Fathom 2.0 pulls more into the ruleset—yanking, thresholds—so it's less focused on emitting the entire scored world for the surrounding imperative program to examine and more on emitting just useful answers. This opens the door to large, sophisticated rulesets that are still fast.
 
 Fathom 2.0 enables optimization within the rule executor to make short-circuiting sets of rules efficient. It also introduces new yankers like `max()`, which provide a way to map assertions about fuzzy scores down to the boolean statements of type: it's a "cut", and it helps with ruleset efficiency. Of course, if you still want to imbibe the entire scored corpus of nodes in your surrounding program, you can simply yank all nodes of a type the `type()` yanker: just point it to a string, and the results will appear in the yanked data under that key.
 
