@@ -1,6 +1,6 @@
 const {reversed} = require('./utils');
 
-const SUBFACTS = ['type', 'note', 'score', 'element'];
+const SUBFACTS = ['type', 'note', 'score', 'element', 'conserveScore'];
 
 
 function out(key) {
@@ -19,11 +19,10 @@ function out(key) {
 // this, return all properties explicitly from your func, even if they are
 // no-ops (like {score: 1, note: undefined, type: undefined}).
 class InwardRhs {
-    constructor (calls = [], max = Infinity, types, conservesScore = false) {
+    constructor (calls = [], max = Infinity, types) {
         this._calls = calls.slice();
         this._max = max;
         this._types = new Set(types);  // empty set if unconstrained
-        this.conservesScore = conservesScore;
     }
 
     // Declare that the maximum returned score multiplier is such and such.
@@ -31,7 +30,7 @@ class InwardRhs {
     // This overrides any previous call to .scoreUpTo(). To lift a .scoreUpTo()
     // constraint, call .scoreUpTo() with no args.
     scoreUpTo (score) {
-        return new this.constructor(this._calls, score, this._types, this.conservesScore);
+        return new this.constructor(this._calls, score, this._types);
     }
 
     _checkScoreUpTo(fact) {
@@ -64,8 +63,7 @@ class InwardRhs {
         assignSubfacts.kind = 'func';
         return new this.constructor(this._calls.concat(assignSubfacts),
                                     this._max,
-                                    this._types,
-                                    this.conservesScore);
+                                    this._types);
     }
 
     // Set the type applied to fnodes processed by this RHS. This overrides any
@@ -87,8 +85,7 @@ class InwardRhs {
         assignType.kind = 'type';
         return new this.constructor(this._calls.concat(assignType),
                                     this._max,
-                                    this._types,
-                                    this.conservesScore);
+                                    this._types);
     }
 
     // Constrain us to emit 1 of a set of given types. This overrides any
@@ -109,8 +106,7 @@ class InwardRhs {
     function typeIn(...types) {
         return new this.constructor(this._calls,
                                     this._max,
-                                    types,
-                                    this.conservesScore);
+                                    types);
     }
 
     function _checkTypeIn(result) {
@@ -137,8 +133,7 @@ class InwardRhs {
         assignNote.kind = 'note';
         return new this.constructor(this._calls.concat(assignNote),
                                     this._max,
-                                    this._types,
-                                    this.conservesScore);
+                                    this._types);
     }
 
     // Set the returned score multiplier. This overrides any previous calls to
@@ -158,8 +153,7 @@ class InwardRhs {
         assignScore.kind = 'score';
         return new this.constructor(this._calls.concat(assignScore),
                                     this._max,
-                                    this._types,
-                                    this.conservesScore);
+                                    this._types);
     }
 
     // Rig this RHS to base the scores it applies off the scores of the input
@@ -169,10 +163,14 @@ class InwardRhs {
     // application of .func() or .conserveScore(false). We can add one if
     // necessary.
     conserveScore () {
-        return new this.constructor(this._calls,
+        function setConserving(result, fnode) {
+            result.conserveScore = true;
+        }
+        setConserving.conserveScore = true;
+        setConserving.kind = 'conserveScore';
+        return new this.constructor(this._calls.concat(setConserving),
                                     this._max,
-                                    this._types,
-                                    true);
+                                    this._types);
     }
 
     // Future: why not have an .element() method for completeness?
