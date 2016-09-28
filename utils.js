@@ -445,6 +445,15 @@ function setDefault(map, key, defaultMaker) {
 }
 
 
+// Get a key of a map or, if it's missing, a default value.
+function getDefault(map, key, defaultMaker) {
+    if (map.has(key)) {
+        return map.get(key);
+    }
+    return defaultMaker();
+}
+
+
 // Return an backward iterator over an Array.
 function *reversed(array) {
     for (let i = array.length - 1; i >= 0; i--) {
@@ -458,6 +467,7 @@ module.exports = {
     collapseWhitespace,
     clusters,
     distance,
+    getDefault,
     identity,
     inlineTextLength,
     inlineTexts,
@@ -467,6 +477,7 @@ module.exports = {
     max,
     min,
     reversed,
+    setDefault,
     sum,
     walk
 };

@@ -1,3 +1,6 @@
+const {getDefault, setDefault} = require('./utils');
+
+
 class Fnode {
     constructor (element) {
         if (element === undefined) {
@@ -82,8 +85,7 @@ class Fnode {
     // Manifest a temporary type record for reading, working around the lack of
     // a .? operator in JS.
     _typeRecordForGetting (type) {
-        const typeRecord = this._types.get(type);
-        return typeRecord === undefined ? {score: 1} : typeRecord;
+        return getDefault(this._types, type, () => {score: 1});
     }
 }
 
