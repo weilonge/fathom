@@ -16,7 +16,9 @@ class Fnode {
         // the case that multiple rules choose to do this, we limit the
         // contribution of an upstream type's score to being multiplied in a
         // single time. In this set, we keep track of which upstream types'
-        // scores have already been multiplied into each type. LHS node => set of
+        // scores have already been multiplied into each type. LHS fnode => Set
+        // of types whose score for that node have been multiplied into this
+        // node's score.
         // upstream types whose scores already contributed:
         this._conservedScores = new Map();
     }
@@ -31,12 +33,6 @@ class Fnode {
         return _typeRecordForGetting(type).score;
     }
 
-    // Multiply one of our per-type scores by a given number. Implicitly assign
-    // us the given type.
-    multiplyScore (type, score) {
-        this._typeRecordForSetting(type).score *= score;
-    }
-
     // Return the note for the given type, undefined if none.
     getNote (type) {
         return _typeRecordForGetting(type).note;
@@ -46,6 +42,24 @@ class Fnode {
     // Undefined is not considered a note and may be overwritten with impunity.
     hasNote (type) {
         return this.getNote(type) !== undefined;
+    }
+
+    // -------- Methods below this point are private to the framework. --------
+
+    // Multiply one of our per-type scores by a given number. Implicitly assign
+    // us the given type.
+    multiplyScore (type, score) {
+        this._typeRecordForSetting(type).score *= score;
+    }
+
+    // Indicate that I should inherit some score from a LHS-emitted fnode. I
+    // keep track of (LHS fnode, type) pairs whose scores have already been
+    // inherited so we don't multiply them in more than once.
+    conserveScoreFrom (lhsFnode, type) {
+        if (!(const set = setDefault(this._conservedScores, lhsFnode, () => new Set())).has(type)) {
+            set.add(type);
+            this.multiplyScore(type, lhsFnode.getScore(type));
+        }
     }
 
     // Set the note attached to one of our types. Implicitly assign us that

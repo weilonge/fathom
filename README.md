@@ -120,6 +120,8 @@ var fnode = boundRuleset.get(dom.getElementById('aTitle'));
 
 ### RHSs
 
+If a RHS sets a note or a score without explicitly setting a type, the type from the `type()` call of the LHS is assumed. If the LHS has none because it's a `dom()` LHS, an error is raised.
+
 To do:
 - precedence rules (rightmost same-named wins)
 - definitions of unmentioned calls

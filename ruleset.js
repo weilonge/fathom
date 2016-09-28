@@ -130,15 +130,38 @@ class InwardRule extends Rule {
                 // Merge facts into fnodes:
                 forEach(
                     function updateFnode(leftFnode) {
-                        let fact = this.rhs.fact(leftFnode);
+                        const fact = this.rhs.fact(leftFnode);
                         lhs.checkFact(fact);
                         const rightFnode = ruleset.fnodeForElement(fact.element || leftFnode.element);
-                        this._checkFact(fact, rightFnode);
+                        // If the RHS doesn't specify a type, default to the
+                        // type of the LHS, if any:
+                        const rightType = fact.type || lhs.guaranteedType();
+                        if (this.fact.conserveScore) {
+                            // If conserving, multiply in the input-type score
+                            // from the LHS node. (Never fall back to
+                            // multiplying in the RHS-type score from the LHS:
+                            // it's not guaranteed to be there, and even if it
+                            // will ever be, the executor doesn't guarantee it
+                            // has been filled in yet.)
+                            if ((const leftType = lhs.guaranteedType()) !== undefined) {
+                                rightFnode.conserveScoreFrom(leftFnode, leftType);
+                            } else {
+                                throw new Error('conserveScore() was called in a rule whose left-hand side is a dom() selector and thus has no predictable type.');
+                            }
+                        }
                         if (fact.score !== undefined) {
-                            rightFnode.multiplyScore(fact.type, fact.score);
+                            if (rightType !== undefined) {
+                                rightFnode.multiplyScore(fact.type, fact.score);
+                            } else {
+                                throw new Error(`The right-hand side of a rule specified a score (${fact.score}) with neither an explicit type nor one we could infer from the left-hand side.`);
+                            }
                         }
                         if (fact.type !== undefined) {
-                            rightFnode.setNote(fact.type, fact.note);
+                            if (rightType !== undefined) {
+                                rightFnode.setNote(fact.type, fact.note);
+                            } else {
+                                throw new Error(`The right-hand side of a rule specified a note (${fact.note}) with neither an explicit type nor one we could infer from the left-hand side.`);
+                            }
                         }
                         returnedNodes.add(rightFnode);
                     },
@@ -162,18 +185,6 @@ class InwardRule extends Rule {
             return outputTypes.has(type);
         }
         return true;
-    }
-
-    // Throw an error if something is wrong with a given fact.
-    _checkFact (fact, rightFnode) {
-        if (fact.type === undefined) {  // No type is given.
-            if (fact.score !== undefined) {  // A score is given but no type is given.
-                throw new Error(`The right-hand side of a rule specified a score (${fact.score}) without a type.`);
-            }
-            if (fact.note !== undefined) {  // A note is given but no type is given.
-                throw new Error(`The right-hand side of a rule specified a note (${fact.note}) without a type.`);
-            }
-        }
     }
 }
 
