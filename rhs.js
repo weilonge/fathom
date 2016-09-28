@@ -184,7 +184,8 @@ class InwardRhs {
     // filling in defaults is a job for the caller.
     fact (fnode) {
         const doneKinds = new Set();
-        for call in this._calls backward:
+        const result = {};
+        for (call of reversed(this._calls) {
             // If we've already called a call of this kind, then forget it.
             if (!doneKinds.has(call.kind)) {
                 doneKinds.add(call.kind);
@@ -198,6 +199,8 @@ class InwardRhs {
                         }
                     },
                     SUBFACTS);
+            }
+        }
         // TODO: Have this.maxScore (or maybe rule.maxScore) that can be read from the outside.
         this._checkScoreUpTo(result);
         this._checkTypeIn(result);
