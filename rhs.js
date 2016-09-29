@@ -225,10 +225,6 @@ class InwardRhs {
     }
 }
 
-// Illegal: multi-arg type() without a func()
-// At runtime: throw if the score comes out > the arg to max().
-// Maybe build an array of providers for each datum (notes, element, score, etc.) and run them oldest to newest.
-
 
 class OutwardRhs {
     constructor (key, through = x => x) {
