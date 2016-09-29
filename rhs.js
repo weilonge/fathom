@@ -239,6 +239,10 @@ class OutwardRhs {
     through (callback) {
         return new this.constructor(this._key, callback);
     }
+
+    asRhs () {
+        return this;
+    }
 }
 
 

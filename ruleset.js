@@ -3,7 +3,18 @@ const {filter, forEach, map, unique} = require('wu');
 const {Fnode} = require('./fnode');
 const {setDefault} = require('./utils');
 const {Lhs} = require('./lhs');
-const {InwardRhs} = require('./rhs');
+const {InwardRhs, OutwardRhs} = require('./rhs');
+
+
+// Construct and return the proper type of rule class based on the
+// inwardness/outwardness of the RHS.
+function rule(lhs, rhs) {
+    // Since out() is a valid call only on the RHS (unlike type()), we can take
+    // a shortcut here: any outward RHS will already be an OutwardRhs; we don't
+    // need to sidetrack it through being a Side. And OutwardRhs has an asRhs()
+    // that just returns itself.
+    return ((rhs instanceof OutwardRhs) ? OutwardRule : InwardRule)(lhs, rhs);
+}
 
 
 class Ruleset {
@@ -99,7 +110,7 @@ class BoundRuleset {
 // We place the in/out distinction in Rules because it determines whether the
 // RHS result is cached, and Rules are responsible for maintaining the rulewise
 // cache ruleset.ruleCache.
-class Rule {
+class Rule {  // abstract
     constructor (lhs, rhs) {
         this.lhs = lhs.asLhs();
         this.rhs = rhs.asRhs();
@@ -205,12 +216,6 @@ class OutwardRule extends Rule {
     mightAdd (type) {
         return false;
     }
-}
-
-
-// Construct and return the proper type of rule class based, for the moment, on
-// the inwardness/outwardness of the RHS.
-function rule(rhs, lhs) {
 }
 
 
