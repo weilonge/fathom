@@ -40,6 +40,29 @@ function max(iterable, by = identity) {
 }
 
 
+// Return an Array of maximum items from an iterable, as defined by > and ===.
+function maxes(iterable, by = identity) {
+    let bests, bestKeySoFar;
+    let isFirst = true;
+    forEach(
+        function (item) {
+            const key = by(item);
+            if (key > bestKeySoFar || isFirst) {
+                bests = [item];
+                bestKeySoFar = key;
+                isFirst = false;
+            } else if (key === bestKeySoFar) {
+                bests.push(item);
+            }
+        },
+        iterable);
+    if (isFirst) {
+        throw new Error('Tried to call maxes() on empty iterable');
+    }
+    return bests;
+}
+
+
 function min(iterable, by = identity) {
     return best(iterable, by, (a, b) => a < b);
 }
@@ -475,6 +498,7 @@ module.exports = {
     length,
     linkDensity,
     max,
+    maxes,
     min,
     reversed,
     setDefault,

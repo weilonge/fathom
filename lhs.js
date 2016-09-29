@@ -1,7 +1,7 @@
 // The left-hand side of rules
 
 const {filter, map, unique} = require('wu');
-const {setDefault} = require('./utils');
+const {maxes, setDefault} = require('./utils');
 
 
 // Return a condition that uses a DOM selector to find its matches from the
@@ -125,53 +125,18 @@ class TypeLhs extends Lhs {
 // Internal representation of a LHS that has both type and max([NUMBER])
 // constraints. max(NUMBER != 1) support is not yet implemented.
 class TypeMaxLhs extends TypeLhs {
+    // Return the max-scoring node (or nodes if there is a tie) of the given
+    // type.
     fnodes (ruleset) {
-        // Given the max score encountered so far and a set of fnodes
-        // encountered so far with that score, look at an iterable of
-        // additional fnodes, and return the new values of maxActualScore and
-        // maxFnodes, maintaining their invariants.
-        function addMaxes(maxActualScore, maxFnodes, newFnodes) {
-            for (let newFnode of newFnodes) {
-                if (newFnode.score > maxActualScore) {
-                    maxFnodes.clear();
-                    maxFnodes.add(newFnode);
-                    maxActualScore = newFnode.score;  // TODO: correct scope?
-                } else if (newFnode.score === maxActualScore) {
-                    maxFnodes.add(newFnode);
-                }
-            }
-            return maxActualScore;
-        }
-
+        // TODO: Optimize better. Walk the dependency tree, and run only the
+        // rules that could possibly lead to a max result.
         return setDefault(
             ruleset.maxCache,
             this.type,
             function maxFnodesOfType () {
-                // Future optimization: we could use ruleset.typeCache iff it
-                // is filled out.
-                const rules = Array.from(ruleset.rulesWhichMightAdd(this.type));
-                let maxFnodes = new Set();
-                let maxActualScore = 0;  // the highest score actually found so far
-
-                // Sort with highest potential scores first:
-                rules.sort((a, b) => a.maxScore - b.maxScore);
-
-                // Run each rule, updating the max-so-far accumulators as we
-                // go, until we get to rules that can't possibly beat our
-                // current maxes:
-                for (let rule of rules) {
-                    if (rule.maxScore >= maxActualScore) {
-                        const resultsOfCorrectType = filter(fnode => fnode.hasType(this.type),
-                                                            rule.results());
-                        maxActualScore = addMaxes(maxActualScore,
-                                                  maxFnodes,
-                                                  resultsOfCorrectType);
-                    } else {
-                        break;
-                    }
-                }
-                return Array.from(maxFnodes.values());
+                return maxes(super.fnodes(ruleset), fnode => fnode.getScore(this.type));
             });
+    }
 }
 
 
