@@ -1,9 +1,9 @@
-// Tests for fathom/utils.js
+// Tests for fathom/clusters.js
 
 const assert = require('chai').assert;
 const jsdom = require('jsdom').jsdom;
 
-const {distance, clusters} = require('../utils');
+const {distance, clusters} = require('../clusters');
 
 
 // Assert that the distance between nodes a and b is greater in the `deep` DOM
@@ -16,7 +16,7 @@ function assertFarther(deep, shallow) {
 }
 
 
-describe('Utils tests', function () {
+describe.only('Cluster tests', function () {
     describe('distance()', function () {
         // If we keep these tests unbrittle enough, we can use them as a
         // fitness function to search for optimal values of cost coefficients.
