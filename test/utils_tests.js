@@ -16,8 +16,8 @@ function assertFarther(deep, shallow) {
 }
 
 
-describe('Utils tests', function() {
-    describe('distance()', function() {
+describe('Utils tests', function () {
+    describe('distance()', function () {
         // If we keep these tests unbrittle enough, we can use them as a
         // fitness function to search for optimal values of cost coefficients.
 
@@ -185,8 +185,8 @@ describe('Utils tests', function() {
         });
     });
 
-    describe('clusters()', function() {
-        it('groups nearby similar nodes together', function() {
+    describe('clusters()', function () {
+        it('groups nearby similar nodes together', function () {
             const doc = jsdom(`
                 <body>
                     <div>

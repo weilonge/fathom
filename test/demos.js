@@ -5,7 +5,7 @@ const {dom, flavor, rule, ruleset} = require('../index');
 const {inlineTextLength, linkDensity} = require('../utils');
 
 
-describe('Design-driving demos', function() {
+describe('Design-driving demos', function () {
     it('handles a simple series of short-circuiting rules', function () {
         // TODO: Short-circuiting isn't implemented yet. The motivation of this
         // test is to inspire changes to ranker functions that make them more

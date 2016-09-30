@@ -305,7 +305,7 @@ function distance(elementA, elementB) {
 // TODO: Allow distance function to be passed in, making this generally useful
 // and not tied to the DOM.
 class DistanceMatrix {
-    constructor (elements) {
+    constructor(elements) {
         // A sparse adjacency matrix:
         // {A => {},
         //  B => {A => 4},
@@ -341,7 +341,7 @@ class DistanceMatrix {
 
     // Return (distance, a: clusterA, b: clusterB) of closest-together clusters.
     // Replace this to change linkage criterion.
-    closest () {
+    closest() {
         const self = this;
 
         if (this._numClusters < 2) {
@@ -362,7 +362,7 @@ class DistanceMatrix {
     // Look up the distance between 2 clusters in me. Try the lookup in the
     // other direction if the first one falls in the nonexistent half of the
     // triangle.
-    _cachedDistance (clusterA, clusterB) {
+    _cachedDistance(clusterA, clusterB) {
         let ret = this._matrix.get(clusterA).get(clusterB);
         if (ret === undefined) {
             ret = this._matrix.get(clusterB).get(clusterA);
@@ -371,7 +371,7 @@ class DistanceMatrix {
     }
 
     // Merge two clusters.
-    merge (clusterA, clusterB) {
+    merge(clusterA, clusterB) {
         // An example showing how rows merge:
         //  A: {}
         //  B: {A: 1}
@@ -420,12 +420,12 @@ class DistanceMatrix {
         this._numClusters -= 1;
     }
 
-    numClusters () {
+    numClusters() {
         return this._numClusters;
     }
 
     // Return an Array of nodes for each cluster in me.
-    clusters () {
+    clusters() {
         // TODO: Can't get wu.map to work here. Don't know why.
         return Array.from(this._matrix.keys()).map(e => Array.from(flatten(false, e)));
     }

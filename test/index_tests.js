@@ -6,7 +6,7 @@ const jsdom = require('jsdom');
 const {dom, rule, ruleset, flavor} = require('../index');
 
 
-describe('Ranker tests', function() {
+describe('Ranker tests', function () {
     it('scores a node with a simple DOM rule and inserts an empty scribble', function () {
         const doc = jsdom.jsdom(`
             <p>

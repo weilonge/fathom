@@ -7,12 +7,22 @@ extends:
   - eslint:recommended
 
 rules:
+  constructor-super: 0
+  generator-star-spacing: 2
   indent: [2, 4]
+  no-dupe-class-members: 2
+  no-loop-func: 2
+  no-new-func: 2  # equivalent to eval()
+  no-this-before-super: 0
   no-trailing-spaces: 2
   no-unused-vars: [1, {vars: all, args: none}]
+  no-useless-escape: 2
   no-use-before-define: [error, {functions: false, classes: false}]
   no-var: 1
   no-warning-comments: [1, {terms: [xxx, fixme, hack], location: start}]
   object-shorthand: [2, properties]
   guard-for-in: 1  # There's nothing wrong with for..in if you know what you're doing. This is here just to keep me from accidentally saying "for..in" when I mean "for..of". Delete this and come up with a better solution if we ever need to use "for..in".
   no-throw-literal: 2
+  quotes: [2, "single", {"avoidEscape": true, "allowTemplateLiterals": true}]
+  space-before-blocks: [2, "always"]
+  space-before-function-paren: [2, {"anonymous": "always", "named": "never"}]

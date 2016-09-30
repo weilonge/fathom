@@ -2,7 +2,7 @@ const {getDefault, setDefault} = require('./utils');
 
 
 class Fnode {
-    constructor (element) {
+    constructor(element) {
         if (element === undefined) {
             throw new Error("Someone tried to make a fnode without specifying the element they're talking about.");
         }
@@ -27,23 +27,23 @@ class Fnode {
     }
 
     // Return whether the given type is one of the ones attached to this node.
-    hasType (type) {
+    hasType(type) {
         return this._types.has(type);
     }
 
     // Return our score for the given type, 1 by default.
-    getScore (type) {
-        return _typeRecordForGetting(type).score;
+    getScore(type) {
+        return this._typeRecordForGetting(type).score;
     }
 
     // Return the note for the given type, undefined if none.
-    getNote (type) {
-        return _typeRecordForGetting(type).note;
+    getNote(type) {
+        return this._typeRecordForGetting(type).note;
     }
 
     // Return whether this node has a note for the given type.
     // Undefined is not considered a note and may be overwritten with impunity.
-    hasNote (type) {
+    hasNote(type) {
         return this.getNote(type) !== undefined;
     }
 
@@ -51,17 +51,18 @@ class Fnode {
 
     // Multiply one of our per-type scores by a given number. Implicitly assign
     // us the given type.
-    multiplyScore (type, score) {
+    multiplyScore(type, score) {
         this._typeRecordForSetting(type).score *= score;
     }
 
     // Indicate that I should inherit some score from a LHS-emitted fnode. I
     // keep track of (LHS fnode, type) pairs whose scores have already been
     // inherited so we don't multiply them in more than once.
-    conserveScoreFrom (lhsFnode, type) {
-        if (!(const set = setDefault(this._conservedScores,
-                                     lhsFnode,
-                                     () => new Set())).has(type)) {
+    conserveScoreFrom(lhsFnode, type) {
+        let set;
+        if (!(set = setDefault(this._conservedScores,
+                               lhsFnode,
+                               () => new Set())).has(type)) {
             set.add(type);
             this.multiplyScore(type, lhsFnode.getScore(type));
         }
@@ -69,7 +70,7 @@ class Fnode {
 
     // Set the note attached to one of our types. Implicitly assign us that
     // type if we don't have it already.
-    setNote (type, note) {
+    setNote(type, note) {
         if (note !== undefined) {
             if (this.hasNote(type)) {
                 throw new Error(`Someone (likely the right-hand side of a rule) tried to add a note of type ${type} to an element, but one of that type already exists. Overwriting notes is not allowed, since it would make the order of rules matter.`);
@@ -80,14 +81,14 @@ class Fnode {
     }
 
     // Return a score/note record for a type, creating it if it doesn't exist.
-    _typeRecordForSetting (type) {
-        return setDefault(this._types, type, () => {score: 1})
+    _typeRecordForSetting(type) {
+        return setDefault(this._types, type, () => ({score: 1}))
     }
 
     // Manifest a temporary type record for reading, working around the lack of
     // a .? operator in JS.
-    _typeRecordForGetting (type) {
-        return getDefault(this._types, type, () => {score: 1});
+    _typeRecordForGetting(type) {
+        return getDefault(this._types, type, () => ({score: 1}));
     }
 }
 

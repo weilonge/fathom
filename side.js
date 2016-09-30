@@ -1,3 +1,4 @@
+const {Lhs} = require('./lhs');
 const {InwardRhs} = require('./ruleset');
 
 
@@ -48,56 +49,56 @@ function conserveScore() {
 // and LHSs. I would prefer to do this dynamically, but that wouldn't compile
 // down to old versions of ES.
 class Side {
-    constructor (firstCall) {
+    constructor(firstCall) {
         // A "call" is like {method: 'dom', args: ['p.smoo']}.
         this.calls = [firstCall];
     }
 
-    max () {
+    max() {
         this._push('max');
     }
 
-    func (callback) {
+    func(callback) {
         this._push('func', callback);
     }
 
-    type (...types) {
+    type(...types) {
         this._push('type', ...types);
     }
 
-    note (callback) {
+    note(callback) {
         this._push('note', callback);
     }
 
-    score (theScore) {
+    score(theScore) {
         this._push('score', theScore);
     }
 
-    scoreUpTo (score) {
+    scoreUpTo(score) {
         this._push('scoreUpTo', score);
     }
 
-    typeIn (...types) {
+    typeIn(...types) {
         this._push('typeIn', ...types);
     }
 
-    conserveScore () {
+    conserveScore() {
         this._push('conserveScore');
     }
 
-    _push (method, ...args) {
-        this.calls.push({method: method, args: args});
+    _push(method, ...args) {
+        this.calls.push({method, args});
     }
 
-    asLhs () {
+    asLhs() {
         return this._asSide(new Lhs(this.calls[0]), this.calls.slice(1));
     }
 
-    asRhs () {
+    asRhs() {
         return this._asSide(new InwardRhs(), this.calls);
     }
 
-    _asSide (side, calls) {
+    _asSide(side, calls) {
         for (let call of calls) {
             side = side[call.method](...call.args);
         }

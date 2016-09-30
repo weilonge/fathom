@@ -1,9 +1,9 @@
-const {filter, forEach, map, unique} = require('wu');
+const {filter, forEach, map} = require('wu');
 
 const {Fnode} = require('./fnode');
 const {setDefault} = require('./utils');
 const {Lhs} = require('./lhs');
-const {InwardRhs, OutwardRhs} = require('./rhs');
+const {OutwardRhs} = require('./rhs');
 
 
 // Construct and return the proper type of rule class based on the
@@ -18,11 +18,11 @@ function rule(lhs, rhs) {
 
 
 class Ruleset {
-    constructor (...rules) {
+    constructor(...rules) {
         // TODO: Shove the rules somewhere.
     }
 
-    against (doc) {
+    against(doc) {
         return new BoundRuleset(doc);
     }
 }
@@ -32,7 +32,7 @@ class Ruleset {
 //
 // This also carries with it a cache of rule results.
 class BoundRuleset {
-    constructor (doc) {
+    constructor(doc) {
         this.doc = doc;
 
         // TODO: Assemble a hash of out rules by name in this._outRules.
@@ -58,7 +58,7 @@ class BoundRuleset {
     //   * A DOM node, which will (inefficiently) run the whole ruleset and
     //     return the fully annotated fnode corresponding to that node
     // Results are cached in the first and third cases.
-    get (thing) {
+    get(thing) {
         if (typeof thing === 'string') {
             return this._outRules[thing].results(this);
         } else if (thing instanceof Lhs) {
@@ -96,13 +96,13 @@ class BoundRuleset {
     // We return any rule we can't prove doesn't add the type. None, it
     // follows, are OutwardRules. Also, note that if a rule both takes and
     // emits a certain type, it is not considered to "add" it.
-    rulesWhichMightAdd (type) {
+    rulesWhichMightAdd(type) {
         // The work this does is cached in this.typeCache by the Lhs.
         return filter(rule => rule.mightAdd(type), this._rules);
     }
 
     // Return the Fathom node that describes the given DOM element.
-    fnodeForElement (element) {
+    fnodeForElement(element) {
         return setDefault(this.elementCache,
                           element,
                           () => new Fnode(element));
@@ -114,7 +114,7 @@ class BoundRuleset {
 // RHS result is cached, and Rules are responsible for maintaining the rulewise
 // cache ruleset.ruleCache.
 class Rule {  // abstract
-    constructor (lhs, rhs) {
+    constructor(lhs, rhs) {
         this.lhs = lhs.asLhs();
         this.rhs = rhs.asRhs();
     }
@@ -125,7 +125,7 @@ class Rule {  // abstract
 // operated on by further rules.
 class InwardRule extends Rule {
     // Return the fnodes emitted by the RHS of this rule.
-    results (ruleset) {
+    results(ruleset) {
         // This caches the fnodes emitted by the RHS result of a rule. Any more
         // fine-grained caching is the responsibility of the delegated-to
         // results() methods. For now, we consider most of what a LHS computes
@@ -145,11 +145,11 @@ class InwardRule extends Rule {
                 forEach(
                     function updateFnode(leftFnode) {
                         const fact = this.rhs.fact(leftFnode);
-                        lhs.checkFact(fact);
+                        this.lhs.checkFact(fact);
                         const rightFnode = ruleset.fnodeForElement(fact.element || leftFnode.element);
                         // If the RHS doesn't specify a type, default to the
                         // type of the LHS, if any:
-                        const rightType = fact.type || lhs.guaranteedType();
+                        const rightType = fact.type || this.lhs.guaranteedType();
                         if (this.fact.conserveScore) {
                             // If conserving, multiply in the input-type score
                             // from the LHS node. (Never fall back to
@@ -157,7 +157,8 @@ class InwardRule extends Rule {
                             // it's not guaranteed to be there, and even if it
                             // will ever be, the executor doesn't guarantee it
                             // has been filled in yet.)
-                            if ((const leftType = lhs.guaranteedType()) !== undefined) {
+                            const leftType = this.lhs.guaranteedType();
+                            if (leftType !== undefined) {
                                 rightFnode.conserveScoreFrom(leftFnode, leftType);
                             } else {
                                 throw new Error('conserveScore() was called in a rule whose left-hand side is a dom() selector and thus has no predictable type.');
@@ -177,7 +178,7 @@ class InwardRule extends Rule {
                                 throw new Error(`The right-hand side of a rule specified a note (${fact.note}) with neither an explicit type nor one we could infer from the left-hand side.`);
                             }
                         }
-                        returnedNodes.add(rightFnode);
+                        returnedFnodes.add(rightFnode);
                     },
                     leftFnodes);
 
@@ -187,7 +188,7 @@ class InwardRule extends Rule {
 
     // Return false if we can prove I never add the given type to fnodes.
     // Otherwise, return true.
-    mightAdd (type) {
+    mightAdd(type) {
         const inputType = this.lhs.guaranteedType();
         const outputTypes = this.rhs.possibleTypes();
 
@@ -208,7 +209,7 @@ class InwardRule extends Rule {
 // knowledgebase.
 class OutwardRule extends Rule {
     // Compute the whole thing, including any .through().
-    results (ruleset) {
+    results(ruleset) {
         return setDefault(
             ruleset.ruleCache,
             this,
@@ -216,7 +217,7 @@ class OutwardRule extends Rule {
     }
 
     // out() rules never set any types on fnodes.
-    mightAdd (type) {
+    mightAdd(type) {
         return false;
     }
 }

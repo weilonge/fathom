@@ -1,6 +1,6 @@
 // The left-hand side of rules
 
-const {filter, map, unique} = require('wu');
+const {filter, flatten, map, unique} = require('wu');
 const {maxes, setDefault} = require('./utils');
 
 
@@ -23,7 +23,7 @@ function dom(selector) {
 //
 // Lhs and its subclasses are private to the Fathom framework.
 class Lhs {
-    constructor (firstCall) {
+    constructor(firstCall) {
         if (firstCall.method === 'dom') {
             return new DomLhs(...firstCall.args);
         } else if (firstCall.method === 'type') {
@@ -39,33 +39,35 @@ class Lhs {
 
     // Check that a RHS-emitted fact is legal for this kind of LHS, and throw
     // an error if it isn't.
-    checkFact (fact) {
+    checkFact(fact) {
     }
 
     // Return the single type the output of the LHS is guaranteed to have.
     // Return undefined if there is no such single type we can ascertain.
-    guaranteedType () {
+    guaranteedType() {
     }
 }
 
 
 class DomLhs extends Lhs {
-    constructor (selector) {
+    constructor(selector) {
         if (selector === undefined) {
             throw new Error('A querySelector()-style selector is required as the argument to dom().');
         }
         this.selector = selector;
     }
 
-    fnodes (ruleset) {
+    fnodes(ruleset) {
         const matches = ruleset.doc.querySelectorAll(this.selector);
+        const ret = [];
         for (let i = 0; i < matches.length; i++) {  // matches is a NodeList, which doesn't conform to iterator protocol
             const element = matches[i];
-            yield ruleset.fnodeForElement(element);
+            ret.push(ruleset.fnodeForElement(element));
         }
+        return ret;
     }
 
-    checkFact (fact) {
+    checkFact(fact) {
         if (fact.type === undefined) {
             throw new Error(`The right-hand side of a dom() rule failed to specify a type. This means there is no way for its output to be used by later rules. All it specified was ${fact}.`);
         }
@@ -75,18 +77,18 @@ class DomLhs extends Lhs {
 
 // Internal representation of a LHS constrained by type but not by max()
 class TypeLhs extends Lhs {
-    constructor (type) {
+    constructor(type) {
         if (type === undefined) {
             throw new Error('A type name is required when calling type().');
         }
         this.type = type;
     }
 
-    fnodes (ruleset) {
+    fnodes(ruleset) {
         return setDefault(
             ruleset.typeCache,
             this.type,
-            function allFnodesOfType () {
+            function allFnodesOfType() {
                 // We don't really care if the rule *adds* the given
                 // type, just that we find all the fnodes of that type.
                 const fnodesMaybeOfType = flatten(true,
@@ -99,18 +101,18 @@ class TypeLhs extends Lhs {
     }
 
     // Override the type previously specified by this constraint.
-    type (inputType) {
+    type(inputType) {
         // Preserve the class in case this is a TypeMaxLhs.
         return new this.constructor(inputType);
     }
 
     // Return a new LHS constrained to return only the max-scoring node of
     // a type. If there is a tie, more than 1 node may be selected.
-    max () {
+    max() {
         return new TypeMaxLhs(this.type);
     }
 
-    guaranteedType () {
+    guaranteedType() {
         return this.type;
     }
 }
@@ -121,14 +123,14 @@ class TypeLhs extends Lhs {
 class TypeMaxLhs extends TypeLhs {
     // Return the max-scoring node (or nodes if there is a tie) of the given
     // type.
-    fnodes (ruleset) {
+    fnodes(ruleset) {
         // TODO: Optimize better. Walk the dependency tree, and run only the
         // rules that could possibly lead to a max result. As part of this,
         // make RHSs expose their max potential scores.
         return setDefault(
             ruleset.maxCache,
             this.type,
-            function maxFnodesOfType () {
+            function maxFnodesOfType() {
                 return maxes(super.fnodes(ruleset), fnode => fnode.getScore(this.type));
             });
     }
