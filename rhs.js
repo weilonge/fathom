@@ -201,7 +201,6 @@ class InwardRhs {
                     SUBFACTS);
             }
         }
-        // TODO: Have this.maxScore (or maybe rule.maxScore) that can be read from the outside.
         this._checkScoreUpTo(result);
         this._checkTypeIn(result);
         return result;

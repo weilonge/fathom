@@ -75,7 +75,10 @@ class BoundRuleset {
             // pages (in which case the classifying types end up attached to a
             // high-level element like <html>)? Maybe we care only about some
             // of the classification types in this ruleset: let's not run the
-            // others.
+            // others. We could provide a predefined partial RHS that specifies
+            // element(root) and a convenience routine that runs .get(each
+            // classification type) and then returns the root fnode, which you
+            // can examine to see what types are on it.
         } else {
             throw new Error('ruleset.get() expects a string, an expression like on the left-hand side of a rule, or a DOM node.');
         }
