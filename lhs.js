@@ -127,11 +127,12 @@ class TypeMaxLhs extends TypeLhs {
         // TODO: Optimize better. Walk the dependency tree, and run only the
         // rules that could possibly lead to a max result. As part of this,
         // make RHSs expose their max potential scores.
+        const getSuperFnodes = () => super.fnodes(ruleset);
         return setDefault(
             ruleset.maxCache,
             this.type,
             function maxFnodesOfType() {
-                return maxes(super.fnodes(ruleset), fnode => fnode.getScore(this.type));
+                return maxes(getSuperFnodes(), fnode => fnode.getScore(this.type));
             });
     }
 }
