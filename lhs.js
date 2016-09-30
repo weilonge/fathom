@@ -11,12 +11,6 @@ function dom(selector) {
 }
 
 
-// Return a condition that discriminates on fnodes by type.
-function type(inputType) {
-    return new TypeLhs(inputType);
-}
-
-
 // Rules and the LHSs and RHSs that comprise them have no state. This lets us
 // make BoundRulesets from Rulesets without duplicating the rules. It also lets
 // us share a common cache among rules: multiple ones might care about a cached
@@ -28,7 +22,7 @@ function type(inputType) {
 // Lhses are responsible for maintaining ruleset.typeCache and ruleset.maxCache.
 //
 // Lhs and its subclasses are private to the Fathom framework.
-class Lhs {  // abstract
+class Lhs {
     constructor (firstCall) {
         if (firstCall.method === 'dom') {
             return new DomLhs(...firstCall.args);
@@ -143,9 +137,5 @@ class TypeMaxLhs extends TypeLhs {
 
 module.exports = {
     dom,
-    type,
-    Lhs,
-    DomLhs,
-    TypeLhs,
-    TypeMaxLhs 
+    Lhs
 };

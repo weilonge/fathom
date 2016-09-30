@@ -222,59 +222,6 @@ class OutwardRule extends Rule {
 }
 
 
-// A string of calls that can be compiled into a Rhs or Lhs, depending on its
-// position in a Rule. This lets us use type() as a leading call for both RHSs
-// and LHSs.
-class Side {
-    constructor (firstCall) {
-        // A "call" is like {method: 'dom', args: ['p.smoo']}.
-        this.calls = [call];
-    }
-
-    max (score) {
-        this._push('max', score);
-    }
-
-    func (callback) {
-        this._push('func', callback);
-    }
-
-    type (...types) {
-        this._push('type', ...types);
-    }
-
-    note (callback) {
-        this._push('note', callback);
-    }
-
-    score (theScore) {
-        this._push('score', theScore);
-    }
-
-    _push (method, ...args) {
-        this.calls.push({method: method, args: args});
-    }
-
-    asLhs () {
-        return this._asSide(new Lhs(this.calls[0]), this.calls.slice(1));
-    }
-
-    asRhs () {
-        return this._asSide(new InwardRhs(), this.calls);
-    }
-
-    _asSide (side, calls) {
-        for (let call of calls) {
-            side = side[call.method](...call.args);
-        }
-        return side;
-    }
-}
-
-
 module.exports = {
-    dom,
-    rule,
-    Ruleset,
-    type
+    rule
 };
