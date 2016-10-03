@@ -17,13 +17,35 @@ function rule(lhs, rhs) {
 }
 
 
+// Sugar for conciseness and consistency
+function ruleset(...rules) {
+    return new Ruleset(...rules);
+}
+
+
+// An unbound ruleset. Eventually, you'll be able to add rules to these. Then,
+// when you bind them by calling against(), the resulting BoundRuleset will be
+// immutable.
 class Ruleset {
     constructor(...rules) {
-        // TODO: Shove the rules somewhere.
+        this._inRules = [];
+        this._outRules = new Map();
+
+        // Separate rules into out ones and in ones, and sock them away. We do
+        // this here so mistakes raise errors early.
+        for (let rule of rules) {
+            if (rule instanceof InwardRule) {
+                this._inRules.push(rule);
+            } else if (rule instanceof OutwardRule) {
+                this._outRules.set(rule.key(), rule);
+            } else {
+                throw new Error(`This input to ruleset() wasn't a rule: ${rule}`);
+            }
+        }
     }
 
     against(doc) {
-        return new BoundRuleset(doc);
+        return new BoundRuleset(doc, this._inRules, this._outRules);
     }
 }
 
@@ -32,11 +54,12 @@ class Ruleset {
 //
 // This also carries with it a cache of rule results.
 class BoundRuleset {
-    constructor(doc) {
+    // inRules: an Array of non-out() rules
+    // outRules: a Map of output keys to out() rules
+    constructor(doc, inRules, outRules) {
         this.doc = doc;
-
-        // TODO: Assemble a hash of out rules by name in this._outRules.
-        // TODO: Stick an Array of rules in this._rules.
+        this._inRules = inRules;
+        this._outRules = outRules;
 
         // Private, for the use of only helper classes:
         this.ruleCache = new Map();  // Rule instance => Array of result fnodes or out.through() return values
@@ -65,10 +88,8 @@ class BoundRuleset {
             return Array.from(thing.results(this));
         } else if (thing.hasProperty('nodeName')) {
             // Compute everything (not just things that lead to outs):
-            for (let rule of this._rules) {
-                if (rule instanceof InwardRule) {
-                    rule.results(this);
-                }
+            for (let rule of this._inRules) {
+                rule.results(this);
             }
             return this.fnodeForElement(thing);
             // TODO: How can we be more efficient about this, for classifying
@@ -98,7 +119,7 @@ class BoundRuleset {
     // emits a certain type, it is not considered to "add" it.
     rulesWhichMightAdd(type) {
         // The work this does is cached in this.typeCache by the Lhs.
-        return filter(rule => rule.mightAdd(type), this._rules);
+        return filter(rule => rule.mightAdd(type), this._inRules);
     }
 
     // Return the Fathom node that describes the given DOM element.
@@ -216,13 +237,14 @@ class OutwardRule extends Rule {
             () => map(this.rhs.through, this.lhs.fnodes(ruleset)));
     }
 
-    // out() rules never set any types on fnodes.
-    mightAdd(type) {
-        return false;
+    // Return the key under which the output of this rule will be available.
+    key() {
+        return this.rhs.key;
     }
 }
 
 
 module.exports = {
-    rule
+    rule,
+    ruleset
 };
