@@ -1,4 +1,4 @@
-const {flatten, forEach, map} = require('wu');
+const {forEach, map} = require('wu');
 
 
 function identity(x) {
