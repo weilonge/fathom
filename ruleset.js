@@ -147,6 +147,7 @@ class Rule {  // abstract
 class InwardRule extends Rule {
     // Return the fnodes emitted by the RHS of this rule.
     results(ruleset) {
+        const self = this;
         // This caches the fnodes emitted by the RHS result of a rule. Any more
         // fine-grained caching is the responsibility of the delegated-to
         // results() methods. For now, we consider most of what a LHS computes
@@ -156,7 +157,7 @@ class InwardRule extends Rule {
             ruleset.ruleCache,
             this,
             function computeFnodes() {
-                const leftFnodes = this.lhs.fnodes(ruleset);
+                const leftFnodes = self.lhs.fnodes(ruleset);
                 // Avoid returning a single fnode more than once. LHSs uniquify
                 // themselves, but the RHS can change the element it's talking
                 // about and thus end up with dupes.
@@ -165,20 +166,20 @@ class InwardRule extends Rule {
                 // Merge facts into fnodes:
                 forEach(
                     function updateFnode(leftFnode) {
-                        const fact = this.rhs.fact(leftFnode);
-                        this.lhs.checkFact(fact);
+                        const fact = self.rhs.fact(leftFnode);
+                        self.lhs.checkFact(fact);
                         const rightFnode = ruleset.fnodeForElement(fact.element || leftFnode.element);
                         // If the RHS doesn't specify a type, default to the
                         // type of the LHS, if any:
-                        const rightType = fact.type || this.lhs.guaranteedType();
-                        if (this.fact.conserveScore) {
+                        const rightType = fact.type || self.lhs.guaranteedType();
+                        if (fact.conserveScore) {
                             // If conserving, multiply in the input-type score
                             // from the LHS node. (Never fall back to
                             // multiplying in the RHS-type score from the LHS:
                             // it's not guaranteed to be there, and even if it
                             // will ever be, the executor doesn't guarantee it
                             // has been filled in yet.)
-                            const leftType = this.lhs.guaranteedType();
+                            const leftType = self.lhs.guaranteedType();
                             if (leftType !== undefined) {
                                 rightFnode.conserveScoreFrom(leftFnode, leftType);
                             } else {

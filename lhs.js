@@ -94,6 +94,7 @@ class TypeLhs extends Lhs {
     }
 
     fnodes(ruleset) {
+        const self = this;
         return setDefault(
             ruleset.typeCache,
             this.type,
@@ -101,9 +102,9 @@ class TypeLhs extends Lhs {
                 // We don't really care if the rule *adds* the given
                 // type, just that we find all the fnodes of that type.
                 const fnodesMaybeOfType = flatten(true,
-                                                  map(rule => rule.results(),
-                                                      ruleset.rulesWhichMightAdd(this.type)));
-                const fnodesOfType = filter(fnode => fnode.hasType(this.type),
+                                                  map(rule => rule.results(ruleset),
+                                                      ruleset.rulesWhichMightAdd(self.type)));
+                const fnodesOfType = filter(fnode => fnode.hasType(self.type),
                                             fnodesMaybeOfType);
                 return Array.from(unique(fnodesOfType));
             });
@@ -136,12 +137,13 @@ class TypeMaxLhs extends TypeLhs {
         // TODO: Optimize better. Walk the dependency tree, and run only the
         // rules that could possibly lead to a max result. As part of this,
         // make RHSs expose their max potential scores.
+        const self = this;
         const getSuperFnodes = () => super.fnodes(ruleset);
         return setDefault(
             ruleset.maxCache,
             this.type,
             function maxFnodesOfType() {
-                return maxes(getSuperFnodes(), fnode => fnode.getScore(this.type));
+                return maxes(getSuperFnodes(), fnode => fnode.getScore(self.type));
             });
     }
 }
