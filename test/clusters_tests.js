@@ -16,7 +16,7 @@ function assertFarther(deep, shallow) {
 }
 
 
-describe.only('Cluster tests', function () {
+describe('Cluster tests', function () {
     describe('distance()', function () {
         // If we keep these tests unbrittle enough, we can use them as a
         // fitness function to search for optimal values of cost coefficients.

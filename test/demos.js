@@ -6,7 +6,7 @@ const {inlineTextLength, linkDensity} = require('../utils');
 
 
 describe('Design-driving demos', function () {
-    it('handles a simple series of short-circuiting rules', function () {
+    it.skip('handles a simple series of short-circuiting rules', function () {
         // TODO: Short-circuiting isn't implemented yet. The motivation of this
         // test is to inspire changes to ranker functions that make them more
         // declarative, such that the engine can be smart enough to run the
@@ -34,7 +34,7 @@ describe('Design-driving demos', function () {
         assert.equal(node.flavors.get('titley'), 'OpenGraph');
     });
 
-    it("takes a decent shot at doing Readability's job", function () {
+    it.skip("takes a decent shot at doing Readability's job", function () {
         // Score a node based on how much text is directly inside it and its
         // inline-tag children.
         function paragraphishByLength(node) {

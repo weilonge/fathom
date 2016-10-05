@@ -13,7 +13,7 @@ function rule(lhs, rhs) {
     // a shortcut here: any outward RHS will already be an OutwardRhs; we don't
     // need to sidetrack it through being a Side. And OutwardRhs has an asRhs()
     // that just returns itself.
-    return ((rhs instanceof OutwardRhs) ? OutwardRule : InwardRule)(lhs, rhs);
+    return new ((rhs instanceof OutwardRhs) ? OutwardRule : InwardRule)(lhs, rhs);
 }
 
 

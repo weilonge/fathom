@@ -5,6 +5,8 @@
 'use strict';
 
 const {rule, ruleset} = require('./ruleset');
+const {dom} = require('./lhs');
+const {func, conserveScore, max, note, score, scoreUpTo, type, typeIn} = require('./side');
 
 
 // Future possible fanciness:
@@ -32,3 +34,11 @@ const {rule, ruleset} = require('./ruleset');
 // * Potential to have rules generated or tuned by training
 // * Adaptable to find things other than the main body text
 // * Potential to perform better since it doesn't have to run over and over, loosening constraints each time, if it fails
+
+
+module.exports = {
+    dom,
+    rule,
+    ruleset,
+    type
+};

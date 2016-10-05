@@ -7,13 +7,11 @@ extends:
   - eslint:recommended
 
 rules:
-  constructor-super: 0
   generator-star-spacing: 2
   indent: [2, 4]
   no-dupe-class-members: 2
   no-loop-func: 2
   no-new-func: 2  # equivalent to eval()
-  no-this-before-super: 0
   no-trailing-spaces: 2
   no-unused-vars: [1, {vars: all, args: none}]
   no-useless-escape: 2

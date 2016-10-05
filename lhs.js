@@ -1,4 +1,4 @@
-// The left-hand side of rules
+// The left-hand side of a rule
 
 const {filter, flatten, map, unique} = require('wu');
 const {maxes, setDefault} = require('./utils');
@@ -23,7 +23,9 @@ function dom(selector) {
 //
 // Lhs and its subclasses are private to the Fathom framework.
 class Lhs {
-    constructor(firstCall) {
+    // Return a new Lhs of the appropriate kind, given its first call.
+    // Private to the framework.
+    static fromFirstCall(firstCall) {
         if (firstCall.method === 'dom') {
             return new DomLhs(...firstCall.args);
         } else if (firstCall.method === 'type') {
@@ -32,6 +34,7 @@ class Lhs {
             throw new Error('The left-hand side of a rule() must start with dom() or type().');
         }
     }
+
 
     // Return the output fnodes selected by this left-hand-side expression.
     // ruleset: a BoundRuleset
@@ -51,6 +54,7 @@ class Lhs {
 
 class DomLhs extends Lhs {
     constructor(selector) {
+        super();
         if (selector === undefined) {
             throw new Error('A querySelector()-style selector is required as the argument to dom().');
         }
@@ -78,6 +82,7 @@ class DomLhs extends Lhs {
 // Internal representation of a LHS constrained by type but not by max()
 class TypeLhs extends Lhs {
     constructor(type) {
+        super();
         if (type === undefined) {
             throw new Error('A type name is required when calling type().');
         }

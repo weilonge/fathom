@@ -1,3 +1,5 @@
+// The right-hand side of a rule
+
 const {forEach} = require('wu');
 const {reversed} = require('./utils');
 
@@ -244,5 +246,6 @@ class OutwardRhs {
 
 module.exports = {
     InwardRhs,
-    out
+    out,
+    OutwardRhs
 };
