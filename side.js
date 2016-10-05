@@ -99,6 +99,7 @@ class Side {
     }
 
     _asSide(side, calls) {
+        // eslint-disable-next-line prefer-const
         for (let call of calls) {
             side = side[call.method](...call.args);
         }

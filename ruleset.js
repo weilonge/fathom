@@ -33,6 +33,7 @@ class Ruleset {
 
         // Separate rules into out ones and in ones, and sock them away. We do
         // this here so mistakes raise errors early.
+        // eslint-disable-next-line prefer-const
         for (let rule of rules) {
             if (rule instanceof InwardRule) {
                 this._inRules.push(rule);
@@ -88,6 +89,7 @@ class BoundRuleset {
             return Array.from(thing.results(this));
         } else if (thing.hasProperty('nodeName')) {
             // Compute everything (not just things that lead to outs):
+            // eslint-disable-next-line prefer-const
             for (let rule of this._inRules) {
                 rule.results(this);
             }

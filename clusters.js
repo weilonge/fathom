@@ -152,8 +152,10 @@ class DistanceMatrix {
         const clusters = elements.map(el => [el]);
 
         // Init matrix:
+        // eslint-disable-next-line prefer-const
         for (let outerCluster of clusters) {
             const innerMap = new Map();
+            // eslint-disable-next-line prefer-const
             for (let innerCluster of this._matrix.keys()) {
                 innerMap.set(innerCluster, distance(outerCluster[0],
                                                     innerCluster[0]));
@@ -174,7 +176,9 @@ class DistanceMatrix {
 
         // Return the distances between every pair of clusters.
         function *clustersAndDistances() {
+            // eslint-disable-next-line prefer-const
             for (let [outerKey, row] of self._matrix.entries()) {
+                // eslint-disable-next-line prefer-const
                 for (let [innerKey, storedDistance] of row.entries()) {
                     yield {a: outerKey, b: innerKey, distance: storedDistance};
                 }
@@ -220,6 +224,7 @@ class DistanceMatrix {
         // There will be no repetition in the matrix because, after all,
         // nothing pointed to this new cluster before it existed.
         const newRow = new Map();
+        // eslint-disable-next-line prefer-const
         for (let outerKey of this._matrix.keys()) {
             if (outerKey !== clusterA && outerKey !== clusterB) {
                 newRow.set(outerKey, Math.min(this._cachedDistance(clusterA, outerKey),
@@ -232,6 +237,7 @@ class DistanceMatrix {
         this._matrix.delete(clusterB);
 
         // Remove inner refs to the clusters we're merging.
+        // eslint-disable-next-line prefer-const
         for (let inner of this._matrix.values()) {
             inner.delete(clusterA);
             inner.delete(clusterB);

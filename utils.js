@@ -88,6 +88,7 @@ function sum(iterable) {
 
 function length(iterable) {
     let num = 0;
+    // eslint-disable-next-line no-unused-vars, prefer-const
     for (let item of iterable) {
         num++;
     }
@@ -100,8 +101,10 @@ function length(iterable) {
 //     and its children
 function *walk(element, shouldTraverse) {
     yield element;
+    // eslint-disable-next-line prefer-const
     for (let child of element.childNodes) {
         if (shouldTraverse(child)) {
+            // eslint-disable-next-line prefer-const
             for (let w of walk(child, shouldTraverse)) {
                 yield w;
             }
@@ -132,6 +135,7 @@ function isBlock(element) {
 function *inlineTexts(element, shouldTraverse = element => true) {
     // TODO: Could we just use querySelectorAll() with a really long
     // selector rather than walk(), for speed?
+    // eslint-disable-next-line prefer-const
     for (let child of walk(element,
                              element => !(isBlock(element) ||
                                           element.tagName === 'SCRIPT' &&
