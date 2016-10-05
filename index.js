@@ -37,8 +37,15 @@ const {func, conserveScore, max, note, score, scoreUpTo, type, typeIn} = require
 
 
 module.exports = {
+    conserveScore,
     dom,
+    func,
+    max,
+    note,
     rule,
     ruleset,
-    type
+    score,
+    scoreUpTo,
+    type,
+    typeIn
 };
