@@ -1,5 +1,5 @@
 const {Lhs} = require('./lhs');
-const {InwardRhs} = require('./ruleset');
+const {InwardRhs} = require('./rhs');
 
 
 // Constrain to only the max-scoring node of a type on the LHS.

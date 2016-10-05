@@ -11,20 +11,20 @@ function dom(selector) {
 }
 
 
-// Rules and the LHSs and RHSs that comprise them have no state. This lets us
-// make BoundRulesets from Rulesets without duplicating the rules. It also lets
-// us share a common cache among rules: multiple ones might care about a cached
-// type(), for instance; there isn't a one-to-one relationship of storing with
-// caring. There would also, because of the interdependencies of rules in a
-// ruleset, be little use in segmenting the caches: if you do something that
-// causes one to need to be cleared, you'll need to clear many more as well.
+// Rules and the LHSs and RHSs that comprise them have no mutable state. This
+// lets us make BoundRulesets from Rulesets without duplicating the rules. It
+// also lets us share a common cache among rules: multiple ones might care
+// about a cached type(), for instance; there isn't a one-to-one relationship
+// of storing with caring. There would also, because of the interdependencies
+// of rules in a ruleset, be little use in segmenting the caches: if you do
+// something that causes one to need to be cleared, you'll need to clear many
+// more as well.
 //
 // Lhses are responsible for maintaining ruleset.typeCache and ruleset.maxCache.
 //
 // Lhs and its subclasses are private to the Fathom framework.
 class Lhs {
     // Return a new Lhs of the appropriate kind, given its first call.
-    // Private to the framework.
     static fromFirstCall(firstCall) {
         if (firstCall.method === 'dom') {
             return new DomLhs(...firstCall.args);
@@ -75,6 +75,10 @@ class DomLhs extends Lhs {
         if (fact.type === undefined) {
             throw new Error(`The right-hand side of a dom() rule failed to specify a type. This means there is no way for its output to be used by later rules. All it specified was ${fact}.`);
         }
+    }
+
+    asLhs() {
+        return this;
     }
 }
 
