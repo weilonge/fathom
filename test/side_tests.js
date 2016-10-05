@@ -2,7 +2,7 @@
 
 const assert = require('chai').assert;
 
-const {type} = require('../side');
+const {type} = require('../index');
 
 
 describe('Side tests', function () {
@@ -11,5 +11,12 @@ describe('Side tests', function () {
         assert(side.asLhs);  // It appears to be a Side.
         const lhs = side.asLhs();
         assert.notStrictEqual(lhs.max);  // It appears to be a TypeLhs.
+    });
+
+    it('is immutable and so can be factored up', function () {
+        const defaults = type('smoo');
+        const another = defaults.scoreUpTo(1);
+        assert.equal(defaults._calls.length, 1)
+        assert.equal(another._calls.length, 2)
     });
 });

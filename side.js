@@ -49,54 +49,53 @@ function conserveScore() {
 // and LHSs. I would prefer to do this dynamically, but that wouldn't compile
 // down to old versions of ES.
 class Side {
-    constructor(firstCall) {
+    constructor(...calls) {
         // A "call" is like {method: 'dom', args: ['p.smoo']}.
-        this.calls = [firstCall];
+        this._calls = calls;
     }
 
     max() {
-        return this._push('max');
+        return this._and('max');
     }
 
     func(callback) {
-        return this._push('func', callback);
+        return this._and('func', callback);
     }
 
     type(...types) {
-        return this._push('type', ...types);
+        return this._and('type', ...types);
     }
 
     note(callback) {
-        return this._push('note', callback);
+        return this._and('note', callback);
     }
 
     score(theScore) {
-        return this._push('score', theScore);
+        return this._and('score', theScore);
     }
 
     scoreUpTo(score) {
-        return this._push('scoreUpTo', score);
+        return this._and('scoreUpTo', score);
     }
 
     typeIn(...types) {
-        return this._push('typeIn', ...types);
+        return this._and('typeIn', ...types);
     }
 
     conserveScore() {
-        return this._push('conserveScore');
+        return this._and('conserveScore');
     }
 
-    _push(method, ...args) {
-        this.calls.push({method, args});
-        return this;
+    _and(method, ...args) {
+        return new this.constructor(...this._calls.concat({method, args}));
     }
 
     asLhs() {
-        return this._asSide(Lhs.fromFirstCall(this.calls[0]), this.calls.slice(1));
+        return this._asSide(Lhs.fromFirstCall(this._calls[0]), this._calls.slice(1));
     }
 
     asRhs() {
-        return this._asSide(new InwardRhs(), this.calls);
+        return this._asSide(new InwardRhs(), this._calls);
     }
 
     _asSide(side, calls) {
