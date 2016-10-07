@@ -13,9 +13,9 @@
     "chai": "^3.5.0",
     "coveralls": "^2.11.11",
     "eslint": "^3.7.1",
-    "istanbul": "^0.4.4",
-    "jsdom": "^8.3.0",
-    "mocha": "^2.4.5",
+    "istanbul": "^0.4.5",
+    "jsdom": "^8.5.0",
+    "mocha": "^2.5.3",
     "node-inspector": ">=0.12.8"
   },
   "engines": {
