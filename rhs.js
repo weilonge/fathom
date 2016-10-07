@@ -170,12 +170,12 @@ class InwardRhs {
     // application of .func() or .conserveScore(false). We can add one if
     // necessary.
     conserveScore() {
-        function setConserving(fnode) {
+        function getSubfacts(fnode) {
             return {conserveScore: true};
         }
-        setConserving.possibleSubfacts = CONSERVE_SCORE;
-        setConserving.kind = 'conserveScore';
-        return new this.constructor(this._calls.concat(setConserving),
+        getSubfacts.possibleSubfacts = CONSERVE_SCORE;
+        getSubfacts.kind = 'conserveScore';
+        return new this.constructor(this._calls.concat(getSubfacts),
                                     this._max,
                                     this._types);
     }
