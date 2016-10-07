@@ -51,7 +51,7 @@ class InwardRhs {
             const subfacts = callback(fnode);
             forEach(
                 function fillSubfactIfAbsent(subfact) {
-                    if (!result.hasOwnProperty(subfact) && subfacts.hasOwnProperty[subfact]) {
+                    if (!result.hasOwnProperty(subfact) && subfacts.hasOwnProperty(subfact)) {
                         result[subfact] = subfacts[subfact];
                     }
                 },
