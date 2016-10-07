@@ -82,7 +82,7 @@ class Fnode {
 
     // Return a score/note record for a type, creating it if it doesn't exist.
     _typeRecordForSetting(type) {
-        return setDefault(this._types, type, () => ({score: 1}))
+        return setDefault(this._types, type, () => ({score: 1}));
     }
 
     // Manifest a temporary type record for reading, working around the lack of

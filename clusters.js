@@ -91,12 +91,12 @@ function distance(elementA, elementB) {
     let mightStride;
     if (comparison & elementA.DOCUMENT_POSITION_FOLLOWING) {
         // A is before, so it could contain the other node.
-        mightStride = !(comparison & elementA.DOCUMENT_POSITION_CONTAINED_BY)
+        mightStride = !(comparison & elementA.DOCUMENT_POSITION_CONTAINED_BY);
         left = aAncestors;
         right = bAncestors;
     } else if (comparison & elementA.DOCUMENT_POSITION_PRECEDING) {
         // A is after, so it might be contained by the other node.
-        mightStride = !(comparison & elementA.DOCUMENT_POSITION_CONTAINS)
+        mightStride = !(comparison & elementA.DOCUMENT_POSITION_CONTAINS);
         left = bAncestors;
         right = aAncestors;
     }

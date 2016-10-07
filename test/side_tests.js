@@ -16,7 +16,7 @@ describe('Side tests', function () {
     it('is immutable and so can be factored up', function () {
         const defaults = type('smoo');
         const another = defaults.scoreUpTo(1);
-        assert.equal(defaults._calls.length, 1)
-        assert.equal(another._calls.length, 2)
+        assert.equal(defaults._calls.length, 1);
+        assert.equal(another._calls.length, 2);
     });
 });
