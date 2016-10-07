@@ -25,5 +25,8 @@ describe('RHS', function () {
         assert.equal(count, 1);
     });
 
-    // Test: whether func() can return conserveScore. It shouldn't be able to.
+    it('ignores unexpected subfacts returned from func() callbacks', function () {
+        const rhs = func(node => ({conserveScore: true, score: 3})).asRhs();
+        assert.deepEqual(rhs.fact('dummy'), {score: 3});
+    });
 });

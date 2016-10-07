@@ -63,7 +63,7 @@ class InwardRhs {
             // can't insert arbitrary keys (like conserveScore, which might
             // mess up the optimizer).
             for (let subfact in subfacts) {
-                if (!SUBFACTS.hasOwnProperty(subfact)) {
+                if (!SUBFACTS.hasOwnProperty(subfact) || !(SUBFACTS[subfact] & getSubfacts.possibleSubfacts)) {
                     // The ES5.1 spec says in 12.6.4 that it's fine to delete
                     // as we iterate.
                     delete subfacts[subfact];
