@@ -92,7 +92,7 @@ class InwardRhs {
             return {type};
         }
         getSubfacts.possibleSubfacts = TYPE;
-        getSubfacts.theType = type;
+        getSubfacts.type = type;
         getSubfacts.kind = 'type';
         return new this.constructor(this._calls.concat(getSubfacts),
                                     this._max,
@@ -229,7 +229,7 @@ class InwardRhs {
             if (call.kind === 'func') {
                 break;
             } else if (call.kind === 'type') {
-                return new Set([call.theType]);
+                return new Set([call.type]);
             }
         }
         return this._types;
