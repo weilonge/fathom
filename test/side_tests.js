@@ -5,7 +5,7 @@ const assert = require('chai').assert;
 const {type} = require('../index');
 
 
-describe('Side tests', function () {
+describe('Side', function () {
     it('makes a LHS out of a type()', function () {
         const side = type('smoo');
         assert(side.asLhs);  // It appears to be a Side.

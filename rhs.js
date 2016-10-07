@@ -1,9 +1,19 @@
 // The right-hand side of a rule
 
-const {forEach} = require('wu');
 const {reversed} = require('./utils');
 
-const SUBFACTS = ['type', 'note', 'score', 'element', 'conserveScore'];
+const TYPE = 1;
+const NOTE = 2;
+const SCORE = 4;
+const ELEMENT = 8;
+const CONSERVE_SCORE = 16;
+const SUBFACTS = {
+    type: TYPE,
+    note: NOTE,
+    score: SCORE,
+    element: ELEMENT,
+    conserveScore: CONSERVE_SCORE
+};
 
 
 function out(key) {
@@ -47,24 +57,24 @@ class InwardRhs {
     // properties of the callback's return value are filled out, may override
     // the effects of other previous calls as well.
     func(callback) {
-        function assignSubfacts(result, fnode) {
+        function getSubfacts(fnode) {
             const subfacts = callback(fnode);
-            forEach(
-                function fillSubfactIfAbsent(subfact) {
-                    if (!result.hasOwnProperty(subfact) && subfacts.hasOwnProperty(subfact)) {
-                        result[subfact] = subfacts[subfact];
-                    }
-                },
-                SUBFACTS);
+            // Filter the raw result down to okayed properties so callbacks
+            // can't insert arbitrary keys (like conserveScore, which might
+            // mess up the optimizer).
+            for (let subfact in subfacts) {
+                if (!SUBFACTS.hasOwnProperty(subfact)) {
+                    // The ES5.1 spec says in 12.6.4 that it's fine to delete
+                    // as we iterate.
+                    delete subfacts[subfact];
+                }
+            }
+            return subfacts;
         }
         // Thse are the subfacts this call could affect:
-        assignSubfacts.type = true;
-        assignSubfacts.note = true;
-        assignSubfacts.score = true;
-        assignSubfacts.element = true;
-
-        assignSubfacts.kind = 'func';
-        return new this.constructor(this._calls.concat(assignSubfacts),
+        getSubfacts.possibleSubfacts = TYPE | NOTE | SCORE | ELEMENT;
+        getSubfacts.kind = 'func';
+        return new this.constructor(this._calls.concat(getSubfacts),
                                     this._max,
                                     this._types);
     }
@@ -78,15 +88,13 @@ class InwardRhs {
     // .func() call provides.
     type(type) {
         // Actually emit a given type.
-        function assignType(result) {
-            // We can do this unconditionally, because fact() optimizes me
-            // out if a type has already been provided.
-            result.type = type;
+        function getSubfacts() {
+            return {type};
         }
-        assignType.type = true;
-        assignType.theType = type;
-        assignType.kind = 'type';
-        return new this.constructor(this._calls.concat(assignType),
+        getSubfacts.possibleSubfacts = TYPE;
+        getSubfacts.theType = type;
+        getSubfacts.kind = 'type';
+        return new this.constructor(this._calls.concat(getSubfacts),
                                     this._max,
                                     this._types);
     }
@@ -127,14 +135,12 @@ class InwardRhs {
     // type, one adding a note and the other not adding one (or adding an
     // undefined one), the meaningful note overrides the undefined one.
     note(callback) {
-        function assignNote(result, fnode) {
-            // We can do this unconditionally, because fact() optimizes me
-            // out if a note has already been provided.
-            result.note = callback(fnode);
+        function getSubfacts(fnode) {
+            return {note: callback(fnode)};
         }
-        assignNote.note = true;
-        assignNote.kind = 'note';
-        return new this.constructor(this._calls.concat(assignNote),
+        getSubfacts.possibleSubfacts = NOTE;
+        getSubfacts.kind = 'note';
+        return new this.constructor(this._calls.concat(getSubfacts),
                                     this._max,
                                     this._types);
     }
@@ -147,14 +153,12 @@ class InwardRhs {
     // the use would be rather to override part of what a previous .func() call
     // provides.
     score(theScore) {
-        function assignScore(result, fnode) {
-            // We can do this unconditionally, because fact() optimizes me
-            // out if a score has already been provided.
-            result.score = theScore;
+        function getSubfacts(fnode) {
+            return {score: theScore};
         }
-        assignScore.score = true;
-        assignScore.kind = 'score';
-        return new this.constructor(this._calls.concat(assignScore),
+        getSubfacts.possibleSubfacts = SCORE;
+        getSubfacts.kind = 'score';
+        return new this.constructor(this._calls.concat(getSubfacts),
                                     this._max,
                                     this._types);
     }
@@ -166,10 +170,10 @@ class InwardRhs {
     // application of .func() or .conserveScore(false). We can add one if
     // necessary.
     conserveScore() {
-        function setConserving(result, fnode) {
-            result.conserveScore = true;
+        function setConserving(fnode) {
+            return {conserveScore: true};
         }
-        setConserving.conserveScore = true;
+        setConserving.possibleSubfacts = CONSERVE_SCORE;
         setConserving.kind = 'conserveScore';
         return new this.constructor(this._calls.concat(setConserving),
                                     this._max,
@@ -188,20 +192,25 @@ class InwardRhs {
     fact(fnode) {
         const doneKinds = new Set();
         const result = {};
+        let haveSubfacts = 0;
         for (let call of reversed(this._calls)) {
             // If we've already called a call of this kind, then forget it.
             if (!doneKinds.has(call.kind)) {
                 doneKinds.add(call.kind);
 
-                // If this call can't possibly provide a subfact we're missing,
-                // forget it.
-                forEach(
-                    function tryToFillSubfact(subfact) {
-                        if (!result.hasOwnProperty(subfact) && call[subfact] === true) {
-                            call(result, fnode);
+                if (~haveSubfacts & call.possibleSubfacts) {
+                    // This call might provide a subfact we are missing.
+                    const newSubfacts = call(fnode);
+                    for (let subfact in newSubfacts) {
+                        // A func() callback could insert arbitrary keys into
+                        // the result, but it shouldn't matter, because nothing
+                        // pays any attention to them.
+                        if (!result.hasOwnProperty(subfact)) {
+                            result[subfact] = newSubfacts[subfact];
                         }
-                    },
-                    SUBFACTS);
+                        haveSubfacts |= SUBFACTS[subfact];
+                    }
+                }
             }
         }
         this._checkScoreUpTo(result);
