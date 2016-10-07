@@ -188,7 +188,6 @@ class InwardRhs {
     fact(fnode) {
         const doneKinds = new Set();
         const result = {};
-        // eslint-disable-next-line prefer-const
         for (let call of reversed(this._calls)) {
             // If we've already called a call of this kind, then forget it.
             if (!doneKinds.has(call.kind)) {
@@ -217,7 +216,6 @@ class InwardRhs {
         // right of all func() calls, we have a constraint. We hunt for the
         // tightest constraint we can find, favoring a type() call because it
         // gives us a single type but then falling back to a typeIn().
-        // eslint-disable-next-line prefer-const
         for (let call of reversed(this._calls)) {
             if (call.kind === 'func') {
                 break;
