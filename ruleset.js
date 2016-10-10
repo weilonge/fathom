@@ -2,8 +2,7 @@ const {filter, forEach, map} = require('wu');
 
 const {Fnode} = require('./fnode');
 const {setDefault} = require('./utils');
-const {Lhs} = require('./lhs');
-const {OutwardRhs} = require('./rhs');
+const {out, OutwardRhs} = require('./rhs');
 
 
 // Construct and return the proper type of rule class based on the
@@ -83,10 +82,12 @@ class BoundRuleset {
     // Results are cached in the first and third cases.
     get(thing) {
         if (typeof thing === 'string') {
-            return this._outRules[thing].results(this);
-        } else if (thing instanceof Lhs) {
-            return Array.from(thing.results(this));
-        } else if (thing.hasProperty('nodeName')) {
+            if (this._outRules.has(thing)) {
+                return Array.from(this._outRules.get(thing).results(this));
+            } else {
+                throw new Error(`There is no out() rule with key "${thing}".`);
+            }
+        } else if (thing.nodeName !== undefined) {
             // Compute everything (not just things that lead to outs):
             for (let rule of this._inRules) {
                 rule.results(this);
@@ -100,6 +101,14 @@ class BoundRuleset {
             // element(root) and a convenience routine that runs .get(each
             // classification type) and then returns the root fnode, which you
             // can examine to see what types are on it.
+        } else if (thing.asLhs) {
+            // Make a temporary out rule, and run it. This may add things to
+            // the ruleset's cache, but that's fine: it doesn't change any
+            // future results; it just might make them faster. For example, if
+            // you ask for .get(type('smoo')) twice, the second time will be a
+            // cache hit.
+            const outRule = rule(thing, out(Symbol('outKey')));
+            return Array.from(outRule.results(this));
         } else {
             throw new Error('ruleset.get() expects a string, an expression like on the left-hand side of a rule, or a DOM node.');
         }
@@ -188,16 +197,17 @@ class InwardRule extends Rule {
                         }
                         if (fact.score !== undefined) {
                             if (rightType !== undefined) {
-                                rightFnode.multiplyScore(fact.type, fact.score);
+                                rightFnode.multiplyScore(rightType, fact.score);
                             } else {
                                 throw new Error(`The right-hand side of a rule specified a score (${fact.score}) with neither an explicit type nor one we could infer from the left-hand side.`);
                             }
                         }
-                        if (fact.type !== undefined) {
-                            if (rightType !== undefined) {
-                                rightFnode.setNote(fact.type, fact.note);
+                        if (fact.type !== undefined || fact.note !== undefined) {
+                            // There's a reason to call setNote.
+                            if (rightType === undefined) {
+                                throw new Error(`The right-hand side of a rule specified a note (${fact.note}) with neither an explicit type nor one we could infer from the left-hand side. Notes are per-type, per-node, so that's a problem.`);
                             } else {
-                                throw new Error(`The right-hand side of a rule specified a note (${fact.note}) with neither an explicit type nor one we could infer from the left-hand side.`);
+                                rightFnode.setNote(rightType, fact.note);
                             }
                         }
                         returnedFnodes.add(rightFnode);

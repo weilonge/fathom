@@ -6,6 +6,7 @@
 
 const {rule, ruleset} = require('./ruleset');
 const {dom} = require('./lhs');
+const {out} = require('./rhs');
 const {func, conserveScore, max, note, score, scoreUpTo, type, typeIn} = require('./side');
 
 
@@ -42,6 +43,7 @@ module.exports = {
     func,
     max,
     note,
+    out,
     rule,
     ruleset,
     score,

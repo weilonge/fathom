@@ -71,12 +71,16 @@ class Fnode {
     // Set the note attached to one of our types. Implicitly assign us that
     // type if we don't have it already.
     setNote(type, note) {
-        if (note !== undefined) {
-            if (this.hasNote(type)) {
+        if (this.hasNote(type)) {
+            if (note !== undefined) {
                 throw new Error(`Someone (likely the right-hand side of a rule) tried to add a note of type ${type} to an element, but one of that type already exists. Overwriting notes is not allowed, since it would make the order of rules matter.`);
-            } else {
-                this._typeRecordForSetting(type).note = note;
             }
+            // else the incoming note is undefined and we already have the
+            // type, so it's a no-op
+        } else {
+            // Apply either a type and note or just a type (which means a note
+            // that is undefined):
+            this._typeRecordForSetting(type).note = note;
         }
     }
 
