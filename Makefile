@@ -11,6 +11,6 @@ debugtest:
 	#
 	# Better, run node_modules/.bin/node-inspector first, then run `make
 	# debugtest`, then open http://127.0.0.1:8080/debug?port=5858 in Chrome.
-	@node_modules/.bin/mocha -d
+	@node_modules/.bin/mocha debug
 
 .PHONY: all lint test debugtest
