@@ -7,22 +7,6 @@ const {dom, func, rule, ruleset, type} = require('../index');
 
 
 describe('Ranker tests', function () {
-    it.skip('scores a node with a simple DOM rule and inserts an empty scribble', function () {
-        const doc = jsdom.jsdom(`
-            <p>
-                <a class="good" href="https://github.com/jsdom">Good!</a>
-                <a class="bad" href="https://github.com/jsdom">Bad!</a>
-            </p>
-        `);
-        const rules = ruleset(
-            rule(dom('a[class=good]'), node => [{score: 2, flavor: 'anchor'}])
-        );
-        const kb = rules.score(doc);
-        const node = kb.nodeForElement(doc.querySelectorAll('a[class=good]')[0]);
-        assert.equal(node.score, 2);
-        assert.equal(node.flavors.get('anchor'), undefined);
-    });
-
     it.skip('applies typed rules when there is input for them', function () {
         const doc = jsdom.jsdom(`
             <p>Hi</p>
