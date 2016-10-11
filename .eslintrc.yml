@@ -4,6 +4,10 @@ env:
 
 extends:
   - eslint:recommended
+  - plugin:node/recommended
+
+plugins:
+  - node
 
 root: true
 
@@ -12,6 +16,8 @@ rules:
   guard-for-in: warn  # There's nothing wrong with for..in if you know what you're doing. This is here just to keep me from accidentally saying "for..in" when I mean "for..of". Delete this and come up with a better solution if we ever need to use "for..in".
   indent: [error, 4]
   max-len: [off, {code: 100, ignoreComments: true, ignoreStrings: true, ignoreTemplateLiterals: true}]
+  node/exports-style: [error, module.exports]
+  node/no-unpublished-require: [error, {allowModules: [chai, jsdom]}]
   no-dupe-class-members: error
   no-loop-func: error
   no-new-func: error  # equivalent to eval()
