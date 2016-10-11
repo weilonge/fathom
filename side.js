@@ -2,12 +2,6 @@ const {Lhs} = require('./lhs');
 const {InwardRhs} = require('./rhs');
 
 
-// Constrain to only the max-scoring node of a type on the LHS.
-function max() {
-    return new Side({method: 'max', args: []});
-}
-
-
 function func(callback) {
     return new Side({method: 'func', args: [callback]});
 }
@@ -110,7 +104,6 @@ class Side {
 module.exports = {
     conserveScore,
     func,
-    max,
     note,
     score,
     scoreUpTo,

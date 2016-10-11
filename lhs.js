@@ -26,9 +26,8 @@ function dom(selector) {
 class Lhs {
     // Return a new Lhs of the appropriate kind, given its first call.
     static fromFirstCall(firstCall) {
-        if (firstCall.method === 'dom') {
-            return new DomLhs(...firstCall.args);
-        } else if (firstCall.method === 'type') {
+        // firstCall is never 'dom', because dom() directly returns a DomLhs.
+        if (firstCall.method === 'type') {
             return new TypeLhs(...firstCall.args);
         } else {
             throw new Error('The left-hand side of a rule() must start with dom() or type().');
@@ -138,6 +137,9 @@ class TypeMaxLhs extends TypeLhs {
         // rules that could possibly lead to a max result. As part of this,
         // make RHSs expose their max potential scores.
         const self = this;
+        // Work around V8 bug:
+        // https://stackoverflow.com/questions/32943776/using-super-within-an-
+        // arrow-function-within-an-arrow-function-within-a-method
         const getSuperFnodes = () => super.fnodes(ruleset);
         return setDefault(
             ruleset.maxCache,
