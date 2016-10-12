@@ -1,12 +1,12 @@
 const assert = require('chai').assert;
 const jsdom = require('jsdom');
 
-const {dom, flavor, rule, ruleset} = require('../index');
+const {dom, flavor, out, rule, ruleset, type} = require('../index');
 const {inlineTextLength, linkDensity} = require('../utils');
 
 
 describe('Design-driving demos', function () {
-    it.skip('handles a simple series of short-circuiting rules', function () {
+    it('handles a simple series of short-circuiting rules', function () {
         // TODO: Short-circuiting isn't implemented yet. The motivation of this
         // test is to inspire changes to ranker functions that make them more
         // declarative, such that the engine can be smart enough to run the
@@ -18,20 +18,22 @@ describe('Design-driving demos', function () {
             <meta property="twitter:title" content="Twitter">
             <title>Title</title>
         `);
+        const typeAndNote = type('titley').note(fnode => fnode.element.content);
         const rules = ruleset(
             rule(dom('meta[property="og:title"]'),
-                 node => [{score: 40, flavor: 'titley', notes: node.element.content}]),
+                 typeAndNote.score(40)),
             rule(dom('meta[property="twitter:title"]'),
-                 node => [{score: 30, flavor: 'titley', notes: node.element.content}]),
+                 typeAndNote.score(30)),
             rule(dom('meta[name="hdl"]'),
-                 node => [{score: 20, flavor: 'titley', notes: node.element.content}]),
+                 typeAndNote.score(20)),
             rule(dom('title'),
-                 node => [{score: 10, flavor: 'titley', notes: node.element.text}])
+                 typeAndNote.score(10).note(fnode => fnode.element.text)),
+            rule(type('titley').max(), out('titley'))
         );
-        const kb = rules.score(doc);
-        const node = kb.max('titley');
-        assert.equal(node.score, 40);
-        assert.equal(node.flavors.get('titley'), 'OpenGraph');
+        const facts = rules.against(doc);
+        const node = facts.get('titley')[0];
+        assert.equal(node.getScore('titley'), 40);
+        assert.equal(node.getNote('titley'), 'OpenGraph');
     });
 
     it.skip("takes a decent shot at doing Readability's job", function () {
