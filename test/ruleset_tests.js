@@ -88,6 +88,34 @@ describe('Ruleset', function () {
         // Conserved score:
         assert.equal(smee.getScore('smee'), 10);
     });
+
+    it('conserves score when rules emitting the same element and type conflict on conservation', function () {
+        const doc = jsdom(`
+            <p></p>
+        `);
+        const rules = ruleset(
+            rule(dom('p'), type('para').score(2)),
+            rule(type('para'), type('smoo').score(5)),
+            rule(type('para'), type('smoo').score(7).conserveScore())
+        );
+        const facts = rules.against(doc);
+        const para = facts.get(type('smoo'))[0];
+        assert.equal(para.getScore('smoo'), 70);
+    });
+
+    it('never factors in a score more than once', function () {
+        const doc = jsdom(`
+            <p></p>
+        `);
+        const rules = ruleset(
+            rule(dom('p'), type('para').score(2)),
+            rule(type('para'), type('smoo').score(5).conserveScore()),
+            rule(type('para'), type('smoo').score(7).conserveScore())
+        );
+        const facts = rules.against(doc);
+        const para = facts.get(type('smoo'))[0];
+        assert.equal(para.getScore('smoo'), 70);
+    });
 });
 
 
