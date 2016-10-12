@@ -1,7 +1,7 @@
 const {assert} = require('chai');
 const {jsdom} = require('jsdom');
 
-const {dom, func, out, rule, ruleset, score, type, typeIn} = require('../index');
+const {dom, func, out, rule, ruleset, score, scoreUpTo, type, typeIn} = require('../index');
 
 
 describe('RHS', function () {
@@ -44,7 +44,7 @@ describe('RHS', function () {
     it('works fine when scoreUpTo() is satisfied', function () {
         const doc = jsdom('<p></p>');
         const rules = ruleset(
-            rule(dom('p'), score(2).type('para').scoreUpTo(3))
+            rule(dom('p'), scoreUpTo(3).score(2).type('para'))
         );
         const facts = rules.against(doc);
         assert.equal(facts.get(type('para'))[0].getScore('para'), 2);
