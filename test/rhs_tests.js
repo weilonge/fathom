@@ -1,7 +1,7 @@
 const {assert} = require('chai');
 const {jsdom} = require('jsdom');
 
-const {dom, func, rule, ruleset, score, type} = require('../index');
+const {dom, func, rule, ruleset, score, type, typeIn} = require('../index');
 
 
 describe('RHS', function () {
@@ -48,5 +48,25 @@ describe('RHS', function () {
         );
         const facts = rules.against(doc);
         assert.equal(facts.get(type('para'))[0].getScore('para'), 2);
+    });
+
+    it('enforces typeIn()', function () {
+        const doc = jsdom('<p></p>');
+        const rules = ruleset(
+            rule(dom('p'), typeIn('nope').type('para'))
+        );
+        const facts = rules.against(doc);
+        assert.throws(() => facts.get(type('para')),
+                      'A right-hand side claimed, via typeIn(...) to emit one of the types [object Set] but actually emitted para.');
+        // TODO: Fix lack of set pretty-printing in error message.
+    });
+
+    it('works fine when typeIn() is satisfied', function () {
+        const doc = jsdom('<p></p>');
+        const rules = ruleset(
+            rule(dom('p'), typeIn('para').type('para'))
+        );
+        const facts = rules.against(doc);
+        assert.equal(facts.get(type('para')).length, 1);
     });
 });
