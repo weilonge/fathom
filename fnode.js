@@ -58,13 +58,13 @@ class Fnode {
     // Indicate that I should inherit some score from a LHS-emitted fnode. I
     // keep track of (LHS fnode, type) pairs whose scores have already been
     // inherited so we don't multiply them in more than once.
-    conserveScoreFrom(lhsFnode, type) {
+    conserveScoreFrom(leftFnode, leftType, rightType) {
         let types;
         if (!(types = setDefault(this._conservedScores,
-                                 lhsFnode,
-                                 () => new Set())).has(type)) {
-            types.add(type);
-            this.multiplyScore(type, lhsFnode.getScore(type));
+                                 leftFnode,
+                                 () => new Set())).has(leftType)) {
+            types.add(leftType);
+            this.multiplyScore(rightType, leftFnode.getScore(leftType));
         }
     }
 

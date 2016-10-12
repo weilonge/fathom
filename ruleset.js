@@ -190,7 +190,7 @@ class InwardRule extends Rule {
                             // has been filled in yet.)
                             const leftType = self.lhs.guaranteedType();
                             if (leftType !== undefined) {
-                                rightFnode.conserveScoreFrom(leftFnode, leftType);
+                                rightFnode.conserveScoreFrom(leftFnode, leftType, rightType);
                             } else {
                                 throw new Error('conserveScore() was called in a rule whose left-hand side is a dom() selector and thus has no predictable type.');
                             }

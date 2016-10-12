@@ -3,6 +3,7 @@ const {jsdom} = require('jsdom');
 
 const {dom, func, out, rule, ruleset, score, type} = require('../index');
 
+
 describe('Ruleset', function () {
     it('get()s by arbitrary passed-in LHSs (and scores dom() nodes at 1)', function () {
         const doc = jsdom(`
@@ -58,6 +59,34 @@ describe('Ruleset', function () {
         const anchor = anchors[0];
         assert.equal(anchor.getScore('anchor'), 2);
         assert.equal(anchor.getNote('anchor'), 'lovely');
+    });
+
+    it('uses per-type scores except when conserveScore() is used', function () {
+        // Also test that rules fire lazily.
+        const doc = jsdom(`
+            <p></p>
+        `);
+        const rules = ruleset(
+            rule(dom('p'), type('para').score(2)),
+            rule(type('para'), type('smoo').score(5)),
+            rule(type('para'), type('smee').score(5).conserveScore())
+        );
+        const facts = rules.against(doc);
+
+        const para = facts.get(type('para'))[0];
+        // Show other-typed scores don't backpropagate to the upstream type:
+        assert.equal(para.getScore('para'), 2);
+        // Other rules have had no reason to run yet, so their types' scores
+        // remain the default:
+        assert.equal(para.getScore('smoo'), 1);
+
+        const smoo = facts.get(type('smoo'))[0];
+        // Fresh score:
+        assert.equal(smoo.getScore('smoo'), 5);
+
+        const smee = facts.get(type('smee'))[0];
+        // Conserved score:
+        assert.equal(smee.getScore('smee'), 10);
     });
 });
 
