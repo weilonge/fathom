@@ -2,6 +2,7 @@
 
 const {reversed} = require('./utils');
 
+
 const TYPE = 1;
 const NOTE = 2;
 const SCORE = 4;

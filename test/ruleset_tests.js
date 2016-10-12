@@ -5,40 +5,42 @@ const {dom, func, out, rule, ruleset, score, type} = require('../index');
 
 
 describe('Ruleset', function () {
-    it('get()s by arbitrary passed-in LHSs (and scores dom() nodes at 1)', function () {
-        const doc = jsdom(`
-            <div>Hooooooo</div>
-        `);
-        const rules = ruleset(
-            rule(dom('div'), type('paragraphish'))
-        );
-        const facts = rules.against(doc);
-        const div = facts.get(type('paragraphish'))[0];
-        assert.equal(div.getScore('paragraphish'), 1);
-    });
+    describe('get()s', function () {
+        it('by arbitrary passed-in LHSs (and scores dom() nodes at 1)', function () {
+            const doc = jsdom(`
+                <div>Hooooooo</div>
+            `);
+            const rules = ruleset(
+                rule(dom('div'), type('paragraphish'))
+            );
+            const facts = rules.against(doc);
+            const div = facts.get(type('paragraphish'))[0];
+            assert.equal(div.getScore('paragraphish'), 1);
+        });
 
-    it('get()s results by out-rule key', function () {
-        const doc = jsdom(`
-            <div>Hooooooo</div>
-        `);
-        const rules = ruleset(
-            rule(dom('div'), type('paragraphish')),
-            rule(type('paragraphish'), out('p'))
-        );
-        assert.equal(rules.against(doc).get('p').length, 1);
-    });
+        it('results by out-rule key', function () {
+            const doc = jsdom(`
+                <div>Hooooooo</div>
+            `);
+            const rules = ruleset(
+                rule(dom('div'), type('paragraphish')),
+                rule(type('paragraphish'), out('p'))
+            );
+            assert.equal(rules.against(doc).get('p').length, 1);
+        });
 
-    it('get()s the fnode corresponding to a passed-in node', function () {
-        const doc = jsdom(`
-            <div>Hooooooo</div>
-        `);
-        const rules = ruleset(
-            rule(dom('div'), type('paragraphish')),  // when we add .score(1), the test passes.
-            rule(type('paragraphish'), func(node => ({score: node.element.textContent.length})))
-        );
-        const facts = rules.against(doc);
-        const div = facts.get(doc.querySelectorAll('div')[0]);
-        assert.equal(div.getScore('paragraphish'), 8);
+        it('the fnode corresponding to a passed-in node', function () {
+            const doc = jsdom(`
+                <div>Hooooooo</div>
+            `);
+            const rules = ruleset(
+                rule(dom('div'), type('paragraphish')),  // when we add .score(1), the test passes.
+                rule(type('paragraphish'), func(node => ({score: node.element.textContent.length})))
+            );
+            const facts = rules.against(doc);
+            const div = facts.get(doc.querySelectorAll('div')[0]);
+            assert.equal(div.getScore('paragraphish'), 8);
+        });
     });
 
     it('assigns scores and notes to nodes', function () {
@@ -61,60 +63,62 @@ describe('Ruleset', function () {
         assert.equal(anchor.getNote('anchor'), 'lovely');
     });
 
-    it('uses per-type scores except when conserveScore() is used', function () {
-        // Also test that rules fire lazily.
-        const doc = jsdom(`
-            <p></p>
-        `);
-        const rules = ruleset(
-            rule(dom('p'), type('para').score(2)),
-            rule(type('para'), type('smoo').score(5)),
-            rule(type('para'), type('smee').score(5).conserveScore())
-        );
-        const facts = rules.against(doc);
+    describe('conserves score', function () {
+        it('only when conserveScore() is used, using per-type scores otherwise', function () {
+            // Also test that rules fire lazily.
+            const doc = jsdom(`
+                <p></p>
+            `);
+            const rules = ruleset(
+                rule(dom('p'), type('para').score(2)),
+                rule(type('para'), type('smoo').score(5)),
+                rule(type('para'), type('smee').score(5).conserveScore())
+            );
+            const facts = rules.against(doc);
 
-        const para = facts.get(type('para'))[0];
-        // Show other-typed scores don't backpropagate to the upstream type:
-        assert.equal(para.getScore('para'), 2);
-        // Other rules have had no reason to run yet, so their types' scores
-        // remain the default:
-        assert.equal(para.getScore('smoo'), 1);
+            const para = facts.get(type('para'))[0];
+            // Show other-typed scores don't backpropagate to the upstream type:
+            assert.equal(para.getScore('para'), 2);
+            // Other rules have had no reason to run yet, so their types' scores
+            // remain the default:
+            assert.equal(para.getScore('smoo'), 1);
 
-        const smoo = facts.get(type('smoo'))[0];
-        // Fresh score:
-        assert.equal(smoo.getScore('smoo'), 5);
+            const smoo = facts.get(type('smoo'))[0];
+            // Fresh score:
+            assert.equal(smoo.getScore('smoo'), 5);
 
-        const smee = facts.get(type('smee'))[0];
-        // Conserved score:
-        assert.equal(smee.getScore('smee'), 10);
-    });
+            const smee = facts.get(type('smee'))[0];
+            // Conserved score:
+            assert.equal(smee.getScore('smee'), 10);
+        });
 
-    it('conserves score when rules emitting the same element and type conflict on conservation', function () {
-        const doc = jsdom(`
-            <p></p>
-        `);
-        const rules = ruleset(
-            rule(dom('p'), type('para').score(2)),
-            rule(type('para'), type('smoo').score(5)),
-            rule(type('para'), type('smoo').score(7).conserveScore())
-        );
-        const facts = rules.against(doc);
-        const para = facts.get(type('smoo'))[0];
-        assert.equal(para.getScore('smoo'), 70);
-    });
+        it('when rules emitting the same element and type conflict on conservation', function () {
+            const doc = jsdom(`
+                <p></p>
+            `);
+            const rules = ruleset(
+                rule(dom('p'), type('para').score(2)),
+                rule(type('para'), type('smoo').score(5)),
+                rule(type('para'), type('smoo').score(7).conserveScore())
+            );
+            const facts = rules.against(doc);
+            const para = facts.get(type('smoo'))[0];
+            assert.equal(para.getScore('smoo'), 70);
+        });
 
-    it('never factors in a score more than once', function () {
-        const doc = jsdom(`
-            <p></p>
-        `);
-        const rules = ruleset(
-            rule(dom('p'), type('para').score(2)),
-            rule(type('para'), type('smoo').score(5).conserveScore()),
-            rule(type('para'), type('smoo').score(7).conserveScore())
-        );
-        const facts = rules.against(doc);
-        const para = facts.get(type('smoo'))[0];
-        assert.equal(para.getScore('smoo'), 70);
+        it('but never factors in a score more than once', function () {
+            const doc = jsdom(`
+                <p></p>
+            `);
+            const rules = ruleset(
+                rule(dom('p'), type('para').score(2)),
+                rule(type('para'), type('smoo').score(5).conserveScore()),
+                rule(type('para'), type('smoo').score(7).conserveScore())
+            );
+            const facts = rules.against(doc);
+            const para = facts.get(type('smoo'))[0];
+            assert.equal(para.getScore('smoo'), 70);
+        });
     });
 });
 
