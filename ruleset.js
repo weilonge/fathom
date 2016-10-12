@@ -154,6 +154,9 @@ class Rule {  // abstract
 // A normal rule, whose results head back into the Fathom knowledgebase, to be
 // operated on by further rules.
 class InwardRule extends Rule {
+    // TODO: On construct, complain about useless rules, like a dom() rule that
+    // doesn't assign a type.
+
     // Return the fnodes emitted by the RHS of this rule.
     results(ruleset) {
         const self = this;

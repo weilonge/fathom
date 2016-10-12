@@ -1,6 +1,7 @@
 const {assert} = require('chai');
+const {jsdom} = require('jsdom');
 
-const {func, type} = require('../index');
+const {dom, func, rule, ruleset, score, type} = require('../index');
 
 
 describe('RHS', function () {
@@ -28,5 +29,24 @@ describe('RHS', function () {
     it('ignores unexpected subfacts returned from func() callbacks', function () {
         const rhs = func(node => ({conserveScore: true, score: 3})).asRhs();
         assert.deepEqual(rhs.fact('dummy'), {score: 3});
+    });
+
+    it('enforces scoreUpTo()', function () {
+        const doc = jsdom('<p></p>');
+        const rules = ruleset(
+            rule(dom('p'), score(8).type('para').scoreUpTo(3))
+        );
+        const facts = rules.against(doc);
+        assert.throws(() => facts.get(type('para')),
+                      'Score of 8 exceeds the declared scoreUpTo(3).');
+    });
+
+    it('works fine when scoreUpTo() is satisfied', function () {
+        const doc = jsdom('<p></p>');
+        const rules = ruleset(
+            rule(dom('p'), score(2).type('para').scoreUpTo(3))
+        );
+        const facts = rules.against(doc);
+        assert.equal(facts.get(type('para'))[0].getScore('para'), 2);
     });
 });
