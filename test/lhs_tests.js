@@ -28,4 +28,15 @@ describe('LHS', function () {
         assert.equal(best[0].element.nodeName, 'DIV');
         assert.equal(best[1].element.nodeName, 'DIV');
     });
+
+    it('can have its type overridden', function () {
+        const doc = jsdom('<p></p>');
+        const rules = ruleset(
+            rule(dom('p'), type('bar')),
+            rule(type('foo').type('bar'), out('best'))
+        );
+        const facts = rules.against(doc);
+        const best = facts.get('best');
+        assert.equal(best.length, 1);
+    });
 });

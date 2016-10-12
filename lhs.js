@@ -89,21 +89,21 @@ class TypeLhs extends Lhs {
         if (type === undefined) {
             throw new Error('A type name is required when calling type().');
         }
-        this.type = type;
+        this._type = type;
     }
 
     fnodes(ruleset) {
         const self = this;
         return setDefault(
             ruleset.typeCache,
-            this.type,
+            this._type,
             function allFnodesOfType() {
                 // We don't really care if the rule *adds* the given
                 // type, just that we find all the fnodes of that type.
                 const fnodesMaybeOfType = flatten(true,
                                                   map(rule => rule.results(ruleset),
-                                                      ruleset.rulesWhichMightAdd(self.type)));
-                const fnodesOfType = filter(fnode => fnode.hasType(self.type),
+                                                      ruleset.rulesWhichMightAdd(self._type)));
+                const fnodesOfType = filter(fnode => fnode.hasType(self._type),
                                             fnodesMaybeOfType);
                 return Array.from(unique(fnodesOfType));
             });
@@ -118,11 +118,11 @@ class TypeLhs extends Lhs {
     // Return a new LHS constrained to return only the max-scoring node of
     // a type. If there is a tie, more than 1 node may be selected.
     max() {
-        return new TypeMaxLhs(this.type);
+        return new TypeMaxLhs(this._type);
     }
 
     guaranteedType() {
-        return this.type;
+        return this._type;
     }
 }
 
@@ -143,9 +143,9 @@ class TypeMaxLhs extends TypeLhs {
         const getSuperFnodes = () => super.fnodes(ruleset);
         return setDefault(
             ruleset.maxCache,
-            this.type,
+            this._type,
             function maxFnodesOfType() {
-                return maxes(getSuperFnodes(), fnode => fnode.getScore(self.type));
+                return maxes(getSuperFnodes(), fnode => fnode.getScore(self._type));
             });
     }
 }
