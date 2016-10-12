@@ -248,7 +248,7 @@ class OutwardRule extends Rule {
         return setDefault(
             ruleset.ruleCache,
             this,
-            () => map(this.rhs.through, this.lhs.fnodes(ruleset)));
+            () => map(this.rhs.callback, this.lhs.fnodes(ruleset)));
     }
 
     // Return the key under which the output of this rule will be available.

@@ -47,6 +47,8 @@ class Fnode {
         return this.getNote(type) !== undefined;
     }
 
+    // TODO: Have a public way to enumerate my types.
+
     // -------- Methods below this point are private to the framework. --------
 
     // Multiply one of our per-type scores by a given number. Implicitly assign

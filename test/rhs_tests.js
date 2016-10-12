@@ -1,7 +1,7 @@
 const {assert} = require('chai');
 const {jsdom} = require('jsdom');
 
-const {dom, func, rule, ruleset, score, type, typeIn} = require('../index');
+const {dom, func, out, rule, ruleset, score, type, typeIn} = require('../index');
 
 
 describe('RHS', function () {
@@ -68,5 +68,14 @@ describe('RHS', function () {
         );
         const facts = rules.against(doc);
         assert.equal(facts.get(type('para')).length, 1);
+    });
+
+    it('runs out().through() callbacks', function () {
+        const doc = jsdom('<p></p>');
+        const rules = ruleset(
+            rule(dom('p'), out('para').through(fnode => fnode.hasNote()))
+        );
+        const facts = rules.against(doc);
+        assert.equal(facts.get('para')[0], false);
     });
 });

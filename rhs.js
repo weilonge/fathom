@@ -241,7 +241,7 @@ class InwardRhs {
 class OutwardRhs {
     constructor(key, through = x => x) {
         this.key = key;
-        this.through = through;
+        this.callback = through;
     }
 
     through(callback) {
