@@ -90,27 +90,26 @@ Remember that Fathom's rulesets are unordered, so any rule's output can flow int
 Once the ruleset is defined, run a DOM tree through it:
 
 ```javascript
-// Tell the ruleset which DOM to run against, yielding a "bound ruleset" where
-// some performance-enhancing caches live.
-var boundRules = rules.against(jsdom.jsdom("<html><head>...</html>"));
+// Tell the ruleset which DOM to run against, yielding a factbase about the document.
+var facts = rules.against(jsdom.jsdom("<html><head>...</html>"));
 ```
 
-Then, ask the bound ruleset for the answer: in this case, we want the max-scoring title, which the ruleset happens to provide under the "title" output key:
+Then, pull the answers out of the factbase: in this case, we want the max-scoring title, which the ruleset conveniently stores under the "title" output key:
 
 ```javascript
-var bestTitle = boundRules.get('title');
+var bestTitle = facts.get('title');
 ```
 
 If the ruleset doesn't anticipate the output you want, you can ask for it more explicitly by passing a full LHS to `get()`. For example, if you simply want all the title-ish things so you can do further computation on them...
 
 ```javascript
-var allTitles = boundRules.get(type('titley'));
+var allTitles = facts.get(type('titley'));
 ```
 
 Or if you have a reference to a DOM element somehow, you can look up the scores, flavors, and notes Fathom attached to it:
 
 ```javascript
-var fnode = boundRuleset.get(dom.getElementById('aTitle'));
+var fnode = facts.get(dom.getElementById('aTitle'));
 ```
 
 ## Reference
@@ -186,7 +185,7 @@ If you're in the midst of a tornado of rapid development and the fancy stuff is 
 ### 2.0
 The focii for 2.0 are syntactic sugar and support for larger-scale, more powerful rulesets. Everything else falls out of those.
 
-Fathom 2.0 pulls more into the ruleset—yanking, thresholds—so it's less focused on emitting the entire scored world for the surrounding imperative program to examine and more on emitting just useful answers. This opens the door to large, sophisticated rulesets that are still fast.
+Fathom 2.0 pulls yankers (max(), for now) into the ruleset, opening the opportunity for automatic optimization. It's also computes answers lazily, running only the necessary rules each time you say `get()` (and caching intermediate results to save work on later calls). It's thus eschews 1.x's strategy of emitting the entire scored world for the surrounding imperative program to examine and instead exposes a fact base that just acts like a lazy hash of useful answers. This opens the door to large, sophisticated rulesets that are still fast and, someday, can have parts reused.
 
 Fathom 2.0 enables optimization within the rule executor to make short-circuiting sets of rules efficient. It also introduces new yankers like `max()`, which provide a way to map assertions about fuzzy scores down to the boolean statements of type: it's a "cut", and it helps with ruleset efficiency. Of course, if you still want to imbibe the entire scored corpus of nodes in your surrounding program, you can simply yank all nodes of a type the `type()` yanker: just point it to a string, and the results will appear in the yanked data under that key.
 
