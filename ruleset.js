@@ -29,12 +29,27 @@ class Ruleset {
     constructor(...rules) {
         this._inRules = [];
         this._outRules = new Map();
+        this._rulesThatCouldEmit = new Map();  // type -> [rules]
+        this._rulesThatCouldAdd = new Map();  // type -> [rules]
 
         // Separate rules into out ones and in ones, and sock them away. We do
         // this here so mistakes raise errors early.
         for (let rule of rules) {
             if (rule instanceof InwardRule) {
                 this._inRules.push(rule);
+
+                // Keep track of what inward rules can emit or add:
+                // TODO: Combine these hashes for space efficiency:
+                const emittedTypes = rule.typesItCouldEmit();
+                if (emittedTypes.size === 0) {
+                    throw new Error('A rule did not declare the types it can emit using type() or typeIn().');
+                }
+                for (let type of emittedTypes) {
+                    setDefault(this._rulesThatCouldEmit, type, () => []).push(rule);
+                }
+                for (let type of rule.typesItCouldAdd()) {
+                    setDefault(this._rulesThatCouldAdd, type, () => []).push(rule);
+                }
             } else if (rule instanceof OutwardRule) {
                 this._outRules.set(rule.key(), rule);
             } else {
@@ -44,7 +59,11 @@ class Ruleset {
     }
 
     against(doc) {
-        return new BoundRuleset(doc, this._inRules, this._outRules);
+        return new BoundRuleset(doc,
+                                this._inRules,
+                                this._outRules,
+                                this._rulesThatCouldEmit,
+                                this._rulesThatCouldAdd);
     }
 }
 
@@ -55,15 +74,17 @@ class Ruleset {
 class BoundRuleset {
     // inRules: an Array of non-out() rules
     // outRules: a Map of output keys to out() rules
-    constructor(doc, inRules, outRules) {
+    constructor(doc, inRules, outRules, rulesThatCouldEmit, rulesThatCouldAdd) {
         this.doc = doc;
         this._inRules = inRules;
         this._outRules = outRules;
+        this._rulesThatCouldEmit = rulesThatCouldEmit;
+        this._rulesThatCouldAdd = rulesThatCouldAdd;
 
         // Private, for the use of only helper classes:
         this.ruleCache = new Map();  // Rule instance => Array of result fnodes or out.through() return values
         this.maxCache = new Map();  // type => Array of max fnode (or fnodes, if tied) of this type
-        this.typeCache = new Map();  // type => Array of all fnodes of this type
+        this.typeCache = new Map();  // type => Set of all fnodes of this type found so far. (The dependency resolution during execution ensures that individual types will be comprehensive just in time.)
         this.elementCache = new Map();  // DOM element => fnode about it
     }
 
@@ -73,11 +94,9 @@ class BoundRuleset {
     //     case, fnodes will be returned. Or, if the out rule referred to uses
     //     through(), whatever the results of through's callback will be
     //     returned.
-    //   * (Experimental) An arbitrary LHS which we'll calculate and return the
-    //     results of. In this case, fnodes will be returned. (Note: LHSs
-    //     passed in like this will be taken as part of the ruleset in future
-    //     calls.)
-    //   * A DOM node, which will (inefficiently) run the whole ruleset and
+    //   * An arbitrary LHS which we'll calculate and return the results of. In
+    //     this case, fnodes will be returned.
+    //   * A DOM node, which will (compute-intensely) run the whole ruleset and
     //     return the fully annotated fnode corresponding to that node
     // Results are cached in the first and third cases.
     get(thing) {
@@ -89,9 +108,7 @@ class BoundRuleset {
             }
         } else if (thing.nodeName !== undefined) {
             // Compute everything (not just things that lead to outs):
-            for (let rule of this._inRules) {
-                rule.results(this);
-            }
+            forEach(rule => this._execute(rule), this._inRules);
             return this.fnodeForElement(thing);
             // TODO: How can we be more efficient about this, for classifying
             // pages (in which case the classifying types end up attached to a
@@ -102,6 +119,7 @@ class BoundRuleset {
             // classification type) and then returns the root fnode, which you
             // can examine to see what types are on it.
         } else if (thing.asLhs) {
+            // TODO: I'm not sure if we can still do this in Toposort Land. What if they ask for type(b) → score(2)? It won't run other b → b rules. We could just mention that as a weird corner case and tell ppl not to do that. Or we could implement a special case that makes sure we light up all b → b rules whenever we light up one.
             // Make a temporary out rule, and run it. This may add things to
             // the ruleset's cache, but that's fine: it doesn't change any
             // future results; it just might make them faster. For example, if
@@ -109,6 +127,9 @@ class BoundRuleset {
             // cache hit.
             const outRule = rule(thing, out(Symbol('outKey')));
             return Array.from(outRule.results(this));
+            // TODO: Don't cache the results of the temporary OutwardRule,
+            // since we can never fetch them again, since the OutwardRule
+            // itself is the cache key.
         } else {
             throw new Error('ruleset.get() expects a string, an expression like on the left-hand side of a rule, or a DOM node.');
         }
@@ -122,13 +143,73 @@ class BoundRuleset {
 
     // -------- Methods below this point are private to the framework. --------
 
-    // Return an iterable of rules which might add a given type to fnodes.
-    // We return any rule we can't prove doesn't add the type. None, it
-    // follows, are OutwardRules. Also, note that if a rule both takes and
-    // emits a certain type, it is not considered to "add" it.
-    rulesWhichMightAdd(type) {
+    // Return all the (shallow) thus-far-unexecuted rules that will have to run
+    // to run the requested rule, in the form of
+    // Map(prereq: [rulesItIsNeededBy]).
+    _prerequisitesTo(rule, undonePrereqs = new Map()) {
+        for (let prereq of rule.prerequisites(this)) {
+            if (!this.ruleCache.has(prereq)) {
+                // prereq is not already run. (If it were, we wouldn't care
+                // about adding it to the graph.)
+                const alreadyAdded = undonePrereqs.has(prereq);
+                setDefault(undonePrereqs, prereq, () => []).push(rule);
+                if (!alreadyAdded) {
+                    // If prereq has not already had its dependencies added to
+                    // the graph, then go add them:
+                    this._prerequisitesTo(prereq, undonePrereqs);
+                }
+            }
+        }
+        return undonePrereqs;
+    }
+
+    // Run the given rule (and its dependencies, in the proper order), and
+    // return its result.
+    //
+    // The basic idea is to sort rules in topographic order (according to input
+    // and output types) and then run them. On top of that, we do some
+    // optimizations. We keep a cache of results by type (whether partial or
+    // comprehensive--either way, the topography ensures that any
+    // non-comprehensive typeCache entry is made comprehensive before another
+    // rule needs it). And we prune our search for prerequisite rules at the
+    // first encountered already-executed rule.
+    _execute(rule) {
+        if (this.ruleCache.has(rule)) {
+            return this.ruleCache.get(type);
+        }
+        const prereqs = this._prerequisitesTo(rule);
+        const sorted = [rule].push(...toposort(prereqs));
+        for (rule of reversed(sorted)) {
+            for (fnode of rule.fnodes(this)) {
+                // Stick the fnode in typeCache under all applicable types.
+                // Optimization: we really only need to loop over the types
+                // this rule can possibly emit.
+                for (type of fnode.typesSoFar()) {
+                    setDefault(this.typeCache, type, () => new Set()).add(fnode);
+                }
+            }
+        }
+        return fnodes;
+    }
+
+    // Return an Array of rules.
+    inwardRulesThatCouldEmit(type) {
+        return this._rulesThatCouldEmit.get(type);
+    }
+
+    // Return an Array of rules.
+    inwardRulesThatCouldAdd(type) {
+        return this._rulesThatCouldAdd.get(type);
+    }
+
+    // Return an iterable of rules which might emit fnodes of a certain type
+    // back into the system, either by adding the type or by simply modifying
+    // fnodes that have that type already. We return any rule we can't prove
+    // doesn't emit the type. None are OutwardRules, since they can't modify
+    // anything.
+    rulesWhichMightChangeTypedInfo(type) {
         // The work this does is cached in this.typeCache by the Lhs.
-        return filter(rule => rule.mightAdd(type), this._inRules);
+        return filter(rule => rule.mightChangeTypedInfo(type), this._inRules);
     }
 
     // Return the Fathom node that describes the given DOM element.
@@ -147,6 +228,45 @@ class Rule {  // abstract
     constructor(lhs, rhs) {
         this.lhs = lhs.asLhs();
         this.rhs = rhs.asRhs();
+    }
+
+    // Return an Array of the rules that this one depends on in the given
+    // ruleset. This may include rules that have already been executed in a
+    // BoundRuleset.
+    prerequisites(ruleset) {
+        // Some LHSs know enough to determine their own prereqs:
+        const delegated = this.lhs.prerequisites(ruleset);
+        if (delegated !== undefined) {
+            return delegated;
+        }
+
+        // Otherwise, fall back to a more expensive approach that takes into
+        // account both LHS and RHS types:
+        const possibleEmissions = this.typesItCouldEmit();
+        if (possibleEmissions.size === 1 && possibleEmissions.has(this.lhs.type)) {
+            // All this could emit is its input type. It's an A -> A rule.
+            return ruleset.inwardRulesThatCouldAdd(this.lhs.type);
+        } else {
+            return ruleset.inwardRulesThatCouldEmit(this.lhs.type);
+        }
+    }
+
+    // Return a Set of types.
+    typesItCouldEmit() {
+        const rhsDeclarations = this.rhs.typesItCouldEmit();
+        if (rhsDeclarations.size === 0 && this.lhs.type !== undefined) {
+            // It's a b -> b rule.
+            return new Set([this.lhs.type]);
+        } else {
+            return rhsDeclarations;
+        }
+    }
+
+    // Return a Set of types.
+    typesItCouldAdd() {
+        const ret = new Set(this.typesItCouldEmit());
+        ret.delete(this.lhs.type);
+        return ret;
     }
 }
 
@@ -221,16 +341,12 @@ class InwardRule extends Rule {
             });
     }
 
-    // Return false if we can prove I never add the given type to fnodes.
-    // Otherwise, return true.
-    mightAdd(type) {
-        const inputType = this.lhs.guaranteedType();
+    // Return false if we can prove I never change typed info (scores, type
+    // assignments themselves, notes) of the given type. Otherwise, return true.
+    //
+    // All RHSs that emit a type (and aren't no-ops) can change that typed info.
+    mightChangeTypedInfo(type) {
         const outputTypes = this.rhs.possibleTypes();
-
-        if (type === inputType) {
-            // Can't *add* a type that's already on the incoming fnodes
-            return false;
-        }
         if (outputTypes.size > 0) {
             return outputTypes.has(type);
         }

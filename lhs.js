@@ -36,6 +36,10 @@ class Lhs {
 
 
     // Return the output fnodes selected by this left-hand-side expression.
+    //
+    // Pre: The rules I depend on have already been run, and their results are
+    // in ruleset.typeCache.
+    //
     // ruleset: a BoundRuleset
     // fnodes (ruleset)
 
@@ -47,6 +51,12 @@ class Lhs {
     // Return the single type the output of the LHS is guaranteed to have.
     // Return undefined if there is no such single type we can ascertain.
     guaranteedType() {
+    }
+
+    // Return an iterable of rules that need to run in order to compute my
+    // inputs, undefined if we can't tell without also consulting the RHS.
+    prerequisites(ruleset) {
+        return undefined;
     }
 }
 
@@ -79,6 +89,10 @@ class DomLhs extends Lhs {
     asLhs() {
         return this;
     }
+
+    prerequisites(ruleset) {
+        return [];
+    }
 }
 
 
@@ -89,7 +103,7 @@ class TypeLhs extends Lhs {
         if (type === undefined) {
             throw new Error('A type name is required when calling type().');
         }
-        this._type = type;
+        this.type = type;  // the input type
     }
 
     fnodes(ruleset) {
@@ -118,11 +132,11 @@ class TypeLhs extends Lhs {
     // Return a new LHS constrained to return only the max-scoring node of
     // a type. If there is a tie, more than 1 node may be selected.
     max() {
-        return new TypeMaxLhs(this._type);
+        return new TypeMaxLhs(this.type);
     }
 
     guaranteedType() {
-        return this._type;
+        return this.type;
     }
 }
 
@@ -143,10 +157,14 @@ class TypeMaxLhs extends TypeLhs {
         const getSuperFnodes = () => super.fnodes(ruleset);
         return setDefault(
             ruleset.maxCache,
-            this._type,
+            this.type,
             function maxFnodesOfType() {
-                return maxes(getSuperFnodes(), fnode => fnode.getScore(self._type));
+                return maxes(getSuperFnodes(), fnode => fnode.getScore(self.type));
             });
+    }
+
+    prerequisites(ruleset) {
+        return ruleset.inwardRulesThatCouldEmit(this.type);
     }
 }
 

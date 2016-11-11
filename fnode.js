@@ -28,6 +28,9 @@ class Fnode {
 
     // Return whether the given type is one of the ones attached to this node.
     hasType(type) {
+        // TODO: Maybe run type(theType) against the ruleset to make sure this
+        // doesn't return false just because we haven't lazily run certain
+        // rules yet. Same for getScore, getNote, and hasNote.
         return this._types.has(type);
     }
 
@@ -50,6 +53,12 @@ class Fnode {
     // TODO: Have a public way to enumerate my types.
 
     // -------- Methods below this point are private to the framework. --------
+
+    // Return an iterable of the types tagged onto me by rules that have
+    // already executed.
+    typesSoFar() {
+        return this._type.keys()
+    }
 
     // Multiply one of our per-type scores by a given number. Implicitly assign
     // us the given type.

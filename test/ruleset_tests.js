@@ -1,7 +1,7 @@
 const {assert} = require('chai');
 const {jsdom} = require('jsdom');
 
-const {dom, func, out, rule, ruleset, score, type} = require('../index');
+const {dom, func, out, rule, ruleset, score, type, typeIn} = require('../index');
 
 
 describe('Ruleset', function () {
@@ -63,6 +63,40 @@ describe('Ruleset', function () {
         assert.equal(anchor.getNote('anchor'), 'lovely');
     });
 
+    describe('avoids cycles', function () {
+        it('that should be statically detectable, throwing an error', function () {
+            const doc = jsdom('<p></p>');
+            const rules = ruleset(
+                rule(dom('p'), type('a')),
+                rule(type('a'), type('b')),
+                rule(type('b'), type('a'))
+            );
+            const facts = rules.against(doc);
+            assert.throws(() => facts.get(type('a')),
+                          'There was a cyclic dependency in the ruleset.');
+        });
+        // Pass a growing Set of rules around, and don't re-run any. Run order shouldn't matter, because we forbid notes from overwriting, score multiplication is commutative, and type assignment is idempotent and immutable.
+
+        it("that would happen if we didn't track what we'd run already", function () {
+            const doc = jsdom('<p></p>');
+            const rules = ruleset(
+                rule(dom('p'), type('a')),
+                rule(dom('p'), type('b')),
+                rule(type('a'), func(fnode => ({type: 'c'}))),  // 1  // runs 2
+                rule(type('b'), func(fnode => ({type: 'd'}))),  // 2  // runs 1
+                rule(type('c'), out('c'))  // 3  // runs 1, 2 because it can't tell what types they return
+            );
+            const facts = rules.against(doc);
+            const p = facts.get('c')[0];
+            // Not only do we not end up in an infinite loop, but we run all
+            // rules that could lead to the requested type c as well:
+            assert(p.hasType('a'));
+            assert(p.hasType('b'));
+            assert(p.hasType('c'));
+            assert(p.hasType('d'));
+        });
+    });
+
     describe('conserves score', function () {
         it('only when conserveScore() is used, using per-type scores otherwise', function () {
             // Also test that rules fire lazily.
@@ -120,7 +154,65 @@ describe('Ruleset', function () {
             assert.equal(para.getScore('smoo'), 70);
         });
     });
+
+    describe('plans rule execution in dependency order', function () {
+        it('demands rules are of determinate type', function () {
+            assert.throws(() => ruleset(rule(dom('p'), func('dummy'))),
+                          'A rule did not declare the types it can emit using type() or typeIn().');
+        });
+
+        it('remembers what types rules add and emit', function () {
+            const rule1 = rule(dom('p'), func('dummy').typeIn('q', 'r'));
+            const rule2 = rule(type('r'), type('s'));
+            const facts = ruleset(rule1, rule2).against(jsdom(''));
+            assert.deepEqual(facts.inwardRulesThatCouldEmit('q'), [rule1]);
+            assert.deepEqual(facts.inwardRulesThatCouldAdd('s'), [rule2]);
+        });
+    });
+});
+
+describe('Rule', function () {
+    it('knows what it can add and emit', function () {
+       const a = rule(dom('p'), type('para'));
+       assert.sameMembers(Array.from(a.typesItCouldEmit()), ['para']);
+       assert.sameMembers(Array.from(a.typesItCouldAdd()), ['para']);
+
+       const b = rule(type('r'), typeIn('q').func('dummy').typeIn('r', 's'));
+       assert.sameMembers(Array.from(b.typesItCouldEmit()), ['r', 's']);
+       assert.sameMembers(Array.from(b.typesItCouldAdd()), ['s']);
+
+       const c = rule(type('a'), score(2));
+       assert.sameMembers(Array.from(c.typesItCouldEmit()), ['a']);
+    });
+
+    it.only('identifies prerequisite rules', function () {
+        const domRule = rule(dom('p'), type('a'));
+        const maxRule = rule(type('a').max(), type('b'));
+        const maintainRule = rule(type('b'), score(2));
+        const addRule = rule(type('b'), type('c'));
+        const rules = ruleset(domRule, maxRule, maintainRule, addRule);
+        const facts = rules.against(jsdom(''));
+        assert.deepEqual(domRule.prerequisites(facts), []);
+        assert.deepEqual(maxRule.prerequisites(facts), [domRule]);
+        assert.deepEqual(maintainRule.prerequisites(facts), [maxRule]);
+        assert.sameMembers(addRule.prerequisites(facts), [maxRule, maintainRule]);
+
+        const prereqs = facts._prerequisitesTo(addRule);
+
+        const util = require('util');
+        console.log(util.inspect(prereqs, false, null));
+
+        // TODO: Replace with deepEqual when chai >= 4.0 supports Maps and Sets.
+        assert.equal(prereqs.size, 3);
+        assert.deepEqual(prereqs.get(maintainRule), [addRule]);
+        assert.deepEqual(prereqs.get(domRule), [maxRule]);
+        assert.deepEqual(prereqs.get(maxRule), [addRule, maintainRule]);
+    });
 });
 
 
-// TODO: Test note() behavior with one rule giving a note and another giving an undefined note
+// colliding notes
+// Maybe there should be a default .score and .note on fnodes that are selected by a type() selector, so we don't have to say getScore('someType'), repeating ourselves.
+
+// XXX: Test to make sure a rule like type(a) → func(...).score(2).typeIn(b, c) doesn't multiply a node's score by 2 twice if we exec type(b) and then type(c), which might be tempted to exec the initial rule twice. Probably we should cache the incomplete-type results of every rule so we never run them more than once.
+// Similarly, decide if * → func(...).score(2) should multiply the score more than once if it just returns the same node over and over. Yes, because it would if you divided it into 2 rules. And if you don't like it, don't return the same element multiple times from func!

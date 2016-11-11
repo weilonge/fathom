@@ -219,10 +219,12 @@ class InwardRhs {
         return result;
     }
 
-    // Return a Set of types I am constrained to emit, if we can prove such
-    // a constraint. Otherwise, return an empty Set.
-    possibleTypes() {
-        // If there is a typeIn() constraint or there is a type() call to the
+    // Return a Set of types I am constrained to emit (which means either to
+    // add a type to a fnode or to maintain it unchanged), if we can prove such
+    // a constraint without reference to the LHS. Otherwise, return an empty
+    // Set.
+    typesItCouldEmit() {
+        // If there is a typeIn() constraint, there is a type() call to the
         // right of all func() calls, we have a constraint. We hunt for the
         // tightest constraint we can find, favoring a type() call because it
         // gives us a single type but then falling back to a typeIn().
