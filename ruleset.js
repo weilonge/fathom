@@ -153,9 +153,12 @@ class BoundRuleset {
                 // about adding it to the graph.)
                 const alreadyAdded = undonePrereqs.has(prereq);
                 setDefault(undonePrereqs, prereq, () => []).push(rule);
+
+                // alreadyAdded means we've already computed the prereqs of
+                // this prereq and added them to undonePrereqs. So, now
+                // that we've hooked up the rule to this prereq in the
+                // graph, we can stop. But, if we haven't, then...
                 if (!alreadyAdded) {
-                    // If prereq has not already had its dependencies added to
-                    // the graph, then go add them:
                     this._prerequisitesTo(prereq, undonePrereqs);
                 }
             }
@@ -166,10 +169,10 @@ class BoundRuleset {
     // Run the given rule (and its dependencies, in the proper order), and
     // return its result.
     //
-    // The basic idea is to sort rules in topographic order (according to input
+    // The basic idea is to sort rules in topological order (according to input
     // and output types) and then run them. On top of that, we do some
     // optimizations. We keep a cache of results by type (whether partial or
-    // comprehensive--either way, the topography ensures that any
+    // comprehensive--either way, the topology ensures that any
     // non-comprehensive typeCache entry is made comprehensive before another
     // rule needs it). And we prune our search for prerequisite rules at the
     // first encountered already-executed rule.

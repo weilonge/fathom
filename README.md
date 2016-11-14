@@ -163,6 +163,10 @@ theClusters = clusters(anArrayOfNodes, 4);
 // cluster. Turn it down to keep a stricter definition of "nearby".
 ```
 
+## Best Practices
+
+Any rule adding a type should apply the same note. If only one rule of several `*→a` ones did, it should be made to emit a different type instead so downstream rules can explicitly state that they require the note to be there. Otherwise, there is nothing to guarantee the note-adding rule will run before the note-needing one.
+
 ## More Examples
 
 Our docs are a little sparse so far, but [our tests](https://github.com/mozilla/fathom/tree/master/test) might help you in the meantime.
