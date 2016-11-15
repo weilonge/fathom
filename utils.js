@@ -207,9 +207,49 @@ function *reversed(array) {
 }
 
 
+// Return a reverse topological sort of the nodes `nodes`.
+//
+// nodesThatNeed: A function that takes a node and returns an Array of nodes
+//     that depend on it
+function toposort(nodes, nodesThatNeed) {
+    const ret = [];
+    const todo = new Set(nodes);
+    const inProgress = new Set();
+
+    function visit(node) {
+        if (inProgress.has(node)) {
+            throw new Error('The graph has a cycle.');
+        }
+        if (todo.has(node)) {
+            inProgress.add(node);
+            for (let needer of nodesThatNeed(node)) {
+                visit(needer);
+            }
+            inProgress.delete(node);
+            todo.delete(node);
+            ret.push(node);
+        }
+    }
+
+    while (todo.size > 0) {
+        visit(first(todo));
+    }
+    return ret;
+}
+
+
+// Return the first item of an iterable.
+function first(iterable) {
+    for (let i of iterable) {
+        return i;
+    }
+}
+
+
 module.exports = {
     best,
     collapseWhitespace,
+    first,
     getDefault,
     identity,
     inlineTextLength,
@@ -224,5 +264,6 @@ module.exports = {
     reversed,
     setDefault,
     sum,
+    toposort,
     walk
 };

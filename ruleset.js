@@ -181,9 +181,10 @@ class BoundRuleset {
             return this.ruleCache.get(type);
         }
         const prereqs = this._prerequisitesTo(rule);
-        const sorted = [rule].push(...toposort(prereqs));
-        for (rule of reversed(sorted)) {
-            for (fnode of rule.fnodes(this)) {
+        const sorted = [rule].push(...toposort(prereqs.keys(),
+                                               prereq => prereqs.get(prereq)));
+        for (let rule of reversed(sorted)) {
+            for (let fnode of rule.fnodes(this)) {
                 // Stick the fnode in typeCache under all applicable types.
                 // Optimization: we really only need to loop over the types
                 // this rule can possibly emit.
