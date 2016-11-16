@@ -130,10 +130,7 @@ class BoundRuleset {
             // you ask for .get(type('smoo')) twice, the second time will be a
             // cache hit.
             const outRule = rule(thing, out(Symbol('outKey')));
-            return Array.from(outRule.results(this));
-            // TODO: Don't cache the results of the temporary OutwardRule,
-            // since we can never fetch them again, since the OutwardRule
-            // itself is the cache key.
+            return Array.from(this._execute(outRule));
         } else {
             throw new Error('ruleset.get() expects a string, an expression like on the left-hand side of a rule, or a DOM node.');
         }
