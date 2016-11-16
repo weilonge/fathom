@@ -1,5 +1,7 @@
 const {forEach, map} = require('wu');
 
+const {CycleError} = require('./exceptions');
+
 
 function identity(x) {
     return x;
@@ -218,7 +220,7 @@ function toposort(nodes, nodesThatNeed) {
 
     function visit(node) {
         if (inProgress.has(node)) {
-            throw new Error('The graph has a cycle.');
+            throw new CycleError('The graph has a cycle.');
         }
         if (todo.has(node)) {
             inProgress.add(node);

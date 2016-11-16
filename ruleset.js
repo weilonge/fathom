@@ -1,5 +1,6 @@
 const {filter, forEach, map} = require('wu');
 
+const {CycleError} = require('./exceptions');
 const {Fnode} = require('./fnode');
 const {reversed, setDefault, toposort} = require('./utils');
 const {out, OutwardRhs} = require('./rhs');
@@ -184,8 +185,17 @@ class BoundRuleset {
     // first encountered already-executed rule.
     _execute(rule) {
         const prereqs = this._prerequisitesTo(rule);
-        const sorted = [rule].concat(toposort(prereqs.keys(),
-                                              prereq => prereqs.get(prereq)));
+        let sorted;
+        try {
+            sorted = [rule].concat(toposort(prereqs.keys(),
+                                            prereq => prereqs.get(prereq)));
+        } catch (exc) {
+            if (exc instanceof CycleError) {
+                throw new CycleError('There was a cyclic dependency in the ruleset.');
+            } else {
+                throw exc;
+            }
+        }
         let fnodes;
         for (let eachRule of reversed(sorted)) {
             // Sock each set of results away in this.typeCache:
