@@ -57,7 +57,7 @@ class Fnode {
     // Return an iterable of the types tagged onto me by rules that have
     // already executed.
     typesSoFar() {
-        return this._type.keys()
+        return this._types.keys();
     }
 
     // Multiply one of our per-type scores by a given number. Implicitly assign

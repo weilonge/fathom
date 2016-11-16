@@ -173,19 +173,19 @@ describe('Ruleset', function () {
 
 describe('Rule', function () {
     it('knows what it can add and emit', function () {
-       const a = rule(dom('p'), type('para'));
-       assert.sameMembers(Array.from(a.typesItCouldEmit()), ['para']);
-       assert.sameMembers(Array.from(a.typesItCouldAdd()), ['para']);
+        const a = rule(dom('p'), type('para'));
+        assert.sameMembers(Array.from(a.typesItCouldEmit()), ['para']);
+        assert.sameMembers(Array.from(a.typesItCouldAdd()), ['para']);
 
-       const b = rule(type('r'), typeIn('q').func('dummy').typeIn('r', 's'));
-       assert.sameMembers(Array.from(b.typesItCouldEmit()), ['r', 's']);
-       assert.sameMembers(Array.from(b.typesItCouldAdd()), ['s']);
+        const b = rule(type('r'), typeIn('q').func('dummy').typeIn('r', 's'));
+        assert.sameMembers(Array.from(b.typesItCouldEmit()), ['r', 's']);
+        assert.sameMembers(Array.from(b.typesItCouldAdd()), ['s']);
 
-       const c = rule(type('a'), score(2));
-       assert.sameMembers(Array.from(c.typesItCouldEmit()), ['a']);
+        const c = rule(type('a'), score(2));
+        assert.sameMembers(Array.from(c.typesItCouldEmit()), ['a']);
     });
 
-    it.only('identifies prerequisite rules', function () {
+    it('identifies prerequisite rules', function () {
         const domRule = rule(dom('p'), type('a'));
         const maxRule = rule(type('a').max(), type('b'));
         const maintainRule = rule(type('b'), score(2));

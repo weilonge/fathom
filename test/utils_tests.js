@@ -5,7 +5,7 @@ const {toposort} = require('../utils');
 
 describe('Utils', function () {
     describe('toposort', function () {
-        it.only('sorts', function () {
+        it('sorts', function () {
             // Return answers that express the graph...
             // 4 <- 5 <- 6   <-  7
             //           |       |

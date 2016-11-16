@@ -1,6 +1,5 @@
 // The left-hand side of a rule
 
-const {filter, flatten, map, unique} = require('wu');
 const {maxes, setDefault} = require('./utils');
 
 
@@ -20,7 +19,7 @@ function dom(selector) {
 // something that causes one to need to be cleared, you'll need to clear many
 // more as well.
 //
-// Lhses are responsible for maintaining ruleset.typeCache and ruleset.maxCache.
+// Lhses are responsible for maintaining ruleset.maxCache.
 //
 // Lhs and its subclasses are private to the Fathom framework.
 class Lhs {
@@ -107,20 +106,7 @@ class TypeLhs extends Lhs {
     }
 
     fnodes(ruleset) {
-        const self = this;
-        return setDefault(
-            ruleset.typeCache,
-            this._type,
-            function allFnodesOfType() {
-                // We don't really care if the rule *adds* the given
-                // type, just that we find all the fnodes of that type.
-                const fnodesMaybeOfType = flatten(true,
-                                                  map(rule => rule.results(ruleset),
-                                                      ruleset.rulesWhichMightAdd(self._type)));
-                const fnodesOfType = filter(fnode => fnode.hasType(self._type),
-                                            fnodesMaybeOfType);
-                return Array.from(unique(fnodesOfType));
-            });
+        return ruleset.typeCache.get(this.type);
     }
 
     // Override the type previously specified by this constraint.

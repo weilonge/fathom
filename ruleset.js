@@ -1,7 +1,7 @@
 const {filter, forEach, map} = require('wu');
 
 const {Fnode} = require('./fnode');
-const {setDefault} = require('./utils');
+const {reversed, setDefault, toposort} = require('./utils');
 const {out, OutwardRhs} = require('./rhs');
 
 
@@ -82,10 +82,10 @@ class BoundRuleset {
         this._rulesThatCouldAdd = rulesThatCouldAdd;
 
         // Private, for the use of only helper classes:
-        this.ruleCache = new Map();  // Rule instance => Array of result fnodes or out.through() return values
         this.maxCache = new Map();  // type => Array of max fnode (or fnodes, if tied) of this type
         this.typeCache = new Map();  // type => Set of all fnodes of this type found so far. (The dependency resolution during execution ensures that individual types will be comprehensive just in time.)
         this.elementCache = new Map();  // DOM element => fnode about it
+        this.doneRules = new Set();  // InwardRules that have been executed. OutwardRules can be executed more than once because they don't change any fnodes and are thus idempotent.
     }
 
     // Return an array of zero or more results.
@@ -102,13 +102,17 @@ class BoundRuleset {
     get(thing) {
         if (typeof thing === 'string') {
             if (this._outRules.has(thing)) {
-                return Array.from(this._outRules.get(thing).results(this));
+                return Array.from(this._execute(this._outRules.get(thing)));
             } else {
                 throw new Error(`There is no out() rule with key "${thing}".`);
             }
         } else if (thing.nodeName !== undefined) {
             // Compute everything (not just things that lead to outs):
-            forEach(rule => this._execute(rule), this._inRules);
+            for (let inRule of this._inRules) {
+                if (!this.doneRules.has(inRule)) {
+                    this._execute(inRule);
+                }
+            }
             return this.fnodeForElement(thing);
             // TODO: How can we be more efficient about this, for classifying
             // pages (in which case the classifying types end up attached to a
@@ -148,7 +152,7 @@ class BoundRuleset {
     // Map(prereq: [rulesItIsNeededBy]).
     _prerequisitesTo(rule, undonePrereqs = new Map()) {
         for (let prereq of rule.prerequisites(this)) {
-            if (!this.ruleCache.has(prereq)) {
+            if (!this.doneRules.has(prereq)) {
                 // prereq is not already run. (If it were, we wouldn't care
                 // about adding it to the graph.)
                 const alreadyAdded = undonePrereqs.has(prereq);
@@ -167,7 +171,12 @@ class BoundRuleset {
     }
 
     // Run the given rule (and its dependencies, in the proper order), and
-    // return its result.
+    // return its results.
+    //
+    // The caller is responsible for ensuring that _execute() is not called
+    // more than once for a given InwardRule, lest non-idempotent
+    // transformations, like score multiplications, be applied to fnodes more
+    // than once.
     //
     // The basic idea is to sort rules in topological order (according to input
     // and output types) and then run them. On top of that, we do some
@@ -177,23 +186,15 @@ class BoundRuleset {
     // rule needs it). And we prune our search for prerequisite rules at the
     // first encountered already-executed rule.
     _execute(rule) {
-        if (this.ruleCache.has(rule)) {
-            return this.ruleCache.get(type);
-        }
         const prereqs = this._prerequisitesTo(rule);
-        const sorted = [rule].push(...toposort(prereqs.keys(),
-                                               prereq => prereqs.get(prereq)));
-        for (let rule of reversed(sorted)) {
-            for (let fnode of rule.fnodes(this)) {
-                // Stick the fnode in typeCache under all applicable types.
-                // Optimization: we really only need to loop over the types
-                // this rule can possibly emit.
-                for (type of fnode.typesSoFar()) {
-                    setDefault(this.typeCache, type, () => new Set()).add(fnode);
-                }
-            }
+        const sorted = [rule].concat(toposort(prereqs.keys(),
+                                              prereq => prereqs.get(prereq)));
+        let fnodes;
+        for (let eachRule of reversed(sorted)) {
+            // Sock each set of results away in this.typeCache:
+            fnodes = eachRule.results(this);
         }
-        return fnodes;
+        return Array.from(fnodes);
     }
 
     // Return an Array of rules.
@@ -204,16 +205,6 @@ class BoundRuleset {
     // Return an Array of rules.
     inwardRulesThatCouldAdd(type) {
         return this._rulesThatCouldAdd.get(type);
-    }
-
-    // Return an iterable of rules which might emit fnodes of a certain type
-    // back into the system, either by adding the type or by simply modifying
-    // fnodes that have that type already. We return any rule we can't prove
-    // doesn't emit the type. None are OutwardRules, since they can't modify
-    // anything.
-    rulesWhichMightChangeTypedInfo(type) {
-        // The work this does is cached in this.typeCache by the Lhs.
-        return filter(rule => rule.mightChangeTypedInfo(type), this._inRules);
     }
 
     // Return the Fathom node that describes the given DOM element.
@@ -237,10 +228,16 @@ class Rule {  // abstract
     // Return an Array of the rules that this one depends on in the given
     // ruleset. This may include rules that have already been executed in a
     // BoundRuleset.
+    //
+    // The rules are these, where A is a type:
+    // * A->* (including (A->out(…)) depends on anything emitting A.
+    // * A.max->* depends on anything emitting A.
+    // * A->A depends on anything adding A.
     prerequisites(ruleset) {
         // Some LHSs know enough to determine their own prereqs:
         const delegated = this.lhs.prerequisites(ruleset);
         if (delegated !== undefined) {
+            // A.max->* or dom->*
             return delegated;
         }
 
@@ -248,14 +245,96 @@ class Rule {  // abstract
         // account both LHS and RHS types:
         const possibleEmissions = this.typesItCouldEmit();
         if (possibleEmissions.size === 1 && possibleEmissions.has(this.lhs.type)) {
-            // All this could emit is its input type. It's an A -> A rule.
+            // A->A. All this could emit is its input type.
             return ruleset.inwardRulesThatCouldAdd(this.lhs.type);
         } else {
+            // A->*
             return ruleset.inwardRulesThatCouldEmit(this.lhs.type);
         }
     }
+}
 
-    // Return a Set of types.
+
+// A normal rule, whose results head back into the Fathom knowledgebase, to be
+// operated on by further rules.
+class InwardRule extends Rule {
+    // TODO: On construct, complain about useless rules, like a dom() rule that
+    // doesn't assign a type.
+
+    // Return an iterable of the fnodes emitted by the RHS of this rule.
+    // Side effect: update ruleset's store of fnodes, its accounting of which
+    // rules are done executing, and its cache of results per type.
+    results(ruleset) {
+        if (ruleset.doneRules.has(this)) {  // shouldn't happen
+            throw new Error('Some internal bumbler called results() on an inward rule twice. That could cause redundant score multiplications, etc.');
+        }
+        const self = this;
+        // For now, we consider most of what a LHS computes to be cheap, aside
+        // from type() and type().max(), which are cached by their specialized
+        // LHS subclasses.
+        const leftFnodes = this.lhs.fnodes(ruleset);
+        // Avoid returning a single fnode more than once. LHSs uniquify
+        // themselves, but the RHS can change the element it's talking
+        // about and thus end up with dupes.
+        const returnedFnodes = new Set();
+
+        // Merge facts into fnodes:
+        forEach(
+            function updateFnode(leftFnode) {
+                const fact = self.rhs.fact(leftFnode);
+                self.lhs.checkFact(fact);
+                const rightFnode = ruleset.fnodeForElement(fact.element || leftFnode.element);
+                // If the RHS doesn't specify a type, default to the
+                // type of the LHS, if any:
+                const rightType = fact.type || self.lhs.guaranteedType();
+                if (fact.conserveScore) {
+                    // If conserving, multiply in the input-type score
+                    // from the LHS node. (Never fall back to
+                    // multiplying in the RHS-type score from the LHS:
+                    // it's not guaranteed to be there, and even if it
+                    // will ever be, the executor doesn't guarantee it
+                    // has been filled in yet.)
+                    const leftType = self.lhs.guaranteedType();
+                    if (leftType !== undefined) {
+                        rightFnode.conserveScoreFrom(leftFnode, leftType, rightType);
+                    } else {
+                        throw new Error('conserveScore() was called in a rule whose left-hand side is a dom() selector and thus has no predictable type.');
+                    }
+                }
+                if (fact.score !== undefined) {
+                    if (rightType !== undefined) {
+                        rightFnode.multiplyScore(rightType, fact.score);
+                    } else {
+                        throw new Error(`The right-hand side of a rule specified a score (${fact.score}) with neither an explicit type nor one we could infer from the left-hand side.`);
+                    }
+                }
+                if (fact.type !== undefined || fact.note !== undefined) {
+                    // There's a reason to call setNote.
+                    if (rightType === undefined) {
+                        throw new Error(`The right-hand side of a rule specified a note (${fact.note}) with neither an explicit type nor one we could infer from the left-hand side. Notes are per-type, per-node, so that's a problem.`);
+                    } else {
+                        rightFnode.setNote(rightType, fact.note);
+                    }
+                }
+                returnedFnodes.add(rightFnode);
+            },
+            leftFnodes);
+
+        // Update ruleset lookup tables.
+        // First, mark this rule as done:
+        ruleset.doneRules.add(this);
+        // Then, stick each fnode in typeCache under all applicable types.
+        // Optimization: we really only need to loop over the types
+        // this rule can possibly add.
+        for (let fnode of returnedFnodes) {
+            for (let type of fnode.typesSoFar()) {
+                setDefault(ruleset.typeCache, type, () => new Set()).add(fnode);
+            }
+        }
+        return returnedFnodes.values();
+    }
+
+    // Return a Set of the types that could be emitted back into the system.
     typesItCouldEmit() {
         const rhsDeclarations = this.rhs.typesItCouldEmit();
         if (rhsDeclarations.size === 0 && this.lhs.type !== undefined) {
@@ -275,105 +354,27 @@ class Rule {  // abstract
 }
 
 
-// A normal rule, whose results head back into the Fathom knowledgebase, to be
-// operated on by further rules.
-class InwardRule extends Rule {
-    // TODO: On construct, complain about useless rules, like a dom() rule that
-    // doesn't assign a type.
-
-    // Return the fnodes emitted by the RHS of this rule.
-    results(ruleset) {
-        const self = this;
-        // This caches the fnodes emitted by the RHS result of a rule. Any more
-        // fine-grained caching is the responsibility of the delegated-to
-        // results() methods. For now, we consider most of what a LHS computes
-        // to be cheap, aside from type() and type().max(), which are cached by
-        // their specialized LHS subclasses.
-        return setDefault(
-            ruleset.ruleCache,
-            this,
-            function computeFnodes() {
-                const leftFnodes = self.lhs.fnodes(ruleset);
-                // Avoid returning a single fnode more than once. LHSs uniquify
-                // themselves, but the RHS can change the element it's talking
-                // about and thus end up with dupes.
-                const returnedFnodes = new Set();
-
-                // Merge facts into fnodes:
-                forEach(
-                    function updateFnode(leftFnode) {
-                        const fact = self.rhs.fact(leftFnode);
-                        self.lhs.checkFact(fact);
-                        const rightFnode = ruleset.fnodeForElement(fact.element || leftFnode.element);
-                        // If the RHS doesn't specify a type, default to the
-                        // type of the LHS, if any:
-                        const rightType = fact.type || self.lhs.guaranteedType();
-                        if (fact.conserveScore) {
-                            // If conserving, multiply in the input-type score
-                            // from the LHS node. (Never fall back to
-                            // multiplying in the RHS-type score from the LHS:
-                            // it's not guaranteed to be there, and even if it
-                            // will ever be, the executor doesn't guarantee it
-                            // has been filled in yet.)
-                            const leftType = self.lhs.guaranteedType();
-                            if (leftType !== undefined) {
-                                rightFnode.conserveScoreFrom(leftFnode, leftType, rightType);
-                            } else {
-                                throw new Error('conserveScore() was called in a rule whose left-hand side is a dom() selector and thus has no predictable type.');
-                            }
-                        }
-                        if (fact.score !== undefined) {
-                            if (rightType !== undefined) {
-                                rightFnode.multiplyScore(rightType, fact.score);
-                            } else {
-                                throw new Error(`The right-hand side of a rule specified a score (${fact.score}) with neither an explicit type nor one we could infer from the left-hand side.`);
-                            }
-                        }
-                        if (fact.type !== undefined || fact.note !== undefined) {
-                            // There's a reason to call setNote.
-                            if (rightType === undefined) {
-                                throw new Error(`The right-hand side of a rule specified a note (${fact.note}) with neither an explicit type nor one we could infer from the left-hand side. Notes are per-type, per-node, so that's a problem.`);
-                            } else {
-                                rightFnode.setNote(rightType, fact.note);
-                            }
-                        }
-                        returnedFnodes.add(rightFnode);
-                    },
-                    leftFnodes);
-
-                return Array.from(returnedFnodes.values());  // TODO: Use unique().
-            });
-    }
-
-    // Return false if we can prove I never change typed info (scores, type
-    // assignments themselves, notes) of the given type. Otherwise, return true.
-    //
-    // All RHSs that emit a type (and aren't no-ops) can change that typed info.
-    mightChangeTypedInfo(type) {
-        const outputTypes = this.rhs.possibleTypes();
-        if (outputTypes.size > 0) {
-            return outputTypes.has(type);
-        }
-        return true;
-    }
-}
-
-
 // A rule whose RHS is an out(). This represents a final goal of a ruleset.
 // Its results go out into the world, not inward back into the Fathom
 // knowledgebase.
 class OutwardRule extends Rule {
     // Compute the whole thing, including any .through().
+    // Do not mark me done in ruleset.doneRules; out rules are never marked as
+    // done so they can be requested many times without having to cache their
+    // (potentially big, since they aren't necessarily fnodes?) results. (We
+    // can add caching later if it proves beneficial.)
     results(ruleset) {
-        return setDefault(
-            ruleset.ruleCache,
-            this,
-            () => map(this.rhs.callback, this.lhs.fnodes(ruleset)));
+        return map(this.rhs.callback, this.lhs.fnodes(ruleset));
     }
 
     // Return the key under which the output of this rule will be available.
     key() {
         return this.rhs.key;
+    }
+
+    // Return an empty Set, since we don't emit anything back into the system.
+    typesItCouldEmit() {
+        return new Set();
     }
 }
 
