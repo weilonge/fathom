@@ -253,10 +253,18 @@ class Rule {  // abstract
         const possibleEmissions = this.typesItCouldEmit();
         if (possibleEmissions.size === 1 && possibleEmissions.has(this.lhs.type)) {
             // A->A. All this could emit is its input type.
-            return ruleset.inwardRulesThatCouldAdd(this.lhs.type);
+            const adders = ruleset.inwardRulesThatCouldAdd(this.lhs.type);
+            if (adders === undefined) {
+                throw new Error(`No rule adds the "${this.lhs.type}" type, but another rule needs it as input.`);
+            }
+            return adders;
         } else {
             // A->*
-            return ruleset.inwardRulesThatCouldEmit(this.lhs.type);
+            const emitters = ruleset.inwardRulesThatCouldEmit(this.lhs.type);
+            if (emitters === undefined) {
+                throw new Error(`No rule emits the "${this.lhs.type}" type, but another rule needs it as input.`);
+            }
+            return emitters;
         }
     }
 }

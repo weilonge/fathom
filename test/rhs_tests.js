@@ -1,7 +1,7 @@
 const {assert} = require('chai');
 const {jsdom} = require('jsdom');
 
-const {dom, func, out, rule, ruleset, score, scoreUpTo, type, typeIn} = require('../index');
+const {dom, func, note, out, rule, ruleset, score, scoreUpTo, type, typeIn} = require('../index');
 
 
 describe('RHS', function () {
@@ -77,5 +77,19 @@ describe('RHS', function () {
         );
         const facts = rules.against(doc);
         assert.equal(facts.get('para')[0], false);
+    });
+
+    it('paves over undefined notes', function () {
+        // We shouldn't re-run any rules. Run order shouldn't matter, because
+        // we forbid notes from overwriting, score multiplication is
+        // commutative, and type assignment is idempotent and immutable.
+        const doc = jsdom('<p></p>');
+        const rules = ruleset(
+            rule(dom('p'), type('para')),
+            rule(type('para'), note(fnode => undefined)),
+            rule(type('para'), note(fnode => 'foo'))
+        );
+        const facts = rules.against(doc);
+        assert.equal(facts.get(type('para'))[0].getNote('para'), 'foo');
     });
 });

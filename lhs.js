@@ -53,7 +53,8 @@ class Lhs {
     }
 
     // Return an iterable of rules that need to run in order to compute my
-    // inputs, undefined if we can't tell without also consulting the RHS.
+    // inputs, undefined if we can't tell without also consulting the RHS or if
+    // the necessary prereqs are missing from the ruleset.
     prerequisites(ruleset) {
         return undefined;
     }

@@ -198,10 +198,6 @@ describe('Rule', function () {
         assert.sameMembers(addRule.prerequisites(facts), [maxRule, maintainRule]);
 
         const prereqs = facts._prerequisitesTo(addRule);
-
-        const util = require('util');
-        console.log(util.inspect(prereqs, false, null));
-
         // TODO: Replace with deepEqual when chai >= 4.0 supports Maps and Sets.
         assert.equal(prereqs.size, 3);
         assert.deepEqual(prereqs.get(maintainRule), [addRule]);
