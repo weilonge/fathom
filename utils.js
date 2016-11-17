@@ -240,6 +240,19 @@ function toposort(nodes, nodesThatNeed) {
 }
 
 
+// A Set with the additional methods it ought to have had
+class NiceSet extends Set {
+    // Remove and return an arbitrary item. Throw an error if I am empty.
+    pop() {
+        for (let v of this.values()) {
+            this.delete(v);
+            return v;
+        }
+        throw new Error('Tried to pop from an empty NiceSet.');
+    }
+}
+
+
 // Return the first item of an iterable.
 function first(iterable) {
     for (let i of iterable) {
@@ -263,6 +276,7 @@ module.exports = {
     max,
     maxes,
     min,
+    NiceSet,
     reversed,
     setDefault,
     sum,

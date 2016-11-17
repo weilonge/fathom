@@ -1,9 +1,19 @@
 const {assert} = require('chai');
 
-const {toposort} = require('../utils');
+const {NiceSet, toposort} = require('../utils');
 
 
 describe('Utils', function () {
+    describe('NiceSet', function () {
+        it('pops', function () {
+            const s = new NiceSet([1, 2]);
+            assert.equal(s.pop(), 1);
+            assert.equal(s.pop(), 2);
+            assert.throws(() => s.pop(),
+                          'Tried to pop from an empty NiceSet.');
+        });
+    });
+
     describe('toposort', function () {
         it('sorts', function () {
             // Return answers that express the graph...
