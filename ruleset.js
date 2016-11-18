@@ -42,9 +42,6 @@ class Ruleset {
                 // Keep track of what inward rules can emit or add:
                 // TODO: Combine these hashes for space efficiency:
                 const emittedTypes = rule.typesItCouldEmit();
-                if (emittedTypes.size === 0) {
-                    throw new Error('A rule did not declare the types it can emit using type() or typeIn().');
-                }
                 for (let type of emittedTypes) {
                     setDefault(this._rulesThatCouldEmit, type, () => []).push(rule);
                 }
@@ -351,12 +348,15 @@ class InwardRule extends Rule {
 
     // Return a Set of the types that could be emitted back into the system.
     typesItCouldEmit() {
-        const rhsDeclarations = this.rhs.typesItCouldEmit();
-        if (rhsDeclarations.size === 0 && this.lhs.type !== undefined) {
+        const rhs = this.rhs.possibleEmissions();
+        if (!rhs.couldChangeType && this.lhs.type !== undefined) {
             // It's a b -> b rule.
             return new Set([this.lhs.type]);
+        } else if (rhs.possibleTypes.size > 0) {
+            // We can prove the type emission from the RHS alone.
+            return rhs.possibleTypes;
         } else {
-            return rhsDeclarations;
+            throw new Error('Could not determine the emitted type of a rule because its right-hand side calls func() without calling typeIn().');
         }
     }
 

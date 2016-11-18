@@ -35,7 +35,7 @@ describe('Ruleset', function () {
             `);
             const rules = ruleset(
                 rule(dom('div'), type('paragraphish')),  // when we add .score(1), the test passes.
-                rule(type('paragraphish'), func(node => ({score: node.element.textContent.length})))
+                rule(type('paragraphish'), func(node => ({score: node.element.textContent.length})).typeIn('paragraphish'))
             );
             const facts = rules.against(doc);
             const div = facts.get(doc.querySelectorAll('div')[0]);
@@ -137,8 +137,9 @@ describe('Ruleset', function () {
 
     describe('plans rule execution', function () {
         it('by demanding rules have determinate type', function () {
-            assert.throws(() => ruleset(rule(dom('p'), func('dummy'))),
-                          'A rule did not declare the types it can emit using type() or typeIn().');
+            assert.throws(() => ruleset(rule(dom('p'), type('a')),
+                                        rule(type('a'), func('dummy'))),
+                      'Could not determine the emitted type of a rule because its right-hand side calls func() without calling typeIn().');
         });
 
         it('by remembering what types rules add and emit', function () {

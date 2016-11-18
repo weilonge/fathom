@@ -223,19 +223,28 @@ class InwardRhs {
     // add a type to a fnode or to maintain it unchanged), if we can prove such
     // a constraint without reference to the LHS. Otherwise, return an empty
     // Set.
-    typesItCouldEmit() {
-        // If there is a typeIn() constraint, there is a type() call to the
+
+    // Return a record describing the types I might emit.
+    // {couldChangeType: whether I might add a type to the fnode,
+    //  possibleTypes: If couldChangeType, the types I might emit; empty set if
+    //      we cannot infer it. If not couldChangeType, undefined.}
+    possibleEmissions() {
+        // If there is a typeIn() constraint or there is a type() call to the
         // right of all func() calls, we have a constraint. We hunt for the
         // tightest constraint we can find, favoring a type() call because it
         // gives us a single type but then falling back to a typeIn().
+        let couldChangeType = false;
         for (let call of reversed(this._calls)) {
             if (call.kind === 'func') {
+                couldChangeType = true;
                 break;
             } else if (call.kind === 'type') {
-                return new Set([call.type]);
+                return {couldChangeType: true,
+                        possibleTypes: new Set([call.type])};
             }
         }
-        return this._types;
+        return {couldChangeType,
+                possibleTypes: this._types};
     }
 }
 
