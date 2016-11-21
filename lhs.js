@@ -1,6 +1,6 @@
 // The left-hand side of a rule
 
-const {maxes, setDefault} = require('./utils');
+const {maxes, getDefault, setDefault} = require('./utils');
 
 
 // Return a condition that uses a DOM selector to find its matches from the
@@ -34,7 +34,8 @@ class Lhs {
     }
 
 
-    // Return the output fnodes selected by this left-hand-side expression.
+    // Return an iterable of output fnodes selected by this left-hand-side
+    // expression.
     //
     // Pre: The rules I depend on have already been run, and their results are
     // in ruleset.typeCache.
@@ -107,7 +108,7 @@ class TypeLhs extends Lhs {
     }
 
     fnodes(ruleset) {
-        return ruleset.typeCache.get(this.type);
+        return getDefault(ruleset.typeCache, this.type, () => []);
     }
 
     // Override the type previously specified by this constraint.

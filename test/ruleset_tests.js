@@ -41,6 +41,17 @@ describe('Ruleset', function () {
             const div = facts.get(doc.querySelectorAll('div')[0]);
             assert.equal(div.getScore('paragraphish'), 8);
         });
+
+        it('an empty iterable for nonexistent types', function () {
+            // While we're at it, test that querying a nonexistent type from a
+            // bound ruleset doesn't crash.
+            const rules = ruleset(
+                rule(dom('a'), func(n => ({type: 'a'})).typeIn('a', 'b'))
+            );
+            const facts = rules.against(jsdom('<a></a>'));
+            // Tempt it to multiply once:
+            assert.deepEqual(facts.get(type('b')), []);
+        });
     });
 
     it('assigns scores and notes to nodes', function () {
