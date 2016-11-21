@@ -121,9 +121,19 @@ class InwardRhs {
                                     types);
     }
 
-    _checkTypeIn(result) {
-        if (this._types.size > 0 && !this._types.has(result.type)) {
-            throw new Error(`A right-hand side claimed, via typeIn(...) to emit one of the types ${this._types} but actually emitted ${result.type}.`);
+    // Check a fact for conformance with any typeIn() call.
+    //
+    // leftType: the type of the LHS, which becomes my emitted type if the fact
+    //     doesn't specify one
+    _checkTypeIn(result, leftType) {
+        if (this._types.size > 0) {
+            if (result.type === undefined) {
+                if (!this._types.has(leftType)) {
+                    throw new Error(`A right-hand side claimed, via typeIn(...) to emit one of the types ${this._types} but actually inherited ${result.type} from the left-hand side.`);
+                }
+            } else if (!this._types.has(result.type)) {
+                throw new Error(`A right-hand side claimed, via typeIn(...) to emit one of the types ${this._types} but actually emitted ${result.type}.`);
+            }
         }
     }
 
@@ -152,7 +162,8 @@ class InwardRhs {
     // In the future, we might also support providing a callback that receives
     // the fnode and returns a score. We couldn't reason based on these, but
     // the use would be rather to override part of what a previous .func() call
-    // provides.
+    // provides. It would also allow us to avoid some uses of func(), which
+    // force us to verbosely declare typeIn().
     score(theScore) {
         function getSubfacts(fnode) {
             return {score: theScore};
@@ -190,7 +201,9 @@ class InwardRhs {
     // notes}) for incorporation into that fnode (or a different one, if
     // element is specified). Any of the 4 fact properties can be missing;
     // filling in defaults is a job for the caller.
-    fact(fnode) {
+    //
+    // leftType: the type the LHS takes in
+    fact(fnode, leftType) {
         const doneKinds = new Set();
         const result = {};
         let haveSubfacts = 0;
@@ -215,7 +228,7 @@ class InwardRhs {
             }
         }
         this._checkScoreUpTo(result);
-        this._checkTypeIn(result);
+        this._checkTypeIn(result, leftType);
         return result;
     }
 

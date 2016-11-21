@@ -293,7 +293,8 @@ class InwardRule extends Rule {
         // Merge facts into fnodes:
         forEach(
             function updateFnode(leftFnode) {
-                const fact = self.rhs.fact(leftFnode);
+                const leftType = self.lhs.guaranteedType();
+                const fact = self.rhs.fact(leftFnode, leftType);
                 self.lhs.checkFact(fact);
                 const rightFnode = ruleset.fnodeForElement(fact.element || leftFnode.element);
                 // If the RHS doesn't specify a type, default to the
@@ -306,7 +307,6 @@ class InwardRule extends Rule {
                     // it's not guaranteed to be there, and even if it
                     // will ever be, the executor doesn't guarantee it
                     // has been filled in yet.)
-                    const leftType = self.lhs.guaranteedType();
                     if (leftType !== undefined) {
                         rightFnode.conserveScoreFrom(leftFnode, leftType, rightType);
                     } else {
