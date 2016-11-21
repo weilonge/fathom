@@ -1,6 +1,6 @@
 // The right-hand side of a rule
 
-const {reversed} = require('./utils');
+const {NiceSet, reversed} = require('./utils');
 
 
 const TYPE = 1;
@@ -36,7 +36,7 @@ class InwardRhs {
     constructor(calls = [], max = Infinity, types) {
         this._calls = calls.slice();
         this._max = max;
-        this._types = new Set(types);  // empty set if unconstrained
+        this._types = new NiceSet(types);  // empty set if unconstrained
     }
 
     // Declare that the maximum returned score multiplier is such and such.

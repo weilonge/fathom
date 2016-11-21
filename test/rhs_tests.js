@@ -57,7 +57,7 @@ describe('RHS', function () {
         );
         const facts = rules.against(doc);
         assert.throws(() => facts.get(type('para')),
-                      'A right-hand side claimed, via typeIn(...) to emit one of the types [object Set] but actually emitted para.');
+                      'A right-hand side claimed, via typeIn(...) to emit one of the types {nope} but actually emitted para.');
         // TODO: Fix lack of set pretty-printing in error message.
     });
 

@@ -250,6 +250,10 @@ class NiceSet extends Set {
         }
         throw new Error('Tried to pop from an empty NiceSet.');
     }
+
+    toString() {
+        return '{' + Array.from(this).join(', ') + '}';
+    }
 }
 
 
