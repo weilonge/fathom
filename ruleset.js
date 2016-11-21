@@ -248,18 +248,19 @@ class Rule {  // abstract
         // Otherwise, fall back to a more expensive approach that takes into
         // account both LHS and RHS types:
         const possibleEmissions = this.typesItCouldEmit();
-        if (possibleEmissions.size === 1 && possibleEmissions.has(this.lhs.type)) {
+        const leftType = this.lhs.guaranteedType();
+        if (possibleEmissions.size === 1 && possibleEmissions.has(leftType)) {
             // A->A. All this could emit is its input type.
-            const adders = ruleset.inwardRulesThatCouldAdd(this.lhs.type);
+            const adders = ruleset.inwardRulesThatCouldAdd(leftType);
             if (adders === undefined) {
-                throw new Error(`No rule adds the "${this.lhs.type}" type, but another rule needs it as input.`);
+                throw new Error(`No rule adds the "${leftType}" type, but another rule needs it as input.`);
             }
             return adders;
         } else {
             // A->*
-            const emitters = ruleset.inwardRulesThatCouldEmit(this.lhs.type);
+            const emitters = ruleset.inwardRulesThatCouldEmit(leftType);
             if (emitters === undefined) {
-                throw new Error(`No rule emits the "${this.lhs.type}" type, but another rule needs it as input.`);
+                throw new Error(`No rule emits the "${leftType}" type, but another rule needs it as input.`);
             }
             return emitters;
         }
@@ -349,9 +350,9 @@ class InwardRule extends Rule {
     // Return a Set of the types that could be emitted back into the system.
     typesItCouldEmit() {
         const rhs = this.rhs.possibleEmissions();
-        if (!rhs.couldChangeType && this.lhs.type !== undefined) {
+        if (!rhs.couldChangeType && this.lhs.guaranteedType() !== undefined) {
             // It's a b -> b rule.
-            return new Set([this.lhs.type]);
+            return new Set([this.lhs.guaranteedType()]);
         } else if (rhs.possibleTypes.size > 0) {
             // We can prove the type emission from the RHS alone.
             return rhs.possibleTypes;
@@ -363,7 +364,7 @@ class InwardRule extends Rule {
     // Return a Set of types.
     typesItCouldAdd() {
         const ret = new Set(this.typesItCouldEmit());
-        ret.delete(this.lhs.type);
+        ret.delete(this.lhs.guaranteedType());
         return ret;
     }
 }

@@ -104,11 +104,11 @@ class TypeLhs extends Lhs {
         if (type === undefined) {
             throw new Error('A type name is required when calling type().');
         }
-        this.type = type;  // the input type
+        this._type = type;  // the input type
     }
 
     fnodes(ruleset) {
-        return getDefault(ruleset.typeCache, this.type, () => []);
+        return getDefault(ruleset.typeCache, this._type, () => []);
     }
 
     // Override the type previously specified by this constraint.
@@ -120,11 +120,11 @@ class TypeLhs extends Lhs {
     // Return a new LHS constrained to return only the max-scoring node of
     // a type. If there is a tie, more than 1 node may be selected.
     max() {
-        return new TypeMaxLhs(this.type);
+        return new TypeMaxLhs(this._type);
     }
 
     guaranteedType() {
-        return this.type;
+        return this._type;
     }
 }
 
@@ -145,14 +145,14 @@ class TypeMaxLhs extends TypeLhs {
         const getSuperFnodes = () => super.fnodes(ruleset);
         return setDefault(
             ruleset.maxCache,
-            this.type,
+            this._type,
             function maxFnodesOfType() {
-                return maxes(getSuperFnodes(), fnode => fnode.getScore(self.type));
+                return maxes(getSuperFnodes(), fnode => fnode.getScore(self._type));
             });
     }
 
     prerequisites(ruleset) {
-        return ruleset.inwardRulesThatCouldEmit(this.type);
+        return ruleset.inwardRulesThatCouldEmit(this._type);
     }
 }
 
