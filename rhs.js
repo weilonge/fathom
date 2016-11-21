@@ -129,7 +129,7 @@ class InwardRhs {
         if (this._types.size > 0) {
             if (result.type === undefined) {
                 if (!this._types.has(leftType)) {
-                    throw new Error(`A right-hand side claimed, via typeIn(...) to emit one of the types ${this._types} but actually inherited ${result.type} from the left-hand side.`);
+                    throw new Error(`A right-hand side claimed, via typeIn(...) to emit one of the types ${this._types} but actually inherited ${leftType} from the left-hand side.`);
                 }
             } else if (!this._types.has(result.type)) {
                 throw new Error(`A right-hand side claimed, via typeIn(...) to emit one of the types ${this._types} but actually emitted ${result.type}.`);

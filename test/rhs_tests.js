@@ -50,7 +50,7 @@ describe('RHS', function () {
         assert.equal(facts.get(type('para'))[0].getScore('para'), 2);
     });
 
-    it('enforces typeIn()', function () {
+    it('enforces typeIn() for explicit types', function () {
         const doc = jsdom('<p></p>');
         const rules = ruleset(
             rule(dom('p'), typeIn('nope').type('para'))
@@ -58,7 +58,17 @@ describe('RHS', function () {
         const facts = rules.against(doc);
         assert.throws(() => facts.get(type('para')),
                       'A right-hand side claimed, via typeIn(...) to emit one of the types {nope} but actually emitted para.');
-        // TODO: Fix lack of set pretty-printing in error message.
+    });
+
+    it('enforces typeIn() for inherited types', function () {
+        const doc = jsdom('<p></p>');
+        const rules = ruleset(
+            rule(dom('p'), type('para')),
+            rule(type('para'), func(n => ({})).typeIn('nope'))
+        );
+        const facts = rules.against(doc);
+        assert.throws(() => facts.get(type('nope')),
+                      'A right-hand side claimed, via typeIn(...) to emit one of the types {nope} but actually inherited para from the left-hand side.');
     });
 
     it('works fine when typeIn() is satisfied', function () {
