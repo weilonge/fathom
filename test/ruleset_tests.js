@@ -205,8 +205,5 @@ describe('Rule', function () {
 });
 
 
-// colliding notes
 // Maybe there should be a default .score and .note on fnodes that are selected by a type() selector, so we don't have to say getScore('someType'), repeating ourselves.
-
-// XXX: Test to make sure a rule like type(a) → func(...).score(2).typeIn(b, c) doesn't multiply a node's score by 2 twice if we exec type(b) and then type(c), which might be tempted to exec the initial rule twice. Probably we should cache the incomplete-type results of every rule so we never run them more than once.
-// Similarly, decide if * → func(...).score(2) should multiply the score more than once if it just returns the same node over and over. Yes, because it would if you divided it into 2 rules. And if you don't like it, don't return the same element multiple times from func!
+// Decide if * → func(...).score(2) should multiply the score more than once if it just returns the same node over and over. Yes, because it would if you divided it into 2 rules. And if you don't like it, don't return the same element multiple times from func!

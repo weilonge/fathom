@@ -1,4 +1,4 @@
-const {filter, forEach, map} = require('wu');
+const {forEach, map} = require('wu');
 
 const {CycleError} = require('./exceptions');
 const {Fnode} = require('./fnode');
