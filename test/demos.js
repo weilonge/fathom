@@ -32,8 +32,8 @@ describe('Design-driving demos', function () {
         );
         const facts = rules.against(doc);
         const node = facts.get('titley')[0];
-        assert.equal(node.getScore('titley'), 40);
-        assert.equal(node.getNote('titley'), 'OpenGraph');
+        assert.equal(node.scoreFor('titley'), 40);
+        assert.equal(node.noteFor('titley'), 'OpenGraph');
     });
 
     it.skip("takes a decent shot at doing Readability's job", function () {

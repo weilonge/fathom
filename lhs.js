@@ -147,7 +147,7 @@ class TypeMaxLhs extends TypeLhs {
             ruleset.maxCache,
             this._type,
             function maxFnodesOfType() {
-                return maxes(getSuperFnodes(), fnode => fnode.getScore(self._type));
+                return maxes(getSuperFnodes(), fnode => fnode.scoreFor(self._type));
             });
     }
 

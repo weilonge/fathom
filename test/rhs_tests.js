@@ -47,7 +47,7 @@ describe('RHS', function () {
             rule(dom('p'), scoreUpTo(3).score(2).type('para'))
         );
         const facts = rules.against(doc);
-        assert.equal(facts.get(type('para'))[0].getScore('para'), 2);
+        assert.equal(facts.get(type('para'))[0].scoreFor('para'), 2);
     });
 
     it('enforces typeIn() for explicit types', function () {
@@ -83,10 +83,10 @@ describe('RHS', function () {
     it('runs out().through() callbacks', function () {
         const doc = jsdom('<p></p>');
         const rules = ruleset(
-            rule(dom('p'), out('para').through(fnode => fnode.hasNote()))
+            rule(dom('p'), out('para').through(fnode => fnode.element.tagName))
         );
         const facts = rules.against(doc);
-        assert.equal(facts.get('para')[0], false);
+        assert.equal(facts.get('para')[0], 'P');
     });
 
     it('paves over undefined notes', function () {
@@ -100,6 +100,6 @@ describe('RHS', function () {
             rule(type('para'), note(fnode => 'foo'))
         );
         const facts = rules.against(doc);
-        assert.equal(facts.get(type('para'))[0].getNote('para'), 'foo');
+        assert.equal(facts.get(type('para'))[0].noteFor('para'), 'foo');
     });
 });

@@ -15,7 +15,7 @@ describe('Ruleset', function () {
             );
             const facts = rules.against(doc);
             const div = facts.get(type('paragraphish'))[0];
-            assert.equal(div.getScore('paragraphish'), 1);
+            assert.equal(div.scoreFor('paragraphish'), 1);
         });
 
         it('results by out-rule key', function () {
@@ -39,7 +39,7 @@ describe('Ruleset', function () {
             );
             const facts = rules.against(doc);
             const div = facts.get(doc.querySelectorAll('div')[0]);
-            assert.equal(div.getScore('paragraphish'), 8);
+            assert.equal(div.scoreFor('paragraphish'), 8);
         });
 
         it('an empty iterable for nonexistent types', function () {
@@ -70,8 +70,8 @@ describe('Ruleset', function () {
         // Make sure dom() selector actually discriminates:
         assert.equal(anchors.length, 1);
         const anchor = anchors[0];
-        assert.equal(anchor.getScore('anchor'), 2);
-        assert.equal(anchor.getNote('anchor'), 'lovely');
+        assert.equal(anchor.scoreFor('anchor'), 2);
+        assert.equal(anchor.noteFor('anchor'), 'lovely');
     });
 
     describe('avoids cycles', function () {
@@ -103,18 +103,18 @@ describe('Ruleset', function () {
 
             const para = facts.get(type('para'))[0];
             // Show other-typed scores don't backpropagate to the upstream type:
-            assert.equal(para.getScore('para'), 2);
+            assert.equal(para.scoreFor('para'), 2);
             // Other rules have had no reason to run yet, so their types' scores
             // remain the default:
-            assert.equal(para.getScore('smoo'), 1);
+            assert.equal(para.scoreFor('smoo'), 1);
 
             const smoo = facts.get(type('smoo'))[0];
             // Fresh score:
-            assert.equal(smoo.getScore('smoo'), 5);
+            assert.equal(smoo.scoreFor('smoo'), 5);
 
             const smee = facts.get(type('smee'))[0];
             // Conserved score:
-            assert.equal(smee.getScore('smee'), 10);
+            assert.equal(smee.scoreFor('smee'), 10);
         });
 
         it('when rules emitting the same element and type conflict on conservation', function () {
@@ -128,7 +128,7 @@ describe('Ruleset', function () {
             );
             const facts = rules.against(doc);
             const para = facts.get(type('smoo'))[0];
-            assert.equal(para.getScore('smoo'), 70);
+            assert.equal(para.scoreFor('smoo'), 70);
         });
 
         it('but never factors in a score more than once', function () {
@@ -142,7 +142,7 @@ describe('Ruleset', function () {
             );
             const facts = rules.against(doc);
             const para = facts.get(type('smoo'))[0];
-            assert.equal(para.getScore('smoo'), 70);
+            assert.equal(para.scoreFor('smoo'), 70);
         });
     });
 
@@ -216,5 +216,5 @@ describe('Rule', function () {
 });
 
 
-// Maybe there should be a default .score and .note on fnodes that are selected by a type() selector, so we don't have to say getScore('someType'), repeating ourselves.
+// Maybe there should be a default .score and .note on fnodes that are selected by a type() selector, so we don't have to say scoreFor('someType'), repeating ourselves.
 // Decide if * → func(...).score(2) should multiply the score more than once if it just returns the same node over and over. Yes, because it would if you divided it into 2 rules. And if you don't like it, don't return the same element multiple times from func!
