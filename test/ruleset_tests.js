@@ -1,7 +1,7 @@
 const {assert} = require('chai');
 const {jsdom} = require('jsdom');
 
-const {dom, func, out, rule, ruleset, score, type, typeIn} = require('../index');
+const {conserveScore, dom, func, out, rule, ruleset, score, type, typeIn} = require('../index');
 
 
 describe('Ruleset', function () {
@@ -97,7 +97,7 @@ describe('Ruleset', function () {
             const rules = ruleset(
                 rule(dom('p'), type('para').score(2)),
                 rule(type('para'), type('smoo').score(5)),
-                rule(type('para'), type('smee').score(5).conserveScore())
+                rule(type('para'), conserveScore().type('smee').score(5))
             );
             const facts = rules.against(doc);
 
