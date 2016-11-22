@@ -316,17 +316,17 @@ class InwardRule extends Rule {
                 }
                 if (fact.score !== undefined) {
                     if (rightType !== undefined) {
-                        rightFnode.multiplyScore(rightType, fact.score);
+                        rightFnode.multiplyScoreFor(rightType, fact.score);
                     } else {
                         throw new Error(`The right-hand side of a rule specified a score (${fact.score}) with neither an explicit type nor one we could infer from the left-hand side.`);
                     }
                 }
                 if (fact.type !== undefined || fact.note !== undefined) {
-                    // There's a reason to call setNote.
+                    // There's a reason to call setNoteFor.
                     if (rightType === undefined) {
                         throw new Error(`The right-hand side of a rule specified a note (${fact.note}) with neither an explicit type nor one we could infer from the left-hand side. Notes are per-type, per-node, so that's a problem.`);
                     } else {
-                        rightFnode.setNote(rightType, fact.note);
+                        rightFnode.setNoteFor(rightType, fact.note);
                     }
                 }
                 returnedFnodes.add(rightFnode);

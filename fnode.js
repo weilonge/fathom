@@ -62,7 +62,7 @@ class Fnode {
 
     // Multiply one of our per-type scores by a given number. Implicitly assign
     // us the given type.
-    multiplyScore(type, score) {
+    multiplyScoreFor(type, score) {
         this._typeRecordForSetting(type).score *= score;
     }
 
@@ -75,13 +75,13 @@ class Fnode {
                                  leftFnode,
                                  () => new Set())).has(leftType)) {
             types.add(leftType);
-            this.multiplyScore(rightType, leftFnode.scoreFor(leftType));
+            this.multiplyScoreFor(rightType, leftFnode.scoreFor(leftType));
         }
     }
 
     // Set the note attached to one of our types. Implicitly assign us that
     // type if we don't have it already.
-    setNote(type, note) {
+    setNoteFor(type, note) {
         if (this.hasNoteFor(type)) {
             if (note !== undefined) {
                 throw new Error(`Someone (likely the right-hand side of a rule) tried to add a note of type ${type} to an element, but one of that type already exists. Overwriting notes is not allowed, since it would make the order of rules matter.`);
