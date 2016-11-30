@@ -43,8 +43,10 @@ function max(iterable, by = identity) {
 
 
 // Return an Array of maximum items from an iterable, as defined by > and ===.
+// If an empty iterable is passed in, return [].
 function maxes(iterable, by = identity) {
-    let bests, bestKeySoFar;
+    let bests = [];
+    let bestKeySoFar;
     let isFirst = true;
     forEach(
         function (item) {
@@ -58,9 +60,6 @@ function maxes(iterable, by = identity) {
             }
         },
         iterable);
-    if (isFirst) {
-        throw new Error('Tried to call maxes() on empty iterable');
-    }
     return bests;
 }
 
@@ -265,6 +264,17 @@ function first(iterable) {
 }
 
 
+// Given any node in a DOM tree, return the root element of the tree, generally
+// an HTML element.
+function rootElement(node) {
+    let parent;
+    while ((parent = node.parentNode) !== null && parent.nodeType === parent.ELEMENT_NODE) {
+        node = parent;
+    }
+    return node;
+}
+
+
 module.exports = {
     best,
     collapseWhitespace,
@@ -282,6 +292,7 @@ module.exports = {
     min,
     NiceSet,
     reversed,
+    rootElement,
     setDefault,
     sum,
     toposort,

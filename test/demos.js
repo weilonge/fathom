@@ -1,8 +1,8 @@
 const assert = require('chai').assert;
-const jsdom = require('jsdom');
+const {jsdom} = require('jsdom');
 
-const {dom, flavor, out, rule, ruleset, type} = require('../index');
-const {inlineTextLength, linkDensity} = require('../utils');
+const {dom, flavor, func, out, rule, ruleset, type} = require('../index');
+const {inlineTextLength, linkDensity, rootElement, sum} = require('../utils');
 
 
 describe('Design-driving demos', function () {
@@ -12,7 +12,7 @@ describe('Design-driving demos', function () {
         // declarative, such that the engine can be smart enough to run the
         // highest-possible-scoring flavor-chain of rules first and, if it
         // succeeds, omit the others.
-        const doc = jsdom.jsdom(`
+        const doc = jsdom(`
             <meta name="hdl" content="HDL">
             <meta property="og:title" content="OpenGraph">
             <meta property="twitter:title" content="Twitter">
@@ -36,6 +36,53 @@ describe('Design-driving demos', function () {
         assert.equal(node.noteFor('titley'), 'OpenGraph');
     });
 
+    it('identifies logged-in pages', function () {
+        // Return the number of times a regex occurs within the string `haystack`.
+        // Make sure `regex` has the 'g' option set.
+        function numberOfMatches(regex, haystack) {
+            return (haystack.match(regex) || []).length;
+        }
+
+        // Break a string on word boundaries by -, _, or a camelCasing, and return
+        // a string with the words separated by spaces. The string also starts and
+        // ends with a space, to facilitate whole-whole searching. For non-demo
+        // code, it might be faster to split the string into an Array or something
+        // otherwise more efficient to compare; it bears benching.
+        function splitWords(str) {
+            const unCamelCased = str.replace(/([a-z0-9])([A-Z])/g,
+                                             s => s[0] + '-' + s[1].toLowerCase());
+            return ' ' + unCamelCased.replace(/[-_]/g, ' ') + ' ';
+        }
+
+        // Stick a score on the root element based on how much the classes on `fnode`
+        // mention logging out.
+        function scoreRootByLogOutClasses(fnode) {
+            const wordsInEachClass = Array.from(fnode.element.classList).map(splitWords);
+            return {element: rootElement(fnode.element),
+                    score: Math.pow(2, sum(wordsInEachClass.map(cls => numberOfMatches(/ (?:logout|log out|signout|sign out) /g, cls))))};
+        }
+
+        const rules = ruleset(
+            rule(dom('button[class]'), func(scoreRootByLogOutClasses).type('in')),
+            rule(dom('a[class]'), func(scoreRootByLogOutClasses).type('in')),
+//             rule(dom('a[href]') look for "logout" or "signout" in hrefs
+//             rule(dom('a[href]') look for "Log out" or "logout" or "Sign out" in content  // bonus for English pages
+            rule(type('in').max(), out('in'))
+        );
+
+        function isProbablyLoggedIn(doc) {
+            const ins = rules.against(doc).get('in');
+            return ins.length && ins[0].scoreFor('in') > 1;
+        }
+
+        // air.mozilla.org:
+        assert(isProbablyLoggedIn(jsdom(`
+            <html>
+                <a href="/authentication/signout/" class="signout">Sign Out</a>
+            </html>
+        `)));
+    });
+
     it.skip("takes a decent shot at doing Readability's job", function () {
         // Score a node based on how much text is directly inside it and its
         // inline-tag children.
@@ -48,7 +95,7 @@ describe('Design-driving demos', function () {
             };
         }
 
-        const doc = jsdom.jsdom(`
+        const doc = jsdom(`
             <p>
                 <a class="good" href="/things">Things</a> / <a class="bad" href="/things/tongs">Tongs</a>
             </p>
