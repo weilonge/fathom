@@ -47,14 +47,17 @@ describe('Design-driving demos', function () {
         // mention logging out.
         function scoreRootByLogOutClasses(fnode) {
             const classes = Array.from(fnode.element.classList);
-            return {element: rootElement(fnode.element),
-                    score: Math.pow(2, sum(classes.map(cls => numberOfMatches(/(?:^|[-_])(?:log[-_]?out|sign[-_]?out)(?:$|[-_ $])/g, cls))))};
+            const score = Math.pow(2,
+                                   sum(classes.map(cls => numberOfMatches(/(?:^|[-_])(?:log[-_]?out|sign[-_]?out)(?:$|[-_ $])/g, cls))));
+            return score > 1 ? {element: rootElement(fnode.element),
+                                score,
+                                type: 'in'} : {};
         }
 
         const rules = ruleset(
-            rule(dom('button[class]'), func(scoreRootByLogOutClasses).type('in')),
-            rule(dom('a[class]'), func(scoreRootByLogOutClasses).type('in')),
-//             rule(dom('a[href]') look for "logout" or "signout" in hrefs
+            rule(dom('button[class]'), func(scoreRootByLogOutClasses).typeIn('in')),
+            rule(dom('a[class]'), func(scoreRootByLogOutClasses).typeIn('in')),
+//              rule(dom('a[href]'), func( look for "logout" or "signout" in hrefs
 //             rule(dom('a[href]') look for "Log out" or "logout" or "Sign out" in content  // bonus for English pages
             rule(type('in').max(), out('in'))
         );
