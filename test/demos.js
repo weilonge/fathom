@@ -43,23 +43,12 @@ describe('Design-driving demos', function () {
             return (haystack.match(regex) || []).length;
         }
 
-        // Break a string on word boundaries by -, _, or a camelCasing, and return
-        // a string with the words separated by spaces. The string also starts and
-        // ends with a space, to facilitate whole-whole searching. For non-demo
-        // code, it might be faster to split the string into an Array or something
-        // otherwise more efficient to compare; it bears benching.
-        function splitWords(str) {
-            const unCamelCased = str.replace(/([a-z0-9])([A-Z])/g,
-                                             s => s[0] + '-' + s[1].toLowerCase());
-            return ' ' + unCamelCased.replace(/[-_]/g, ' ') + ' ';
-        }
-
         // Stick a score on the root element based on how much the classes on `fnode`
         // mention logging out.
         function scoreRootByLogOutClasses(fnode) {
-            const wordsInEachClass = Array.from(fnode.element.classList).map(splitWords);
+            const classes = Array.from(fnode.element.classList);
             return {element: rootElement(fnode.element),
-                    score: Math.pow(2, sum(wordsInEachClass.map(cls => numberOfMatches(/ (?:logout|log out|signout|sign out) /g, cls))))};
+                    score: Math.pow(2, sum(classes.map(cls => numberOfMatches(/(?:^|[-_])(?:log[-_]?out|sign[-_]?out)(?:$|[-_ $])/g, cls))))};
         }
 
         const rules = ruleset(
