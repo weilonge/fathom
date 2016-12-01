@@ -266,12 +266,12 @@ function first(iterable) {
 
 // Given any node in a DOM tree, return the root element of the tree, generally
 // an HTML element.
-function rootElement(node) {
+function rootElement(element) {
     let parent;
-    while ((parent = node.parentNode) !== null && parent.nodeType === parent.ELEMENT_NODE) {
-        node = parent;
+    while ((parent = element.parentNode) !== null && parent.nodeType === parent.ELEMENT_NODE) {
+        element = parent;
     }
-    return node;
+    return element;
 }
 
 
