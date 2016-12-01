@@ -2,7 +2,7 @@ const assert = require('chai').assert;
 const {jsdom} = require('jsdom');
 
 const {dom, flavor, func, out, rule, ruleset, type} = require('../index');
-const {inlineTextLength, linkDensity, numberOfMatches, rootElement, sum} = require('../utils');
+const {inlineTextLength, linkDensity, numberOfMatches, page, rootElement, sum} = require('../utils');
 
 
 describe('Design-driving demos', function () {
@@ -39,27 +39,25 @@ describe('Design-driving demos', function () {
     it('identifies logged-in pages', function () {
         // Stick a score on the root element based on how much the classes on `fnode`
         // mention logging out.
-        function scoreRootByLogoutClasses(fnode) {
+        function scoreByLogoutClasses(fnode) {
             const classes = Array.from(fnode.element.classList);
             const score = Math.pow(2,
                                    sum(classes.map(cls => numberOfMatches(/(?:^|[-_])(?:log[-_]?out|sign[-_]?out)(?:$|[-_ $])/ig, cls))));
-            return score > 1 ? {element: rootElement(fnode.element),
-                                score,
+            return score > 1 ? {score,
                                 type: 'logoutClass'} : {};
         }
 
-        function scoreRootByLogoutHrefs(fnode) {
+        function scoreByLogoutHrefs(fnode) {
             const href = fnode.element.getAttribute('href');
             const score = Math.pow(2, numberOfMatches(/(?:^|\W)(?:log[-_]?out|sign[-_]?out)(?:$|\W)/ig, href));
-            return score > 1 ? {element: rootElement(fnode.element),
-                                score,
+            return score > 1 ? {score,
                                 type: 'logoutHref'} : {};
         }
 
         const rules = ruleset(
-            rule(dom('button[class], a[class]'), func(scoreRootByLogoutClasses).typeIn('logoutClass')),
+            rule(dom('button[class], a[class]'), func(page(scoreByLogoutClasses)).typeIn('logoutClass')),
             // Look for "logout" or "signout" in hrefs:
-            rule(dom('a[href]'), func(scoreRootByLogoutHrefs).typeIn('logoutHref')),
+            rule(dom('a[href]'), func(page(scoreByLogoutHrefs)).typeIn('logoutHref')),
 //             rule(dom('a[href]') look for "Log out" or "logout" or "Sign out" in content  // bonus for English pages
             rule(type('logoutClass'), type('loggedIn').conserveScore()),
             rule(type('logoutHref'), type('loggedIn').conserveScore())

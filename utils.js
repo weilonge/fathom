@@ -282,6 +282,23 @@ function numberOfMatches(regex, haystack) {
 }
 
 
+// Wrap a scoring callback, and set its element to the page root iff a score is
+// returned.
+//
+// This is used to build rulesets which classify entire pages rather than
+// picking out specific elements.
+function page(scoringFunction) {
+    function wrapper(node) {
+        const scoreAndTypeAndNote = scoringFunction(node);
+        if (scoreAndTypeAndNote.score !== undefined) {
+            scoreAndTypeAndNote.element = rootElement(node.element);
+        }
+        return scoreAndTypeAndNote;
+    }
+    return wrapper;
+}
+
+
 module.exports = {
     best,
     collapseWhitespace,
@@ -299,6 +316,7 @@ module.exports = {
     min,
     NiceSet,
     numberOfMatches,
+    page,
     reversed,
     rootElement,
     setDefault,
