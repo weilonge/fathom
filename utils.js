@@ -275,6 +275,13 @@ function rootElement(node) {
 }
 
 
+// Return the number of times a regex occurs within the string `haystack`.
+// Caller must make sure `regex` has the 'g' option set.
+function numberOfMatches(regex, haystack) {
+    return (haystack.match(regex) || []).length;
+}
+
+
 module.exports = {
     best,
     collapseWhitespace,
@@ -291,6 +298,7 @@ module.exports = {
     maxes,
     min,
     NiceSet,
+    numberOfMatches,
     reversed,
     rootElement,
     setDefault,

@@ -2,7 +2,7 @@ const assert = require('chai').assert;
 const {jsdom} = require('jsdom');
 
 const {dom, flavor, func, out, rule, ruleset, type} = require('../index');
-const {inlineTextLength, linkDensity, rootElement, sum} = require('../utils');
+const {inlineTextLength, linkDensity, numberOfMatches, rootElement, sum} = require('../utils');
 
 
 describe('Design-driving demos', function () {
@@ -37,12 +37,6 @@ describe('Design-driving demos', function () {
     });
 
     it('identifies logged-in pages', function () {
-        // Return the number of times a regex occurs within the string `haystack`.
-        // Caller must make sure `regex` has the 'g' option set.
-        function numberOfMatches(regex, haystack) {
-            return (haystack.match(regex) || []).length;
-        }
-
         // Stick a score on the root element based on how much the classes on `fnode`
         // mention logging out.
         function scoreRootByLogoutClasses(fnode) {
@@ -63,8 +57,7 @@ describe('Design-driving demos', function () {
         }
 
         const rules = ruleset(
-            rule(dom('button[class]'), func(scoreRootByLogoutClasses).typeIn('logoutClass')),
-            rule(dom('a[class]'), func(scoreRootByLogoutClasses).typeIn('logoutClass')),
+            rule(dom('button[class], a[class]'), func(scoreRootByLogoutClasses).typeIn('logoutClass')),
             // Look for "logout" or "signout" in hrefs:
             rule(dom('a[href]'), func(scoreRootByLogoutHrefs).typeIn('logoutHref')),
 //             rule(dom('a[href]') look for "Log out" or "logout" or "Sign out" in content  // bonus for English pages
