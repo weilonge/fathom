@@ -38,39 +38,71 @@ describe('Design-driving demos', function () {
 
     it('identifies logged-in pages', function () {
         // Return the number of times a regex occurs within the string `haystack`.
-        // Make sure `regex` has the 'g' option set.
+        // Caller must make sure `regex` has the 'g' option set.
         function numberOfMatches(regex, haystack) {
             return (haystack.match(regex) || []).length;
         }
 
         // Stick a score on the root element based on how much the classes on `fnode`
         // mention logging out.
-        function scoreRootByLogOutClasses(fnode) {
+        function scoreRootByLogoutClasses(fnode) {
             const classes = Array.from(fnode.element.classList);
             const score = Math.pow(2,
-                                   sum(classes.map(cls => numberOfMatches(/(?:^|[-_])(?:log[-_]?out|sign[-_]?out)(?:$|[-_ $])/g, cls))));
+                                   sum(classes.map(cls => numberOfMatches(/(?:^|[-_])(?:log[-_]?out|sign[-_]?out)(?:$|[-_ $])/ig, cls))));
             return score > 1 ? {element: rootElement(fnode.element),
                                 score,
-                                type: 'in'} : {};
+                                type: 'logoutClass'} : {};
+        }
+
+        function scoreRootByLogoutHrefs(fnode) {
+            const href = fnode.element.getAttribute('href');
+            const score = Math.pow(2, numberOfMatches(/(?:^|\W)(?:log[-_]?out|sign[-_]?out)(?:$|\W)/ig, href));
+            return score > 1 ? {element: rootElement(fnode.element),
+                                score,
+                                type: 'logoutHref'} : {};
         }
 
         const rules = ruleset(
-            rule(dom('button[class]'), func(scoreRootByLogOutClasses).typeIn('in')),
-            rule(dom('a[class]'), func(scoreRootByLogOutClasses).typeIn('in')),
-//              rule(dom('a[href]'), func( look for "logout" or "signout" in hrefs
+            rule(dom('button[class]'), func(scoreRootByLogoutClasses).typeIn('logoutClass')),
+            rule(dom('a[class]'), func(scoreRootByLogoutClasses).typeIn('logoutClass')),
+            // Look for "logout" or "signout" in hrefs:
+            rule(dom('a[href]'), func(scoreRootByLogoutHrefs).typeIn('logoutHref')),
 //             rule(dom('a[href]') look for "Log out" or "logout" or "Sign out" in content  // bonus for English pages
-            rule(type('in').max(), out('in'))
+            rule(type('logoutClass'), type('loggedIn').conserveScore()),
+            rule(type('logoutHref'), type('loggedIn').conserveScore())
         );
 
         function isProbablyLoggedIn(doc) {
-            const ins = rules.against(doc).get('in');
-            return ins.length && ins[0].scoreFor('in') > 1;
+            const ins = rules.against(doc).get(type('loggedIn'));
+            return ins.length && ins[0].scoreFor('loggedIn') > 1;
         }
 
         // air.mozilla.org:
         assert(isProbablyLoggedIn(jsdom(`
             <html>
                 <a href="/authentication/signout/" class="signout">Sign Out</a>
+            </html>
+        `)));
+        // crateandbarrel.com
+        assert(isProbablyLoggedIn(jsdom(`
+            <html>
+                <div class="dropdown-sign-in">
+                    <a href="/account/logout" rel="nofollow">Sign Out</a>
+                </div>
+            </html>
+        `)));
+        // slashdot.org
+        assert(isProbablyLoggedIn(jsdom(`
+            <html>
+                <a href="///slashdot.org/my/logout">
+                  Log out
+                </a>
+            </html>
+        `)));
+        // news.ycombinator.com
+        assert(isProbablyLoggedIn(jsdom(`
+            <html>
+                <a href="logout?auth=123456789abcdef&amp;goto=news">logout</a>
             </html>
         `)));
     });
