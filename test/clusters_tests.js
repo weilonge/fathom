@@ -221,10 +221,8 @@ describe('Cluster tests', function () {
             const theClusters = clusters(Array.from(doc.querySelectorAll('a')),
                                          TOO_FAR);
 
-            // Here's a hacky way to compare Arrays by value. You can't do it
-            // with Sets either. JS is an awful language.
-            const readableClusters = JSON.stringify(theClusters.map(cluster => cluster.map(el => el.getAttribute('id'))));
-            assert.equal(readableClusters, '[["G"],["E","D","F","B","A","C"]]');
+            const readableClusters = theClusters.map(cluster => cluster.map(el => el.getAttribute('id')));
+            assert.deepEqual(readableClusters, [['G'],['E','D','F','B','A','C']]);
             // The order of any of the 3 arrays is deterministic but doesn't matter.
         });
     });
