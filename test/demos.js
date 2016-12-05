@@ -2,7 +2,7 @@ const assert = require('chai').assert;
 const {jsdom} = require('jsdom');
 
 const {dom, flavor, func, out, rule, ruleset, type} = require('../index');
-const {inlineTextLength, linkDensity, numberOfMatches, page, rootElement, sum} = require('../utils');
+const {inlineTextLength, linkDensity, numberOfMatches, page, sum} = require('../utils');
 
 
 describe('Design-driving demos', function () {
@@ -43,24 +43,32 @@ describe('Design-driving demos', function () {
             const classes = Array.from(fnode.element.classList);
             const score = Math.pow(2,
                                    sum(classes.map(cls => numberOfMatches(/(?:^|[-_])(?:log[-_]?out|sign[-_]?out)(?:$|[-_ $])/ig, cls))));
-            return score > 1 ? {score,
-                                type: 'logoutClass'} : {};
+            if (score > 1) {
+                return {score, type: 'logoutClass'};
+            }
         }
 
         function scoreByLogoutHrefs(fnode) {
             const href = fnode.element.getAttribute('href');
             const score = Math.pow(2, numberOfMatches(/(?:^|\W)(?:log[-_]?out|sign[-_]?out)(?:$|\W)/ig, href));
-            return score > 1 ? {score,
-                                type: 'logoutHref'} : {};
+            if (score > 1) {
+                return {score, type: 'logoutHref'};
+            }
         }
 
         const rules = ruleset(
+            // Look for "logout", "signout", etc. in CSS classes and parts thereof:
             rule(dom('button[class], a[class]'), func(page(scoreByLogoutClasses)).typeIn('logoutClass')),
             // Look for "logout" or "signout" in hrefs:
             rule(dom('a[href]'), func(page(scoreByLogoutHrefs)).typeIn('logoutHref')),
-//             rule(dom('a[href]') look for "Log out" or "logout" or "Sign out" in content  // bonus for English pages
+
+            // Union the two intermediate results into a more general loggedIn type:
             rule(type('logoutClass'), type('loggedIn').conserveScore()),
             rule(type('logoutHref'), type('loggedIn').conserveScore())
+
+            // Look for "Log out", "Sign out", etc. in content of links: a
+            // bonus for English pages.
+            // rule(dom('a[href]'), func(page(...)).typeIn('logout
         );
 
         function isProbablyLoggedIn(doc) {
