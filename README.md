@@ -15,11 +15,11 @@ A study of existing projects like Readability and Distiller suggests that purely
 
 Here are some specific areas we address:
 
-* Browser-native DOM nodes are mostly immutable, and `HTMLElement.dataset` is string-typed, so storing arbitrary intermediate data on nodes is clumsy. Fathom addresses this by providing the fathom node (or **fnode**), a proxy around each DOM node which we can scribble on.
-* With imperative extractors, any experiments or site-specific customizations must be hard-coded in. Fathom's rulesets, on the other hand, are unordered and thereby decoupled, stitched together only by the **flavors** they consume and emit. External rules can thus be plugged into existing rulesets, making it easy to experiment (without maintaining a fork) or to provide dedicated rules for particularly intractable web sites.
-* Flavors provide a convenient way of tagging DOM nodes as belonging to certain categories, typically narrowing as the extractor's work progresses. A typical complex extractor would start by assigning a broad flavor to a set of candidate nodes, then fine-tune by examining them more closely and assigning additional, more specific flavors in a later rule.
-* The flavor system also makes explicit the division between an extractor's public and private APIs: the flavors are public, and the imperative stuff that goes on inside ranker functions is private. Third-party rules can use the flavors as hook points to interpose themselves.
-* Persistent state is cordoned off in flavored **notes** on fathom nodes. Thus, when a rule declares that it takes such-and-such a flavor as input, it can rightly assume (if rules are written consistently) there will be a note of that flavor on the fathom nodes that are passed in.
+* Browser-native DOM nodes are mostly immutable, and `HTMLElement.dataset` is string-typed, so storing arbitrary intermediate data on nodes is clumsy. Fathom addresses this by providing the Fathom node (or **fnode**, pronounced fuh-NODE), a proxy around each DOM node which we can scribble on.
+* With imperative extractors, any experiments or site-specific customizations must be hard-coded in. Fathom's **rulesets** (the programs you write in Fathom), on the other hand, are unordered and thereby decoupled, stitched together only by the **types** they consume and emit. External rules can thus be plugged into existing rulesets, making it easy to experiment (without maintaining a fork) or to provide dedicated rules for particularly intractable web sites.
+* Types provide a convenient way of categorizing DOM nodes. They are the black-box units of abstraction, as functions are in many other programming languages. For the moment, complex extractors can begin by attaching broad types to nodes and then narrowing to more specific ones as they are examined more closely. This provides hook points to interpose external rules. In the future, simple type-taggings will be able to be combined using logical operators like `and`, `or`, and `contains`, building arbitrarily sophisticated conclusions.
+* The type system also makes explicit the division between an extractor's public and private APIs: the types are public, and the imperative stuff that goes on inside callback functions is private. Third-party rules can use the types as hook points to interpose themselves.
+* Persistent state is cordoned off in typed **notes** on fnodes. Thus, when a rule declares that it takes such-and-such a type as input, it can rightly assume (if rules are written consistently) there will be a note of that type on the fnodes that are passed in.
 
 ## Status
 
@@ -28,15 +28,17 @@ Fathom is under heavy development, and its design is still in flux. If you'd lik
 ### Parts that work so far
 
 * "Rank" phase: scoring of nodes found with a CSS selector
-* Flavor-driven rule dispatch
+* Type-driven rule dispatch
 * A simple "yanker" or two
 * A notion of DOM node distance influenced by structural similarity
 * Clustering based on that distance metric
+* Query planning for lazy execution
+* Concise rule definitions
 
 ### Not there yet
 
-* Concise rule definitions
-* Global optimization for efficient execution
+* Efficient planning for answering max() queries
+* Logical operators for combining types
 
 ### Environments
 
@@ -44,28 +46,28 @@ Fathom works against the DOM API, so you can use it server-side with `jsdom` (wh
 
 ## Example
 
-Think of Fathom as a tiny programming language that recognizes the significant parts of DOM trees by means of its programs, Fathom *rulesets*. A ruleset is an unordered bag of rules, each of which takes in DOM nodes and annotates them with scores, types, and notes to influence future rules. At the end of the chain of rules, out pops one or more pieces of output—typically high-scoring nodes of certain *flavors*—to inform the surrounding imperative program.
+Think of Fathom as a tiny programming language that recognizes the significant parts of DOM trees by means of its programs, Fathom rulesets. A ruleset is an unordered bag of rules, each of which takes in DOM nodes and annotates them with scores, types, and notes to influence future rules. At the end of the chain of rules, out pops one or more pieces of output—typically high-scoring nodes of certain types—to inform the surrounding imperative program.
 
 This simple ruleset one finds DOM nodes that could contain a useful page title and scores them according to how likely that is:
 
 ```javascript
 var rules = ruleset(
     // Give any title tag the (default) score of 1, and tag it as title-ish:
-    rule(dom('title'), flavor('titley')),
+    rule(dom('title'), type('titley')),
 
     // Give any OpenGraph meta tag a score of 2, and tag it as title-ish as well:
-    rule(dom('meta[og:title]'), flavor('titley').score(2)),
+    rule(dom('meta[og:title]'), type('titley').score(2)),
 
     // Take all title-ish things, and punish them if they contain
     // navigational claptrap like colons or dashes:
-    rule(flavor('titley'), func(node => {score: containsColonsOrDashes(node.element) ? .5 : 1})),
+    rule(type('titley'), func(node => {score: containsColonsOrDashes(node.element) ? .5 : 1})),
 
     // Offer the max-scoring title-ish node under the output key "title":
-    rule(flavor('titley').max(), out('title'))
+    rule(type('titley').max(), out('title'))
 );
 ```
 
-Each rule is shaped like `rule(left-hand side, right-hand side)`. The **left-hand side** (LHS) pulls in one or more DOM nodes as input: either ones that match a certain CSS selector (`dom(...)`) or ones tagged with a certain flavor by other rules (`flavor(...)`). The **right-hand side** (RHS) then decides what to do with those nodes: assigning an additional flavor, scaling the score, assigning a flavor, scribbling a note on it, or some combination thereof. Envision the rule as a pipeline, with the DOM flowing in one end, nodes being picked and passed along to RHSs which twiddle them, and then finally falling out right side, where they might flow into other rules whose LHSs pick them up.
+Each rule is shaped like `rule(left-hand side, right-hand side)`. The **left-hand side** (LHS) pulls in one or more DOM nodes as input: either ones that match a certain CSS selector (`dom(...)`) or ones tagged with a certain type by other rules (`type(...)`). The **right-hand side** (RHS) then decides what to do with those nodes: assigning an additional type, scaling the score, scribbling a note on it, or some combination thereof. Envision the rule as a pipeline, with the DOM flowing in one end, nodes being picked and passed along to RHSs which twiddle them, and then finally falling out right side, where they might flow into other rules whose LHSs pick them up.
 
 It's snakey sort of flow. This rule, which takes in fnodes that have previously been identified as text containers and adds a word-count annotation...
 
@@ -106,7 +108,7 @@ If the ruleset doesn't anticipate the output you want, you can ask for it more e
 var allTitles = facts.get(type('titley'));
 ```
 
-Or if you have a reference to a DOM element somehow, you can look up the scores, flavors, and notes Fathom attached to it:
+Or if you have a reference to a DOM element somehow, you can look up the scores, types, and notes Fathom attached to it:
 
 ```javascript
 var fnode = facts.get(dom.getElementById('aTitle'));
@@ -124,7 +126,7 @@ If a RHS sets a note or a score without explicitly setting a type, the type from
 To do:
 - precedence rules (rightmost same-named wins)
 - definitions of unmentioned calls
-- optimizer hints
+- optimizer hints like maxScore() and typeIn()
 
 #### Notes
 
@@ -136,7 +138,7 @@ To do:
 The `func()` call returns...
 
 * An optional score multiplier
-* A flavor (required on dom() rules, defaulting to the input one on flavor() rules)
+* A type (required on dom() rules, defaulting to the input one on type() rules)
 * Optional notes
 * An element, defaulting to the input one. Overriding the default enables a ranker to walk around the tree and say things about nodes other than the input one.
 
@@ -146,10 +148,12 @@ For example...
 function callback(fnode) {
     return [{score: 3,
              element: fnode.element,  // unnecessary, since this is the default
-             flavor: 'texty',
+             type: 'texty',
              note: {suspicious: true}}];
 }
 ```
+
+If you use `func()`, Fathom cannot look inside your callback to see what type you are emitting, so you must declare your output types with `typeIn()` or set a single static type with `type()`. Fathom will complain if you don't.
 
 ### Clustering
 
@@ -162,6 +166,10 @@ theClusters = clusters(anArrayOfNodes, 4);
 // clusters. Turn it up to more aggressively invite nearby nodes into a
 // cluster. Turn it down to keep a stricter definition of "nearby".
 ```
+
+## Best Practices
+
+Any rule adding a type should apply the same note. If only one rule of several `*→a` ones did, it should be made to emit a different type instead so downstream rules can explicitly state that they require the note to be there. Otherwise, there is nothing to guarantee the note-adding rule will run before the note-needing one.
 
 ## More Examples
 
@@ -187,7 +195,7 @@ The focii for 2.0 are syntactic sugar and support for larger-scale, more powerfu
 
 Fathom 2.0 pulls yankers (max(), for now) into the ruleset, opening the opportunity for automatic optimization. It's also computes answers lazily, running only the necessary rules each time you say `get()` (and caching intermediate results to save work on later calls). It's thus eschews 1.x's strategy of emitting the entire scored world for the surrounding imperative program to examine and instead exposes a fact base that just acts like a lazy hash of useful answers. This opens the door to large, sophisticated rulesets that are still fast and, someday, can have parts reused.
 
-Fathom 2.0 enables optimization within the rule executor to make short-circuiting sets of rules efficient. It also introduces new yankers like `max()`, which provide a way to map assertions about fuzzy scores down to the boolean statements of type: it's a "cut", and it helps with ruleset efficiency. Of course, if you still want to imbibe the entire scored corpus of nodes in your surrounding program, you can simply yank all nodes of a type the `type()` yanker: just point it to a string, and the results will appear in the yanked data under that key.
+Fathom 2.0 enables optimization within the rule executor to make short-circuiting sets of rules efficient. It also introduces new yankers like `max()`, which provide a way to map assertions about fuzzy scores down to the boolean statements of type: it's a "cut", and it helps with ruleset efficiency. Of course, if you still want to imbibe the entire scored corpus of nodes in your surrounding program, you can simply yank all nodes of a type the `type()` yanker: just point it to `out('someKey')`, and the results will appear in the yanked data under that key.
 
 It's also lazy.
 

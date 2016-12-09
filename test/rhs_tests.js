@@ -1,7 +1,7 @@
 const {assert} = require('chai');
 const {jsdom} = require('jsdom');
 
-const {dom, func, out, rule, ruleset, score, scoreUpTo, type, typeIn} = require('../index');
+const {dom, func, note, out, rule, ruleset, score, scoreUpTo, type, typeIn} = require('../index');
 
 
 describe('RHS', function () {
@@ -47,18 +47,28 @@ describe('RHS', function () {
             rule(dom('p'), scoreUpTo(3).score(2).type('para'))
         );
         const facts = rules.against(doc);
-        assert.equal(facts.get(type('para'))[0].getScore('para'), 2);
+        assert.equal(facts.get(type('para'))[0].scoreFor('para'), 2);
     });
 
-    it('enforces typeIn()', function () {
+    it('enforces typeIn() for explicit types', function () {
         const doc = jsdom('<p></p>');
         const rules = ruleset(
             rule(dom('p'), typeIn('nope').type('para'))
         );
         const facts = rules.against(doc);
         assert.throws(() => facts.get(type('para')),
-                      'A right-hand side claimed, via typeIn(...) to emit one of the types [object Set] but actually emitted para.');
-        // TODO: Fix lack of set pretty-printing in error message.
+                      'A right-hand side claimed, via typeIn(...) to emit one of the types {nope} but actually emitted para.');
+    });
+
+    it('enforces typeIn() for inherited types', function () {
+        const doc = jsdom('<p></p>');
+        const rules = ruleset(
+            rule(dom('p'), type('para')),
+            rule(type('para'), func(n => ({})).typeIn('nope'))
+        );
+        const facts = rules.against(doc);
+        assert.throws(() => facts.get(type('nope')),
+                      'A right-hand side claimed, via typeIn(...) to emit one of the types {nope} but actually inherited para from the left-hand side.');
     });
 
     it('works fine when typeIn() is satisfied', function () {
@@ -73,9 +83,23 @@ describe('RHS', function () {
     it('runs out().through() callbacks', function () {
         const doc = jsdom('<p></p>');
         const rules = ruleset(
-            rule(dom('p'), out('para').through(fnode => fnode.hasNote()))
+            rule(dom('p'), out('para').through(fnode => fnode.element.tagName))
         );
         const facts = rules.against(doc);
-        assert.equal(facts.get('para')[0], false);
+        assert.equal(facts.get('para')[0], 'P');
+    });
+
+    it('paves over undefined notes', function () {
+        // We shouldn't re-run any rules. Run order shouldn't matter, because
+        // we forbid notes from overwriting, score multiplication is
+        // commutative, and type assignment is idempotent and immutable.
+        const doc = jsdom('<p></p>');
+        const rules = ruleset(
+            rule(dom('p'), type('para')),
+            rule(type('para'), note(fnode => undefined)),
+            rule(type('para'), note(fnode => 'foo'))
+        );
+        const facts = rules.against(doc);
+        assert.equal(facts.get(type('para'))[0].noteFor('para'), 'foo');
     });
 });

@@ -28,32 +28,41 @@ class Fnode {
 
     // Return whether the given type is one of the ones attached to this node.
     hasType(type) {
+        // TODO: Maybe run type(theType) against the ruleset to make sure this
+        // doesn't return false just because we haven't lazily run certain
+        // rules yet. Same for scoreFor, noteFor, and hasNoteFor.
         return this._types.has(type);
     }
 
     // Return our score for the given type, 1 by default.
-    getScore(type) {
+    scoreFor(type) {
         return this._typeRecordForGetting(type).score;
     }
 
     // Return the note for the given type, undefined if none.
-    getNote(type) {
+    noteFor(type) {
         return this._typeRecordForGetting(type).note;
     }
 
     // Return whether this node has a note for the given type.
     // Undefined is not considered a note and may be overwritten with impunity.
-    hasNote(type) {
-        return this.getNote(type) !== undefined;
+    hasNoteFor(type) {
+        return this.noteFor(type) !== undefined;
     }
 
     // TODO: Have a public way to enumerate my types.
 
     // -------- Methods below this point are private to the framework. --------
 
+    // Return an iterable of the types tagged onto me by rules that have
+    // already executed.
+    typesSoFar() {
+        return this._types.keys();
+    }
+
     // Multiply one of our per-type scores by a given number. Implicitly assign
     // us the given type.
-    multiplyScore(type, score) {
+    multiplyScoreFor(type, score) {
         this._typeRecordForSetting(type).score *= score;
     }
 
@@ -66,14 +75,14 @@ class Fnode {
                                  leftFnode,
                                  () => new Set())).has(leftType)) {
             types.add(leftType);
-            this.multiplyScore(rightType, leftFnode.getScore(leftType));
+            this.multiplyScoreFor(rightType, leftFnode.scoreFor(leftType));
         }
     }
 
     // Set the note attached to one of our types. Implicitly assign us that
     // type if we don't have it already.
-    setNote(type, note) {
-        if (this.hasNote(type)) {
+    setNoteFor(type, note) {
+        if (this.hasNoteFor(type)) {
             if (note !== undefined) {
                 throw new Error(`Someone (likely the right-hand side of a rule) tried to add a note of type ${type} to an element, but one of that type already exists. Overwriting notes is not allowed, since it would make the order of rules matter.`);
             }

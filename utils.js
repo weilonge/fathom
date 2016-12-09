@@ -1,5 +1,7 @@
 const {forEach, map} = require('wu');
 
+const {CycleError} = require('./exceptions');
+
 
 function identity(x) {
     return x;
@@ -41,8 +43,10 @@ function max(iterable, by = identity) {
 
 
 // Return an Array of maximum items from an iterable, as defined by > and ===.
+// If an empty iterable is passed in, return [].
 function maxes(iterable, by = identity) {
-    let bests, bestKeySoFar;
+    let bests = [];
+    let bestKeySoFar;
     let isFirst = true;
     forEach(
         function (item) {
@@ -56,9 +60,6 @@ function maxes(iterable, by = identity) {
             }
         },
         iterable);
-    if (isFirst) {
-        throw new Error('Tried to call maxes() on empty iterable');
-    }
     return bests;
 }
 
@@ -207,9 +208,101 @@ function *reversed(array) {
 }
 
 
+// Return a Array, the reverse topological sort of the nodes `nodes`.
+//
+// nodesThatNeed: A function that takes a node and returns an Array of nodes
+//     that depend on it
+function toposort(nodes, nodesThatNeed) {
+    const ret = [];
+    const todo = new Set(nodes);
+    const inProgress = new Set();
+
+    function visit(node) {
+        if (inProgress.has(node)) {
+            throw new CycleError('The graph has a cycle.');
+        }
+        if (todo.has(node)) {
+            inProgress.add(node);
+            for (let needer of nodesThatNeed(node)) {
+                visit(needer);
+            }
+            inProgress.delete(node);
+            todo.delete(node);
+            ret.push(node);
+        }
+    }
+
+    while (todo.size > 0) {
+        visit(first(todo));
+    }
+    return ret;
+}
+
+
+// A Set with the additional methods it ought to have had
+class NiceSet extends Set {
+    // Remove and return an arbitrary item. Throw an error if I am empty.
+    pop() {
+        for (let v of this.values()) {
+            this.delete(v);
+            return v;
+        }
+        throw new Error('Tried to pop from an empty NiceSet.');
+    }
+
+    toString() {
+        return '{' + Array.from(this).join(', ') + '}';
+    }
+}
+
+
+// Return the first item of an iterable.
+function first(iterable) {
+    for (let i of iterable) {
+        return i;
+    }
+}
+
+
+// Given any node in a DOM tree, return the root element of the tree, generally
+// an HTML element.
+function rootElement(element) {
+    let parent;
+    while ((parent = element.parentNode) !== null && parent.nodeType === parent.ELEMENT_NODE) {
+        element = parent;
+    }
+    return element;
+}
+
+
+// Return the number of times a regex occurs within the string `haystack`.
+// Caller must make sure `regex` has the 'g' option set.
+function numberOfMatches(regex, haystack) {
+    return (haystack.match(regex) || []).length;
+}
+
+
+// Wrap a scoring callback, and set its element to the page root iff a score is
+// returned.
+//
+// This is used to build rulesets which classify entire pages rather than
+// picking out specific elements.
+function page(scoringFunction) {
+    function wrapper(node) {
+        const scoreAndTypeAndNote = scoringFunction(node);
+        if (scoreAndTypeAndNote.score !== undefined) {
+            scoreAndTypeAndNote.element = rootElement(node.element);
+        }
+        return scoreAndTypeAndNote;
+    }
+    return wrapper;
+}
+
+
 module.exports = {
     best,
     collapseWhitespace,
+    first,
     getDefault,
     identity,
     inlineTextLength,
@@ -221,8 +314,13 @@ module.exports = {
     max,
     maxes,
     min,
+    NiceSet,
+    numberOfMatches,
+    page,
     reversed,
+    rootElement,
     setDefault,
     sum,
+    toposort,
     walk
 };

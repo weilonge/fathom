@@ -1,7 +1,6 @@
 // The left-hand side of a rule
 
-const {filter, flatten, map, unique} = require('wu');
-const {maxes, setDefault} = require('./utils');
+const {maxes, getDefault, setDefault} = require('./utils');
 
 
 // Return a condition that uses a DOM selector to find its matches from the
@@ -20,7 +19,7 @@ function dom(selector) {
 // something that causes one to need to be cleared, you'll need to clear many
 // more as well.
 //
-// Lhses are responsible for maintaining ruleset.typeCache and ruleset.maxCache.
+// Lhses are responsible for maintaining ruleset.maxCache.
 //
 // Lhs and its subclasses are private to the Fathom framework.
 class Lhs {
@@ -35,7 +34,12 @@ class Lhs {
     }
 
 
-    // Return the output fnodes selected by this left-hand-side expression.
+    // Return an iterable of output fnodes selected by this left-hand-side
+    // expression.
+    //
+    // Pre: The rules I depend on have already been run, and their results are
+    // in ruleset.typeCache.
+    //
     // ruleset: a BoundRuleset
     // fnodes (ruleset)
 
@@ -47,6 +51,13 @@ class Lhs {
     // Return the single type the output of the LHS is guaranteed to have.
     // Return undefined if there is no such single type we can ascertain.
     guaranteedType() {
+    }
+
+    // Return an iterable of rules that need to run in order to compute my
+    // inputs, undefined if we can't tell without also consulting the RHS or if
+    // the necessary prereqs are missing from the ruleset.
+    prerequisites(ruleset) {
+        return undefined;
     }
 }
 
@@ -79,6 +90,10 @@ class DomLhs extends Lhs {
     asLhs() {
         return this;
     }
+
+    prerequisites(ruleset) {
+        return [];
+    }
 }
 
 
@@ -89,24 +104,11 @@ class TypeLhs extends Lhs {
         if (type === undefined) {
             throw new Error('A type name is required when calling type().');
         }
-        this._type = type;
+        this._type = type;  // the input type
     }
 
     fnodes(ruleset) {
-        const self = this;
-        return setDefault(
-            ruleset.typeCache,
-            this._type,
-            function allFnodesOfType() {
-                // We don't really care if the rule *adds* the given
-                // type, just that we find all the fnodes of that type.
-                const fnodesMaybeOfType = flatten(true,
-                                                  map(rule => rule.results(ruleset),
-                                                      ruleset.rulesWhichMightAdd(self._type)));
-                const fnodesOfType = filter(fnode => fnode.hasType(self._type),
-                                            fnodesMaybeOfType);
-                return Array.from(unique(fnodesOfType));
-            });
+        return getDefault(ruleset.typeCache, this._type, () => []);
     }
 
     // Override the type previously specified by this constraint.
@@ -145,8 +147,12 @@ class TypeMaxLhs extends TypeLhs {
             ruleset.maxCache,
             this._type,
             function maxFnodesOfType() {
-                return maxes(getSuperFnodes(), fnode => fnode.getScore(self._type));
+                return maxes(getSuperFnodes(), fnode => fnode.scoreFor(self._type));
             });
+    }
+
+    prerequisites(ruleset) {
+        return ruleset.inwardRulesThatCouldEmit(this._type);
     }
 }
 

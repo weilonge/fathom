@@ -1,6 +1,6 @@
 // The right-hand side of a rule
 
-const {reversed} = require('./utils');
+const {NiceSet, reversed} = require('./utils');
 
 
 const TYPE = 1;
@@ -36,7 +36,7 @@ class InwardRhs {
     constructor(calls = [], max = Infinity, types) {
         this._calls = calls.slice();
         this._max = max;
-        this._types = new Set(types);  // empty set if unconstrained
+        this._types = new NiceSet(types);  // empty set if unconstrained
     }
 
     // Declare that the maximum returned score multiplier is such and such.
@@ -121,9 +121,19 @@ class InwardRhs {
                                     types);
     }
 
-    _checkTypeIn(result) {
-        if (this._types.size > 0 && !this._types.has(result.type)) {
-            throw new Error(`A right-hand side claimed, via typeIn(...) to emit one of the types ${this._types} but actually emitted ${result.type}.`);
+    // Check a fact for conformance with any typeIn() call.
+    //
+    // leftType: the type of the LHS, which becomes my emitted type if the fact
+    //     doesn't specify one
+    _checkTypeIn(result, leftType) {
+        if (this._types.size > 0) {
+            if (result.type === undefined) {
+                if (!this._types.has(leftType)) {
+                    throw new Error(`A right-hand side claimed, via typeIn(...) to emit one of the types ${this._types} but actually inherited ${leftType} from the left-hand side.`);
+                }
+            } else if (!this._types.has(result.type)) {
+                throw new Error(`A right-hand side claimed, via typeIn(...) to emit one of the types ${this._types} but actually emitted ${result.type}.`);
+            }
         }
     }
 
@@ -152,7 +162,8 @@ class InwardRhs {
     // In the future, we might also support providing a callback that receives
     // the fnode and returns a score. We couldn't reason based on these, but
     // the use would be rather to override part of what a previous .func() call
-    // provides.
+    // provides. It would also allow us to avoid some uses of func(), which
+    // force us to verbosely declare typeIn().
     score(theScore) {
         function getSubfacts(fnode) {
             return {score: theScore};
@@ -190,7 +201,9 @@ class InwardRhs {
     // notes}) for incorporation into that fnode (or a different one, if
     // element is specified). Any of the 4 fact properties can be missing;
     // filling in defaults is a job for the caller.
-    fact(fnode) {
+    //
+    // leftType: the type the LHS takes in
+    fact(fnode, leftType) {
         const doneKinds = new Set();
         const result = {};
         let haveSubfacts = 0;
@@ -215,25 +228,36 @@ class InwardRhs {
             }
         }
         this._checkScoreUpTo(result);
-        this._checkTypeIn(result);
+        this._checkTypeIn(result, leftType);
         return result;
     }
 
-    // Return a Set of types I am constrained to emit, if we can prove such
-    // a constraint. Otherwise, return an empty Set.
-    possibleTypes() {
+    // Return a Set of types I am constrained to emit (which means either to
+    // add a type to a fnode or to maintain it unchanged), if we can prove such
+    // a constraint without reference to the LHS. Otherwise, return an empty
+    // Set.
+
+    // Return a record describing the types I might emit.
+    // {couldChangeType: whether I might add a type to the fnode,
+    //  possibleTypes: If couldChangeType, the types I might emit; empty set if
+    //      we cannot infer it. If not couldChangeType, undefined.}
+    possibleEmissions() {
         // If there is a typeIn() constraint or there is a type() call to the
         // right of all func() calls, we have a constraint. We hunt for the
         // tightest constraint we can find, favoring a type() call because it
         // gives us a single type but then falling back to a typeIn().
+        let couldChangeType = false;
         for (let call of reversed(this._calls)) {
             if (call.kind === 'func') {
+                couldChangeType = true;
                 break;
             } else if (call.kind === 'type') {
-                return new Set([call.type]);
+                return {couldChangeType: true,
+                        possibleTypes: new Set([call.type])};
             }
         }
-        return this._types;
+        return {couldChangeType,
+                possibleTypes: this._types};
     }
 }
 
