@@ -149,11 +149,10 @@ describe('Design-driving demos', function () {
 
             // Give bonuses for being (nth) cousins of other texties. IOW,
             // texties that are the same-leveled children of a common ancestor
-            // get a bonus.
+            // get a bonus. [Ed: we should probably use clustering instead.]
             //rule(flavor('texty'), node => ({score: numCousinsOfAtLeastOfScore(node, 200) * 1.5}))
 
-            // Then do a nontrivial yanker which figures out which clump of high-scoring paragraphishes and the things between them to grab.
-            // TODO: How do we ensure blockquotes, h2s, uls, etc. that are part of the article are included? Maybe what we're really looking for is a single, high-scoring container (or span of a container?) and then taking either everything inside it or everything but certain excised bits (interstitial ads/relateds). There might be 2 phases: rank and yank.
+            // TODO: How do we ensure blockquotes, h2s, uls, etc. that are part of the article, betwixt the clustered paragraphishes, are included? Maybe what we're really looking for is a single, high-scoring container (or span of a container?) and then taking either everything inside it or everything but certain excised bits (interstitial ads/relateds). There might be 2 phases: rank and yank.
             // TODO: Also do something about invisible nodes.
         );
         const kb = rules.score(doc);
