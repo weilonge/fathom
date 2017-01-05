@@ -18,7 +18,7 @@ describe('Design-driving demos', function () {
             <meta property="twitter:title" content="Twitter">
             <title>Title</title>
         `);
-        const typeAndNote = type('titley').note(fnode => fnode.element.content);
+        const typeAndNote = type('titley').note(fnode => fnode.element.getAttribute('content'));
         const rules = ruleset(
             rule(dom('meta[property="og:title"]'),
                  typeAndNote.score(40)),
