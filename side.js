@@ -38,6 +38,11 @@ function conserveScore() {
 }
 
 
+function and(...lhss) {
+    return new Side({method: 'and', args: lhss});
+}
+
+
 // A chain of calls that can be compiled into a Rhs or Lhs, depending on its
 // position in a Rule. This lets us use type() as a leading call for both RHSs
 // and LHSs. I would prefer to do this dynamically, but that wouldn't compile
@@ -80,6 +85,10 @@ class Side {
         return this._and('conserveScore');
     }
 
+    and(...lhss) {
+        return this._and('and', lhss);
+    }
+
     _and(method, ...args) {
         return new this.constructor(...this._calls.concat({method, args}));
     }
@@ -102,6 +111,7 @@ class Side {
 
 
 module.exports = {
+    and,
     conserveScore,
     func,
     note,

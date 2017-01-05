@@ -28,6 +28,8 @@ class Lhs {
         // firstCall is never 'dom', because dom() directly returns a DomLhs.
         if (firstCall.method === 'type') {
             return new TypeLhs(...firstCall.args);
+        } else if (firstCall.method === 'and') {
+            return new AndLhs(firstCall.args);
         } else {
             throw new Error('The left-hand side of a rule() must start with dom() or type().');
         }
@@ -153,6 +155,55 @@ class TypeMaxLhs extends TypeLhs {
 
     prerequisites(ruleset) {
         return ruleset.inwardRulesThatCouldEmit(this._type);
+    }
+}
+
+
+class AndLhs extends Lhs {
+    constructor(lhss) {
+        super();
+
+        function sideToTypeLhs(side) {
+            const lhs = side.asLhs();
+            if (!(lhs instanceof TypeLhs)) {  // TODO: exclude TypeMaxLhs
+                throw new Error('and() supports only simple type() calls as arguments for now.');
+            }
+            return lhs;
+        }
+
+        // For the moment, we accept only type()s as args. TODO: Generalize to
+        // type().max() and such later.
+        this._args = lhss.map(sideToTypeLhs);
+    }
+
+    *fnodes(ruleset) {
+        // Take an arbitrary one for starters. Optimization: we could always
+        // choose the pickiest one to start with.
+        const fnodes = this._args[0].fnodes(ruleset);
+        // Then keep only the fnodes that have the type of every other arg:
+        fnodeLoop: for (let fnode of fnodes) {
+            for (let otherLhs of this._args.slice(1)) {
+                if (!fnode.hasType(otherLhs.guaranteedType())) {
+                    // TODO: This is n^2. Why is there no set intersection in JS?!
+                    continue fnodeLoop;
+                }
+            }
+            yield fnode;
+        }
+    }
+
+    // We require all rules that emit any of the types mentioned in my args.
+    prerequisites(ruleset) {
+        // TODO: Figure out what to do about and('A') -> type('A'). That's
+        // equivalent to A -> A, which depends on only adders, not emitters.
+        const prereqTypes = this._args.map(arg => arg.guaranteedType());
+        const prereqs = new Set();
+        for (let type of prereqTypes) {
+            for (let rule of ruleset.inwardRulesThatCouldEmit(type)) {
+                prereqs.add(rule);
+            }
+        }
+        return prereqs;
     }
 }
 

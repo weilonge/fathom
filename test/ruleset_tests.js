@@ -1,7 +1,7 @@
 const {assert} = require('chai');
 const {jsdom} = require('jsdom');
 
-const {conserveScore, dom, func, out, rule, ruleset, score, type, typeIn} = require('../index');
+const {and, conserveScore, dom, func, out, rule, ruleset, score, type, typeIn} = require('../index');
 
 
 describe('Ruleset', function () {
@@ -177,6 +177,21 @@ describe('Ruleset', function () {
             assert(p.hasType('c'));
             assert(!p.hasType('d'));
         });
+    });
+
+    it('plans for and runs a working and()', function () {
+        const doc = jsdom('<a class="smoo"></a><p></p>');
+        const rules = ruleset(
+            rule(dom('a'), type('A')),
+            rule(dom('a[class]'), type('C')),
+            rule(dom('a'), type('NEEDLESS')),  // should not be run
+            rule(and(type('A'), type('C')), type('BOTH')),
+            rule(dom('p'), type('A'))  // A but not C. Tempt and() to grab me.
+        );
+        const facts = rules.against(doc);
+        const boths = facts.get(type('BOTH'));
+        assert.equal(boths.length, 1);
+        assert.deepEqual(Array.from(boths[0].typesSoFar()), ['C', 'A', 'BOTH']);  // no NEEDLESS was run
     });
 });
 

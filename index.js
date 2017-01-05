@@ -7,7 +7,7 @@
 const {rule, ruleset} = require('./ruleset');
 const {dom} = require('./lhs');
 const {out} = require('./rhs');
-const {func, conserveScore, max, note, score, scoreUpTo, type, typeIn} = require('./side');
+const {and, func, conserveScore, max, note, score, scoreUpTo, type, typeIn} = require('./side');
 
 
 // Future possible fanciness:
@@ -34,6 +34,7 @@ const {func, conserveScore, max, note, score, scoreUpTo, type, typeIn} = require
 
 
 module.exports = {
+    and,
     conserveScore,
     dom,
     func,
