@@ -93,11 +93,14 @@ textContainer fnodes emitted        assign "countedWords" type
 
 Remember that Fathom's rulesets are unordered, so any rule's output can flow into any other rule, not just ones that happen to come lexically after it.
 
-Once the ruleset is defined, run a DOM tree through it:
+Once the ruleset is defined, run a DOM tree or a subtree through it:
 
 ```javascript
+var myDom = jsdom.jsdom("<html><head>...</html>"));
 // Tell the ruleset which DOM to run against, yielding a factbase about the document.
-var facts = rules.against(jsdom.jsdom("<html><head>...</html>"));
+var facts = rules.against(myDom);
+// Or we can apply the ruleset to a subtree rooted at some element instead.
+var subtreeFacts = rules.against(myDom.body.firstElementChild);
 ```
 
 Then, pull the answers out of the factbase: in this case, we want the max-scoring title, which the ruleset conveniently stores under the "title" output key:
