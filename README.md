@@ -7,7 +7,7 @@ Find meaning in the web.
 
 ## Introduction
 
-Fathom is an experimental framework for extracting meaning from web pages, identifying parts like Previous/Next buttons, address forms, and the main textual content. Essentially, it scores DOM nodes and extracts them based on conditions you specify. A Prolog-inspired system of types and annotations expresses dependencies between scoring steps and keeps state under control. It also provides the freedom to extend existing sets of scoring rules without editing them directly, so multiple third-party refinements can be mixed together.
+Fathom is a framework for extracting meaning from web pages, identifying parts like Previous/Next buttons, address forms, and the main textual content. Essentially, it scores DOM nodes and extracts them based on conditions you specify. A Prolog-inspired system of types and annotations expresses dependencies between scoring steps and keeps state under control. It also provides the freedom to extend existing sets of scoring rules without editing them directly, so multiple third-party refinements can be mixed together.
 
 ## Why?
 
@@ -16,7 +16,7 @@ A study of existing projects like Readability and Distiller suggests that purely
 Here are some specific areas we address:
 
 * Browser-native DOM nodes are mostly immutable, and `HTMLElement.dataset` is string-typed, so storing arbitrary intermediate data on nodes is clumsy. Fathom addresses this by providing the Fathom node (or **fnode**, pronounced fuh-NODE), a proxy around each DOM node which we can scribble on.
-* With imperative extractors, any experiments or site-specific customizations must be hard-coded in. Fathom's **rulesets** (the programs you write in Fathom), on the other hand, are unordered and thereby decoupled, stitched together only by the **types** they consume and emit. External rules can thus be plugged into existing rulesets, making it easy to experiment (without maintaining a fork) or to provide dedicated rules for particularly intractable web sites.
+* With imperative extractors, any experiments or site-specific customizations must be hard-coded in. On the other hand, Fathom's **rulesets** (the programs you write in Fathom) are unordered and thereby decoupled, stitched together only by the **types** they consume and emit. External rules can thus be plugged into existing rulesets, making it easy to experiment without maintaining a fork—or to provide dedicated rules for particularly intractable web sites.
 * Types provide a convenient way of categorizing DOM nodes. They are the black-box units of abstraction, as functions are in many other programming languages. For the moment, complex extractors can begin by attaching broad types to nodes and then narrowing to more specific ones as they are examined more closely. This provides hook points to interpose external rules. In the future, simple type-taggings will be able to be combined using logical operators like `and`, `or`, and `contains`, building arbitrarily sophisticated conclusions.
 * The type system also makes explicit the division between an extractor's public and private APIs: the types are public, and the imperative stuff that goes on inside callback functions is private. Third-party rules can use the types as hook points to interpose themselves.
 * Persistent state is cordoned off in typed **notes** on fnodes. Thus, when a rule declares that it takes such-and-such a type as input, it can rightly assume (if rules are written consistently) there will be a note of that type on the fnodes that are passed in.
@@ -27,18 +27,22 @@ Fathom is under heavy development, and its design is still in flux. If you'd lik
 
 ### Parts that work so far
 
-* "Rank" phase: scoring of nodes found with a CSS selector
-* Type-driven rule dispatch
-* A simple "yanker" or two
+* Ranking: scoring nodes found by CSS selector or type
+* Yanking: so far, one aggregate function, max(), which picks the top node of a type and thus maps from the fuzzily-scored domain back to the hard-edged domain of types
+* Type-driven rule dispatch, efficiently driven by a query planner that groks dependencies
+* An `and()` type combinator for building up bigger abstractions from tiny types
+* Lazy execution
+* Caching to keep from re-deriving intermediate results between queries
 * A notion of DOM node distance influenced by structural similarity
 * Clustering based on that distance metric
-* Query planning for lazy execution
 * Concise rule definitions
+* Many handy utils from which to compose scoring callbacks
 
 ### Not there yet
 
 * Efficient planning for answering max() queries
 * Logical operators for combining types
+* Nice way to extend rulesets. (You can do it now by building arrays of rules off to the side.)
 
 ### Environments
 
@@ -126,7 +130,7 @@ If a RHS sets a note or a score without explicitly setting a type, the type from
 To do:
 - precedence rules (rightmost same-named wins)
 - definitions of unmentioned calls
-- optimizer hints like maxScore() and typeIn()
+- optimizer hints like scoreUpTo() and typeIn(). We decided to have typeIn and scoreUnder apply until explicitly cleared. That way, if somebody did it as a safety thing way up the override chain that you aren't aware of, you won't stomp on it and break their invariants accidentally.
 
 #### Notes
 
@@ -153,7 +157,7 @@ function callback(fnode) {
 }
 ```
 
-If you use `func()`, Fathom cannot look inside your callback to see what type you are emitting, so you must declare your output types with `typeIn()` or set a single static type with `type()`. Fathom will complain if you don't.
+If you use `func()`, Fathom cannot look inside your callback to see what type you are emitting, so you must declare your output types with `typeIn()` or set a single static type with `type()`. Fathom will complain if you don't. (You can still opt not to return any type if the node turns out not to be a good match, even if you declare a `typeIn()`.
 
 ### Clustering
 
