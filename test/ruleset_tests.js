@@ -150,7 +150,7 @@ describe('Ruleset', function () {
         it('by demanding rules have determinate type', function () {
             assert.throws(() => ruleset(rule(dom('p'), type('a')),
                                         rule(type('a'), func('dummy'))),
-                      'Could not determine the emitted type of a rule because its right-hand side calls func() without calling typeIn().');
+                          'Could not determine the emitted type of a rule because its right-hand side calls func() without calling typeIn().');
         });
 
         it('by remembering what types rules add and emit', function () {
