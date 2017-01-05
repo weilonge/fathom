@@ -29,7 +29,7 @@ function ruleset(...rules) {
 class Ruleset {
     constructor(...rules) {
         this._inRules = [];
-        this._outRules = new Map();
+        this._outRules = new Map();  // key -> rule
         this._rulesThatCouldEmit = new Map();  // type -> [rules]
         this._rulesThatCouldAdd = new Map();  // type -> [rules]
 
@@ -188,7 +188,7 @@ class BoundRuleset {
                                             prereq => prereqs.get(prereq)));
         } catch (exc) {
             if (exc instanceof CycleError) {
-                throw new CycleError('There was a cyclic dependency in the ruleset.');
+                throw new CycleError('There is a cyclic dependency in the ruleset.');
             } else {
                 throw exc;
             }
@@ -234,9 +234,9 @@ class Rule {  // abstract
     // BoundRuleset.
     //
     // The rules are these, where A is a type:
-    // * A->* (including (A->out(…)) depends on anything emitting A.
     // * A.max->* depends on anything emitting A.
     // * A->A depends on anything adding A.
+    // * A->* (including (A->out(…)) depends on anything emitting A.
     prerequisites(ruleset) {
         // Some LHSs know enough to determine their own prereqs:
         const delegated = this.lhs.prerequisites(ruleset);

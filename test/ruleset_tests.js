@@ -84,7 +84,7 @@ describe('Ruleset', function () {
             );
             const facts = rules.against(doc);
             assert.throws(() => facts.get(type('a')),
-                          'There was a cyclic dependency in the ruleset.');
+                          'There is a cyclic dependency in the ruleset.');
         });
     });
 

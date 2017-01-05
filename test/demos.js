@@ -28,10 +28,10 @@ describe('Design-driving demos', function () {
                  typeAndNote.score(20)),
             rule(dom('title'),
                  typeAndNote.score(10).note(fnode => fnode.element.text)),
-            rule(type('titley').max(), out('titley'))
+            rule(type('titley').max(), out('bestTitle'))
         );
         const facts = rules.against(doc);
-        const node = facts.get('titley')[0];
+        const node = facts.get('bestTitle')[0];
         assert.equal(node.scoreFor('titley'), 40);
         assert.equal(node.noteFor('titley'), 'OpenGraph');
     });
@@ -58,13 +58,17 @@ describe('Design-driving demos', function () {
 
         const rules = ruleset(
             // Look for "logout", "signout", etc. in CSS classes and parts thereof:
-            rule(dom('button[class], a[class]'), func(page(scoreByLogoutClasses)).typeIn('logoutClass')),
+            rule(dom('button[class], a[class]'),
+                 func(page(scoreByLogoutClasses)).typeIn('logoutClass')),
             // Look for "logout" or "signout" in hrefs:
-            rule(dom('a[href]'), func(page(scoreByLogoutHrefs)).typeIn('logoutHref')),
+            rule(dom('a[href]'),
+                 func(page(scoreByLogoutHrefs)).typeIn('logoutHref')),
 
             // Union the two intermediate results into a more general loggedIn type:
-            rule(type('logoutClass'), type('loggedIn').conserveScore()),
-            rule(type('logoutHref'), type('loggedIn').conserveScore())
+            rule(type('logoutClass'),
+                 type('loggedIn').conserveScore()),
+            rule(type('logoutHref'),
+                 type('loggedIn').conserveScore())
 
             // Look for "Log out", "Sign out", etc. in content of links: a
             // bonus for English pages.

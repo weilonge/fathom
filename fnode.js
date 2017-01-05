@@ -30,7 +30,8 @@ class Fnode {
     hasType(type) {
         // TODO: Maybe run type(theType) against the ruleset to make sure this
         // doesn't return false just because we haven't lazily run certain
-        // rules yet. Same for scoreFor, noteFor, and hasNoteFor.
+        // rules yet. Same for scoreFor, noteFor, and hasNoteFor. If we do
+        // that, update the tests to use typesSoFar instead.
         return this._types.has(type);
     }
 
