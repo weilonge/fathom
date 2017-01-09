@@ -23,8 +23,8 @@ function score(theScore) {
 }
 
 
-function scoreUpTo(score) {
-    return new Side({method: 'scoreUpTo', args: [score]});
+function atMost(score) {
+    return new Side({method: 'atMost', args: [score]});
 }
 
 
@@ -73,8 +73,8 @@ class Side {
         return this._and('score', theScore);
     }
 
-    scoreUpTo(score) {
-        return this._and('scoreUpTo', score);
+    atMost(score) {
+        return this._and('atMost', score);
     }
 
     typeIn(...types) {
@@ -112,11 +112,11 @@ class Side {
 
 module.exports = {
     and,
+    atMost,
     conserveScore,
     func,
     note,
     score,
-    scoreUpTo,
     type,
     typeIn
 };

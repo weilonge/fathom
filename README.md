@@ -130,7 +130,7 @@ If a RHS sets a note or a score without explicitly setting a type, the type from
 To do:
 - precedence rules (rightmost same-named wins)
 - definitions of unmentioned calls
-- optimizer hints like scoreUpTo() and typeIn(). We decided to have typeIn and scoreUnder apply until explicitly cleared. That way, if somebody did it as a safety thing way up the override chain that you aren't aware of, you won't stomp on it and break their invariants accidentally.
+- optimizer hints like atMost() and typeIn(). We decided to have typeIn and scoreUnder apply until explicitly cleared. That way, if somebody did it as a safety thing way up the override chain that you aren't aware of, you won't stomp on it and break their invariants accidentally.
 
 #### Notes
 

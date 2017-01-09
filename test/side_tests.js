@@ -15,7 +15,7 @@ describe('Side', function () {
 
     it('is immutable and so can be factored up', function () {
         const defaults = type('smoo');
-        const another = defaults.scoreUpTo(1);
+        const another = defaults.atMost(1);
         assert.equal(defaults._calls.length, 1);
         assert.equal(another._calls.length, 2);
     });

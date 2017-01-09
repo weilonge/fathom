@@ -41,15 +41,15 @@ class InwardRhs {
 
     // Declare that the maximum returned score multiplier is such and such.
     // This doesn't force it to be true; it merely throws an error if it isn't.
-    // This overrides any previous call to .scoreUpTo(). To lift a .scoreUpTo()
-    // constraint, call .scoreUpTo() with no args.
-    scoreUpTo(score) {
+    // This overrides any previous call to .atMost(). To lift an .atMost()
+    // constraint, call .atMost() with no args.
+    atMost(score) {
         return new this.constructor(this._calls, score, this._types);
     }
 
     _checkScoreUpTo(fact) {
         if (fact.score !== undefined && fact.score > this._max) {
-            throw new Error(`Score of ${fact.score} exceeds the declared scoreUpTo(${this._max}).`);
+            throw new Error(`Score of ${fact.score} exceeds the declared atMost(${this._max}).`);
         }
     }
 

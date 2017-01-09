@@ -1,7 +1,7 @@
 const {assert} = require('chai');
 const {jsdom} = require('jsdom');
 
-const {dom, func, note, out, rule, ruleset, score, scoreUpTo, type, typeIn} = require('../index');
+const {atMost, dom, func, note, out, rule, ruleset, score, type, typeIn} = require('../index');
 
 
 describe('RHS', function () {
@@ -31,20 +31,20 @@ describe('RHS', function () {
         assert.deepEqual(rhs.fact('dummy'), {score: 3});
     });
 
-    it('enforces scoreUpTo()', function () {
+    it('enforces atMost()', function () {
         const doc = jsdom('<p></p>');
         const rules = ruleset(
-            rule(dom('p'), score(8).type('para').scoreUpTo(3))
+            rule(dom('p'), score(8).type('para').atMost(3))
         );
         const facts = rules.against(doc);
         assert.throws(() => facts.get(type('para')),
-                      'Score of 8 exceeds the declared scoreUpTo(3).');
+                      'Score of 8 exceeds the declared atMost(3).');
     });
 
-    it('works fine when scoreUpTo() is satisfied', function () {
+    it('works fine when atMost() is satisfied', function () {
         const doc = jsdom('<p></p>');
         const rules = ruleset(
-            rule(dom('p'), scoreUpTo(3).score(2).type('para'))
+            rule(dom('p'), atMost(3).score(2).type('para'))
         );
         const facts = rules.against(doc);
         assert.equal(facts.get(type('para'))[0].scoreFor('para'), 2);
