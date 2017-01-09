@@ -41,8 +41,7 @@ Fathom is under heavy development, and its design is still in flux. If you'd lik
 ### Not there yet
 
 * Efficient planning for answering max() queries
-* Logical operators for combining types
-* Nice way to extend rulesets. (You can do it now by building arrays of rules off to the side.)
+* `not()` and `or()` (though you can express `or` the long way around by having 2 rules with identical RHSs)
 
 ### Environments
 

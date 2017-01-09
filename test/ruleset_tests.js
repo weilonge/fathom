@@ -193,6 +193,18 @@ describe('Ruleset', function () {
         assert.equal(boths.length, 1);
         assert.deepEqual(Array.from(boths[0].typesSoFar()), ['C', 'A', 'BOTH']);  // no NEEDLESS was run
     });
+
+    it('spits back its rules() verbatim', function () {
+        const rules = ruleset(
+            rule(dom('a'), type('A')),
+            rule(type('A'), type('B')),
+            rule(type('A'), out('ay')),
+            rule(type('B'), out('be'))
+        );
+        const ruleList = rules.rules();
+        assert.equal(ruleList.length, 4);  // because deepEqual doesn't actually deep-compare Maps yet
+        assert.deepEqual(ruleset(...ruleList), rules);
+    });
 });
 
 describe('Rule', function () {

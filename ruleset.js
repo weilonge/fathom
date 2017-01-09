@@ -56,12 +56,25 @@ class Ruleset {
         }
     }
 
+    // Commit this ruleset to running against a specific DOM tree.
+    //
+    // This doesn't actually modify the Ruleset but rather returns a fresh
+    // BoundRuleset, which contains caches and other stateful, per-DOM
+    // bric-a-brac.
     against(doc) {
         return new BoundRuleset(doc,
                                 this._inRules,
                                 this._outRules,
                                 this._rulesThatCouldEmit,
                                 this._rulesThatCouldAdd);
+    }
+
+    // Return all the rules (both inward and outward) that make up this ruleset.
+    //
+    // From this, you can construct another ruleset like this one but with your
+    // own rules added.
+    rules() {
+        return Array.from([...this._inRules, ...this._outRules.values()]);
     }
 }
 
