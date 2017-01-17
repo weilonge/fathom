@@ -208,7 +208,7 @@ function *reversed(array) {
 }
 
 
-// Return a Array, the reverse topological sort of the nodes `nodes`.
+// Return an Array, the reverse topological sort of the nodes `nodes`.
 //
 // nodesThatNeed: A function that takes a node and returns an Array of nodes
 //     that depend on it

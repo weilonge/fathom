@@ -7,7 +7,7 @@ Find meaning in the web.
 
 ## Introduction
 
-Fathom is a framework for extracting meaning from web pages, identifying parts like Previous/Next buttons, address forms, and the main textual content. Essentially, it scores DOM nodes and extracts them based on conditions you specify. A Prolog-inspired system of types and annotations expresses dependencies between scoring steps and keeps state under control. It also provides the freedom to extend existing sets of scoring rules without editing them directly, so multiple third-party refinements can be mixed together.
+Fathom is a JavaScript framework for extracting meaning from web pages, identifying parts like Previous/Next buttons, address forms, and the main textual content—or classifying a page as a whole. Essentially, it scores DOM nodes and extracts them based on conditions you specify. A Prolog-inspired system of types and annotations expresses dependencies between scoring steps and keeps state under control. It also provides the freedom to extend existing sets of scoring rules without editing them directly, so multiple third-party refinements can be mixed together.
 
 ## Why?
 
@@ -17,44 +17,24 @@ Here are some specific areas we address:
 
 * Browser-native DOM nodes are mostly immutable, and `HTMLElement.dataset` is string-typed, so storing arbitrary intermediate data on nodes is clumsy. Fathom addresses this by providing the Fathom node (or **fnode**, pronounced fuh-NODE), a proxy around each DOM node which we can scribble on.
 * With imperative extractors, any experiments or site-specific customizations must be hard-coded in. On the other hand, Fathom's **rulesets** (the programs you write in Fathom) are unordered and thereby decoupled, stitched together only by the **types** they consume and emit. External rules can thus be plugged into existing rulesets, making it easy to experiment without maintaining a fork—or to provide dedicated rules for particularly intractable web sites.
-* Types provide a convenient way of categorizing DOM nodes. They are the black-box units of abstraction, as functions are in many other programming languages. For the moment, complex extractors can begin by attaching broad types to nodes and then narrowing to more specific ones as they are examined more closely. This provides hook points to interpose external rules. In the future, simple type-taggings will be able to be combined using logical operators like `and`, `or`, and `contains`, building arbitrarily sophisticated conclusions.
-* The type system also makes explicit the division between an extractor's public and private APIs: the types are public, and the imperative stuff that goes on inside callback functions is private. Third-party rules can use the types as hook points to interpose themselves.
+* Types provide an easy way to categorize DOM nodes. They are also Fathom's black-box units of abstraction, as functions are in other programming languages. Complex extractors can begin by attaching broad types to nodes and then narrowing to more specific ones as they are examined more closely. (Each type implicitly provides a hook point to interpose additional rules.) Relationships between type-taggings can also be harnessed through logical operators like `and`, and, in the future, `or`, `not`, and `contains`, building higher levels of abstraction.
+* The type system also makes explicit the division between a ruleset's public and private APIs: the types are public, and the imperative activity that goes on inside callback functions is private. Third-party rules can use the types as hook points to interpose themselves.
 * Persistent state is cordoned off in typed **notes** on fnodes. Thus, when a rule declares that it takes such-and-such a type as input, it can rightly assume (if rules are written consistently) there will be a note of that type on the fnodes that are passed in.
 
-## Status
+## Using Fathom
 
-Fathom is under heavy development, and its design is still in flux. If you'd like to use it at such an early stage, you should remain in close contact with us. Join us in IRC: #fathom on irc.mozilla.org.
+### Where It Works
 
-### Parts that work so far
+Fathom works against the DOM API, so you can use it server-side with `jsdom` (which the test harness uses) or another implementation, or you can embed it in a browser and pass it a native DOM. Experimentally, you can also pass in a subtree of a DOM.
 
-* Ranking: scoring nodes found by CSS selector or type
-* Yanking: so far, one aggregate function, max(), which picks the top node of a type and thus maps from the fuzzily-scored domain back to the hard-edged domain of types
-* Type-driven rule dispatch, efficiently driven by a query planner that groks dependencies
-* An `and()` type combinator for building up bigger abstractions from tiny types
-* Lazy execution
-* Caching to keep from re-deriving intermediate results between queries
-* A notion of DOM node distance influenced by structural similarity
-* Clustering based on that distance metric
-* Concise rule definitions
-* Many handy utils from which to compose scoring callbacks
-
-### Not there yet
-
-* Efficient planning for answering max() queries
-* `not()` and `or()` (though you can express `or` the long way around by having 2 rules with identical RHSs)
-
-### Environments
-
-Fathom works against the DOM API, so you can use it server-side with `jsdom` (which the test harness uses) or another implementation, or you can embed it in a browser and pass it a native DOM.
-
-## Example
+### The Language
 
 Think of Fathom as a tiny programming language that recognizes the significant parts of DOM trees by means of its programs, Fathom rulesets. A ruleset is an unordered bag of rules, each of which takes in DOM nodes and annotates them with scores, types, and notes to influence future rules. At the end of the chain of rules, out pops one or more pieces of output—typically high-scoring nodes of certain types—to inform the surrounding imperative program.
 
-This simple ruleset one finds DOM nodes that could contain a useful page title and scores them according to how likely that is:
+This simple ruleset finds DOM nodes that could contain a useful page title and scores them according to how likely that is:
 
 ```javascript
-var rules = ruleset(
+const rules = ruleset(
     // Give any title tag the (default) score of 1, and tag it as title-ish:
     rule(dom('title'), type('titley')),
 
@@ -69,6 +49,10 @@ var rules = ruleset(
     rule(type('titley').max(), out('title'))
 );
 ```
+
+See below for a full definition of `func` (which lets you set score and other attributes using a callback function) and other parts of the Fathom language.
+
+### Rules, Sides, and Flows
 
 Each rule is shaped like `rule(left-hand side, right-hand side)`. The **left-hand side** (LHS) pulls in one or more DOM nodes as input: either ones that match a certain CSS selector (`dom(...)`) or ones tagged with a certain type by other rules (`type(...)`). The **right-hand side** (RHS) then decides what to do with those nodes: assigning an additional type, scaling the score, scribbling a note on it, or some combination thereof. Envision the rule as a pipeline, with the DOM flowing in one end, nodes being picked and passed along to RHSs which twiddle them, and then finally falling out right side, where they might flow into other rules whose LHSs pick them up.
 
@@ -92,58 +76,71 @@ textContainer fnodes emitted        assign "countedWords" type
 
 Remember that Fathom's rulesets are unordered, so any rule's output can flow into any other rule, not just ones that happen to come lexically after it.
 
+### Pulling Out Answers
+
 Once the ruleset is defined, run a DOM tree through it:
 
 ```javascript
 // Tell the ruleset which DOM to run against, yielding a factbase about the document.
-var facts = rules.against(jsdom.jsdom("<html><head>...</html>"));
+const facts = rules.against(jsdom.jsdom("<html><head>...</html>"));
 ```
 
 Then, pull the answers out of the factbase: in this case, we want the max-scoring title, which the ruleset conveniently stores under the "title" output key:
 
 ```javascript
-var bestTitle = facts.get('title');
+const bestTitle = facts.get('title');
 ```
 
-If the ruleset doesn't anticipate the output you want, you can ask for it more explicitly by passing a full LHS to `get()`. For example, if you simply want all the title-ish things so you can do further computation on them...
+If the ruleset doesn't anticipate the output you want, you can ask for it more explicitly by passing a full LHS to `get`. For example, if you simply want all the title-ish things so you can do further computation on them...
 
 ```javascript
-var allTitles = facts.get(type('titley'));
+const allTitles = facts.get(type('titley'));
 ```
 
-Or if you have a reference to a DOM element somehow, you can look up the scores, types, and notes Fathom attached to it:
+Or if you have a reference to a DOM element from elsewhere in your program, you can look up the scores, types, and notes Fathom attached to it:
 
 ```javascript
-var fnode = facts.get(dom.getElementById('aTitle'));
+const fnode = facts.get(dom.getElementById('aTitle'));
 ```
 
 ## Reference
 
-### LHSs
+### Left-hand Sides
 
+#### `and`(*typeCall*, *[typeCall, ...]*)
+Take nodes that conform to multiple conditions at once. For example: `and(type('title'), type('english'))`
 
-### RHSs
+`and` supports only simple type() calls as arguments for now. `not` and `or` don't exist yet, but you can express `or` the long way around by having 2 rules with identical RHSs.
 
-If a RHS sets a note or a score without explicitly setting a type, the type from the `type()` call of the LHS is assumed. If the LHS has none because it's a `dom()` LHS, an error is raised.
+#### `dom`(*cssSelector*)
+Take nodes that match a given DOM selector. Example: `dom('meta[property="og:title"]')`
 
-To do:
-- precedence rules (rightmost same-named wins)
-- definitions of unmentioned calls
-- optimizer hints like atMost() and typeIn(). We decided to have typeIn and scoreUnder apply until explicitly cleared. That way, if somebody did it as a safety thing way up the override chain that you aren't aware of, you won't stomp on it and break their invariants accidentally.
+#### `max`()
+Of the nodes selected by the calls to the left, take the highest-scoring one. Example: `type('titley').max()`
 
-#### Notes
+### Right-hand Sides
 
-`undefined` is not considered a note. So, though notes cannot in general be overwritten, a note that is `undefined` can. Symmetrically, an `undefined` returned from a `.note()` or `.func()` or the like will quietly decline to overwrite an existing defined note, where any other value would cause an error. Rationale: letting `undefined` be a valid note value would mean you couldn't shadow a leftward note in a RHS without introducing a new singleton value to serve as a "no value" flag. It's not worth the complexity and the potential differences between fact and fnode note value semantics.
+A right-hand side is a strung-together series of calls like `type('smoo').func(blah).type('whee').score(2)`. Calls layer together like sheets of transparent acetate: if there are repeats, as with `type` in the previous example, the rightmost takes precedence. Similarly, if `func`, which can return multiple properties of a fact (element, note, score, and type), is missing any of these properties, we continue searching to the left for anything that provides them (excepting other `func` calls—if you want that, write a combinator, and use it to combine the 2 functions you want)).
 
+#### `atMost`(*score*)
+Declare that the maximum returned score multiplier is such and such, which helps the optimizer plan efficiently. This doesn't force it to be true; it merely throws an error at runtime if it isn't. To lift an `atMost` constraint, call `atMost()` (with no args).
 
-#### `func()`
+The reason `atMost` and `typeIn` apply until explicitly cleared is so that, if someone used them for safety reasons on a lexically distant rule you are extending, you won't stomp on their constraint and break their invariants accidentally.
 
-The `func()` call returns...
+#### `conserveScore`()
+Base the scores this RHS applies on the scores of the input nodes rather than starting over from 1.
+
+For now, there is no way to turn this back off (for example with a later application of `func` or `conserveScore(false)`).
+
+#### `func`(*callback*)
+Determine any of type, note, score, and element using a callback. This overrides any previous call to `func` and, depending on what properties of the callback's return value are filled out, may override the effects of other previous calls as well.
+
+The callback should return...
 
 * An optional score multiplier
-* A type (required on dom() rules, defaulting to the input one on type() rules)
+* A type (required on `dom(...)` rules, defaulting to the input one on `type(...)` rules)
 * Optional notes
-* An element, defaulting to the input one. Overriding the default enables a ranker to walk around the tree and say things about nodes other than the input one.
+* An element, defaulting to the input one. Overriding the default enables a callback to walk around the tree and say things about nodes other than the input one.
 
 For example...
 
@@ -156,7 +153,37 @@ function callback(fnode) {
 }
 ```
 
-If you use `func()`, Fathom cannot look inside your callback to see what type you are emitting, so you must declare your output types with `typeIn()` or set a single static type with `type()`. Fathom will complain if you don't. (You can still opt not to return any type if the node turns out not to be a good match, even if you declare a `typeIn()`.
+If you use `func`, Fathom cannot look inside your callback to see what type you are emitting, so you must declare your output types with `typeIn` or set a single static type with `type`. Fathom will complain if you don't. (You can still opt not to return any type if the node turns out not to be a good match, even if you declare a `typeIn`.
+
+#### `note`(*callback*)
+Whatever the callback returns (even `undefined`) becomes the note of the fact. This overrides any previous call to `note`.
+
+Since every node can have multiple, independent notes (one for each type), this applies to the type explicitly set by the RHS or, if none, to the type named by the `type` call on the LHS. If the LHS has none because it's a `dom(...)` LHS, an error is raised.
+
+When you query for fnodes of a certain type, you can expect to find notes of any form you specified on any RHS with that type. If no note is specified, it will be undefined. However, if two RHSs emits a given type, one adding a note and the other not adding one (or adding an undefined one), the meaningful note overrides the undefined one. This allows elaboration on a RHS's score (for example) without needing to repeat note logic.
+
+Indeed, `undefined` is not considered a note. So, though notes cannot in general be overwritten, a note that is `undefined` can. Symmetrically, an `undefined` returned from a `note` or `func` or the like will quietly decline to overwrite an existing defined note, where any other value would cause an error. Rationale: letting `undefined` be a valid note value would mean you couldn't shadow a leftward note in a RHS without introducing a new singleton value to serve as a "no value" flag. It's not worth the complexity and the potential differences between the (internal) fact and fnode note value semantics.
+
+Best practice: any rule adding a type should apply the same note. If only one rule of several type-foo-emitting ones did, it should be made to emit a different type instead so downstream rules can explicitly state that they require the note to be there. Otherwise, there is nothing to guarantee the note-adding rule will run before the note-needing one.
+
+#### `out`(*key*)
+Expose the output of this rule's LHS as a "final result" to the surrounding program. It will be available by calling `.get(key)` on the ruleset. You can run the nodes through a callback function first by adding `.through(callback)`; see below.
+
+#### `through`(*callback*)
+Append `.through` to `.out` to run the nodes emitted from the LHS through an arbitrary function before returning them to the containing program. Example: `out('titleLengths').through(fnode => fnode.noteFor('title').length)`
+
+#### `score`(*scoreMultiplier*)
+Multiply the score of the input node by *scoreMultiplier*, which can be >1 to increase the score or <1 to decrease it.
+
+Since every node can have multiple, independent scores (one for each type), this applies to the type explicitly set by the RHS or, if none, to the type named by the `type` call on the LHS. If the LHS has none because it's a `dom(...)` LHS, an error is raised.
+
+#### `type`(*theType*)
+Apply the type *theType* to processed by this RHS. This overrides any previous call to `type`.
+
+#### `typeIn`(*type*, *[type, ...]*)
+Constrain this rule to emit 1 of a set of given types. This overrides any previous call to `typeIn`. Pass no args to lift a previous `typeIn` constraint, as you might do when basing a LHS on a common value to factor out repetition.
+
+`typeIn` is mostly a hint for the query planner when you're emitting types dynamically from `func` calls—in fact, an error will be raised if `func` is used without a `typeIn` or `type` to constrain it—but it also checks conformance at runtime to ensure validity.
 
 ### Clustering
 
@@ -165,20 +192,48 @@ Fathom also provides a hierarchal clustering algorithm that helps you group node
 ```javascript
 const {cluster} = require('fathom/utils');
 theClusters = clusters(anArrayOfNodes, 4);
-// 4 is the distance beyond which Fathom will decide nodes belong in separate
-// clusters. Turn it up to more aggressively invite nearby nodes into a
-// cluster. Turn it down to keep a stricter definition of "nearby".
 ```
 
-## Best Practices
+In the above, 4 is the distance beyond which Fathom will decide nodes belong in separate clusters. Turn it up to more aggressively invite nearby nodes into a cluster. Turn it down to keep a stricter definition of "nearby".
 
-Any rule adding a type should apply the same note. If only one rule of several `*→a` ones did, it should be made to emit a different type instead so downstream rules can explicitly state that they require the note to be there. Otherwise, there is nothing to guarantee the note-adding rule will run before the note-needing one.
+Various factors influence the measured distance between nodes. The first is the obvious one: topological distance, the number of steps along the DOM tree from one node to another.
 
-## More Examples
+The second is structural similarity. In the following, the divs `a` and `b` are farther apart…
 
-Our docs are a little sparse so far, but [our tests](https://github.com/mozilla/fathom/tree/master/test) might help you in the meantime.
+```
+<center>
+    <div id="a">
+    </div>
+</center>
+<div>
+    <div id="b">
+    </div>
+</div>
+```
 
-## Tests
+…than they would be if the `center` tag were a `div` as well:
+
+```
+<div>
+    <div id="a">
+    </div>
+</div>
+<div>
+    <div id="b">
+    </div>
+</div>
+```
+
+Third is depth disparity. Nodes are considered farther from each other if they are not the same distance from the root.
+
+Finally is the presence of "stride" nodes, which are (1) siblings or (2) siblings of ancestors that lie
+between 2 nodes. Each of these interposed nodes make it less likely that the 2 nodes should be together in a cluster.
+
+At present, the costs for each factor are constants in the `distance` function. They will become settable in a future release.
+
+## Tests and Examples
+
+[Our tests](https://github.com/mozilla/fathom/tree/master/test), especially [demos.js](https://github.com/mozilla/fathom/blob/master/test/demos.js), are replete with examples exercising every corner of Fathom.
 
 To run the tests, run...
 
@@ -190,40 +245,39 @@ This will also run the linter and analyze test coverage. You can find the covera
 
 If you're in the midst of a tornado of rapid development and the fancy stuff is too slow, you can invoke `make test` to run "just the tests, ma'am".
 
+## Support
+
+Join us in IRC if you have questions: #fathom on irc.mozilla.org. Or open an issue on GitHub.
 
 ## Version History
 
 ### 2.0
-The focii for 2.0 are syntactic sugar and support for larger-scale, more powerful rulesets. Everything else falls out of those.
+The focii for 2.0 are syntactic sugar and support for larger, more powerful rulesets that can operate at higher levels of abstraction. From these priorities spring all of the following:
 
-Fathom 2.0 pulls yankers (max(), for now) into the ruleset, opening the opportunity for automatic optimization. It's also computes answers lazily, running only the necessary rules each time you say `get()` (and caching intermediate results to save work on later calls). It's thus eschews 1.x's strategy of emitting the entire scored world for the surrounding imperative program to examine and instead exposes a fact base that just acts like a lazy hash of useful answers. This opens the door to large, sophisticated rulesets that are still fast and, someday, can have parts reused.
-
-Fathom 2.0 enables optimization within the rule executor to make short-circuiting sets of rules efficient. It also introduces new yankers like `max()`, which provide a way to map assertions about fuzzy scores down to the boolean statements of type: it's a "cut", and it helps with ruleset efficiency. Of course, if you still want to imbibe the entire scored corpus of nodes in your surrounding program, you can simply yank all nodes of a type the `type()` yanker: just point it to `out('someKey')`, and the results will appear in the yanked data under that key.
-
-It's also lazy.
-
-It also expands the domain of concern of a ruleset from a single dimension ("Find just the ads!") to multiple ones ("Find the ads and the navigation and the products and the prices!"), if you like.
-
-It sugars the RHS syntax to…
-* be both shorter and easier to read in a lot of cases and
-* perhaps more importantly, surface more info declaratively so the optimizer can take advantage of it
-* allow you to concisely factor up repeated parts of complex RHSs
+* "Yankers" or aggregate functions are now part of the ruleset: `max` for now, more in a later release. This in-ruleset mapping from the fuzzy domain of scores back to the boolean domain of types lets ruleset authors choose between efficiency and completeness. It also opens the door to automatic optimization down the road.
+* Answers are computed lazily, running only the necessary rules each time you say `get(...)` and caching intermediate results to save work on later calls. We thus eschew 1.x's strategy of emitting the entire scored world for the surrounding imperative program to examine and instead expose a factbase that acts like a lazy hash of answers. This allows for large, sophisticated rulesets that are nonetheless fast and can be combined to reuse parts (see `Ruleset.rules()`). Of course, if you still want to imbibe the entire scored corpus of nodes in your surrounding program, you can simply yank all nodes of a type using the `type` yanker: just point it to `out`, and the results will be available from the outside: `rule(type('foo'), out('someKey'))`.
+* We expand the domain of concern of a ruleset from a single dimension ("Find just the ads!") to multiple ones ("Find the ads and the navigation and the products and the prices!"). This is done by making scores and notes per-type.
+* The rule syntax has been richly sugared to…
+    * be both shorter and easier to read in most cases
+    * surface more info declaratively so the query planner can take advantage of it
+    * allow you to concisely factor up repeated parts of complex LHSs and RHSs
+* Test coverage is greatly improved, and eslint is keeping us from doing overtly stupid things.
 
 #### Backward-incompatible changes
 
-* Ranker functions can no longer return multiple facts, which simplifies both syntax and design. For now, use multiple rules, each emitting one fact, and share expensive intermediate computations in notes. If this proves a problem in practice, we'll switch back, but I never saw anyone return multiple facts in the wild.
-* Scores are now per-type. This lets you deliver multiple independent scores per ruleset. It also lets Fathom optimize out downstream rules in many cases, since downstream rules' scores no longer back-propagate to upstream types. In the future, per-type scores will enable complex computations with types as composable units of abstraction, open the possibility of over-such-and-such-a-score yankers, and make non-multiplication-based score factors a possibility. The old behavior remains largely available (TODO: cite the syntax), with a few corner-case exceptions (overlapping dom() selectors?).
+* RHSs (née ranker functions) can no longer return multiple facts, which simplifies both syntax and design. For now, use multiple rules, each emitting one fact, and share expensive intermediate computations in notes. If this proves a problem in practice, we'll switch back, but I never saw anyone return multiple facts in the wild.
+* Scores are now per-type. This lets you deliver multiple independent scores per ruleset. It also lets Fathom optimize out downstream rules in many cases, since downstream rules' scores no longer back-propagate to upstream types. Per-type scores also enable complex computations with types as composable units of abstraction, open the possibility of over-such-and-such-a-score yankers, and make non-multiplication-based score components a possibility. However, the old behavior remains largely available via `conserveScore`.
 
-### 1.0
-* Initial release
+### 1.1.2
+* Stop assuming querySelectorAll() results conform to the iterator protocol. This fixes compatibility with Chrome.
+* Add test coverage reporting.
+
+### 1.1.1
+* No changes. Just bump the version in an attempt to get the npm index page to update.
 
 ### 1.1
 * Stop using `const` in `for...of` loops. This lets Fathom run within Firefox, which does not allow this due to a bug in its ES implementation.
 * Optimize DistanceMatrix.numClusters(), which should make clustering a bit faster.
 
-### 1.1.1
-* No changes. Just bump the version in an attempt to get the npm index page to update.
-
-### 1.1.2
-* Stop assuming querySelectorAll() results conform to the iterator protocol. This fixes compatibility with Chrome.
-* Add test coverage reporting.
+### 1.0
+* Initial release

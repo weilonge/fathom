@@ -38,6 +38,11 @@ function conserveScore() {
 }
 
 
+// Pull nodes that conform to multiple conditions at once.
+//
+// For example: `and(type('title'), type('english'))`
+//
+// `and()` supports only simple type() calls as arguments for now.
 function and(...lhss) {
     return new Side({method: 'and', args: lhss});
 }

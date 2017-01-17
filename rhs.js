@@ -23,15 +23,15 @@ function out(key) {
 
 
 // A right-hand side is a strung-together series of calls like
-// type('smoo').func(blah).type('whee').score(2). They layer together like
-// sheets of transparent acetate: if there are repeats, as with type() just
-// now, the rightmost takes precedence. Similarly, if func(), which can return
-// multiple properties of a fact (element, note, score, and type), is missing
-// any of these properties, we will continue searching to the left for anything
-// that fills them in (excepting other func()s--if you want that, write a
-// combinator, and use it to combine the 2 functions you want)). To prevent
-// this, return all properties explicitly from your func, even if they are
-// no-ops (like {score: 1, note: undefined, type: undefined}).
+// `type('smoo').func(blah).type('whee').score(2)`. Calls layer together like
+// sheets of transparent acetate: if there are repeats, as with `type()` in the
+// previous example, the rightmost takes precedence. Similarly, if `func()`,
+// which can return multiple properties of a fact (element, note, score, and
+// type), is missing any of these properties, we continue searching to the left
+// for anything that provides them (excepting other func()s--if you want that,
+// write a combinator, and use it to combine the 2 functions you want)). To
+// prevent this, return all properties explicitly from your func, even if they
+// are no-ops (like {score: 1, note: undefined, type: undefined}).
 class InwardRhs {
     constructor(calls = [], max = Infinity, types) {
         this._calls = calls.slice();

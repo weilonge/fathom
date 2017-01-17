@@ -3,8 +3,7 @@
 const {maxes, getDefault, setDefault} = require('./utils');
 
 
-// Return a condition that uses a DOM selector to find its matches from the
-// original DOM tree.
+// Take nodes that match a given DOM selector.
 function dom(selector) {
     return new DomLhs(selector);
 }
