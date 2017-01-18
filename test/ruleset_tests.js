@@ -106,7 +106,7 @@ describe('Ruleset', function () {
             assert.equal(para.scoreFor('para'), 2);
             // Other rules have had no reason to run yet, so their types' scores
             // remain the default:
-            assert.equal(para.scoreFor('smoo'), 1);
+            assert.equal(para.scoreSoFarFor('smoo'), 1);
 
             const smoo = facts.get(type('smoo'))[0];
             // Fresh score:
@@ -172,10 +172,11 @@ describe('Ruleset', function () {
             );
             const facts = rules.against(doc);
             const p = facts.get('c')[0];
-            assert(p.hasType('a'));
-            assert(!p.hasType('b'));
-            assert(p.hasType('c'));
-            assert(!p.hasType('d'));
+            const typesSoFar = new Set(p.typesSoFar());
+            assert(typesSoFar.has('a'));
+            assert(!typesSoFar.has('b'));
+            assert(typesSoFar.has('c'));
+            assert(!typesSoFar.has('d'));
         });
     });
 

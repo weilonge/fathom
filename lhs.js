@@ -148,7 +148,7 @@ class TypeMaxLhs extends TypeLhs {
             ruleset.maxCache,
             this._type,
             function maxFnodesOfType() {
-                return maxes(getSuperFnodes(), fnode => fnode.scoreFor(self._type));
+                return maxes(getSuperFnodes(), fnode => fnode.scoreSoFarFor(self._type));
             });
     }
 
@@ -182,6 +182,7 @@ class AndLhs extends Lhs {
         // Then keep only the fnodes that have the type of every other arg:
         fnodeLoop: for (let fnode of fnodes) {
             for (let otherLhs of this._args.slice(1)) {
+                // Optimization: could use a .hasTypeSoFar() below
                 if (!fnode.hasType(otherLhs.guaranteedType())) {
                     // TODO: This is n^2. Why is there no set intersection in JS?!
                     continue fnodeLoop;

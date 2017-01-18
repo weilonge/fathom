@@ -118,21 +118,9 @@ class BoundRuleset {
                 throw new Error(`There is no out() rule with key "${thing}".`);
             }
         } else if (thing.nodeName !== undefined) {
-            // Compute everything (not just things that lead to outs):
-            for (let inRule of this._inRules) {
-                if (!this.doneRules.has(inRule)) {
-                    this._execute(inRule);
-                }
-            }
+            // Return the fnode  and let it run type(foo) on demand, as people
+            // ask it things like scoreFor(foo).
             return this.fnodeForElement(thing);
-            // TODO: How can we be more efficient about this, for classifying
-            // pages (in which case the classifying types end up attached to a
-            // high-level element like <html>)? Maybe we care only about some
-            // of the classification types in this ruleset: let's not run the
-            // others. We could provide a predefined partial RHS that specifies
-            // element(root) and a convenience routine that runs .get(each
-            // classification type) and then returns the root fnode, which you
-            // can examine to see what types are on it.
         } else if (thing.asLhs) {
             // TODO: I'm not sure if we can still do this in Toposort Land. What if they ask for type(b) → score(2)? It won't run other b → b rules. We could just mention that as a weird corner case and tell ppl not to do that. Or we could implement a special case that makes sure we light up all b → b rules whenever we light up one.
             // Make a temporary out rule, and run it. This may add things to
@@ -228,7 +216,7 @@ class BoundRuleset {
     fnodeForElement(element) {
         return setDefault(this.elementCache,
                           element,
-                          () => new Fnode(element));
+                          () => new Fnode(element, this));
     }
 }
 

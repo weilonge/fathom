@@ -1,12 +1,16 @@
+const {type} = require('./side.js');
 const {getDefault, setDefault} = require('./utils');
 
 
 class Fnode {
-    constructor(element) {
+    // element: The DOM element I describe
+    // ruleset: The ruleset which created me
+    constructor(element, ruleset) {
         if (element === undefined) {
             throw new Error("Someone tried to make a fnode without specifying the element they're talking about.");
         }
         this.element = element;
+        this._ruleset = ruleset;
 
         // A map of type => {score: number, note: anything}. `score` is always
         // present and defaults to 1. A note is set iff `note` is present and
@@ -22,36 +26,35 @@ class Fnode {
         // scores have already been multiplied into each type. LHS fnode => Set
         // of types whose score for that node have been multiplied into this
         // node's score.
-        // upstream types whose scores already contributed:
         this._conservedScores = new Map();
     }
 
     // Return whether the given type is one of the ones attached to this node.
     hasType(type) {
-        // TODO: Maybe run type(theType) against the ruleset to make sure this
-        // doesn't return false just because we haven't lazily run certain
-        // rules yet. Same for scoreFor, noteFor, and hasNoteFor. If we do
-        // that, update the tests to use typesSoFar instead.
+        // Run type(theType) against the ruleset to make sure this doesn't
+        // return false just because we haven't lazily run certain rules yet.
+        this._computeType(type);
         return this._types.has(type);
     }
 
     // Return our score for the given type, 1 by default.
     scoreFor(type) {
-        return this._typeRecordForGetting(type).score;
+        this._computeType(type);
+        return this.scoreSoFarFor(type);
     }
 
     // Return the note for the given type, undefined if none.
     noteFor(type) {
-        return this._typeRecordForGetting(type).note;
+        this._computeType(type);
+        return this._noteSoFarFor(type);
     }
 
     // Return whether this node has a note for the given type.
     // Undefined is not considered a note and may be overwritten with impunity.
     hasNoteFor(type) {
-        return this.noteFor(type) !== undefined;
+        this._computeType(type);
+        return this._hasNoteSoFarFor(type);
     }
-
-    // TODO: Have a public way to enumerate my types.
 
     // -------- Methods below this point are private to the framework. --------
 
@@ -59,6 +62,18 @@ class Fnode {
     // already executed.
     typesSoFar() {
         return this._types.keys();
+    }
+
+    _noteSoFarFor(type) {
+        return this._typeRecordForGetting(type).note;
+    }
+
+    _hasNoteSoFarFor(type) {
+        return this._noteSoFarFor(type) !== undefined;
+    }
+
+    scoreSoFarFor(type) {
+        return this._typeRecordForGetting(type).score;
     }
 
     // Multiply one of our per-type scores by a given number. Implicitly assign
@@ -83,7 +98,7 @@ class Fnode {
     // Set the note attached to one of our types. Implicitly assign us that
     // type if we don't have it already.
     setNoteFor(type, note) {
-        if (this.hasNoteFor(type)) {
+        if (this._hasNoteSoFarFor(type)) {
             if (note !== undefined) {
                 throw new Error(`Someone (likely the right-hand side of a rule) tried to add a note of type ${type} to an element, but one of that type already exists. Overwriting notes is not allowed, since it would make the order of rules matter.`);
             }
@@ -105,6 +120,14 @@ class Fnode {
     // a .? operator in JS.
     _typeRecordForGetting(type) {
         return getDefault(this._types, type, () => ({score: 1}));
+    }
+
+    // Make sure any scores, notes, and type-tagging for the given type are
+    // computed for my element.
+    _computeType(theType) {
+        if (!this._types.has(theType)) {  // an unbenched optimization
+            this._ruleset.get(type(theType));
+        }
     }
 }
 
