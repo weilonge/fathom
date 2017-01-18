@@ -164,7 +164,7 @@ class AndLhs extends Lhs {
 
         function sideToTypeLhs(side) {
             const lhs = side.asLhs();
-            if (!(lhs instanceof TypeLhs)) {  // TODO: exclude TypeMaxLhs
+            if (!(lhs.constructor === TypeLhs)) {
                 throw new Error('and() supports only simple type() calls as arguments for now.');
             }
             return lhs;
