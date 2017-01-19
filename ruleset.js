@@ -99,16 +99,13 @@ class BoundRuleset {
         this.doneRules = new Set();  // InwardRules that have been executed. OutwardRules can be executed more than once because they don't change any fnodes and are thus idempotent.
     }
 
-    // Return an array of zero or more results.
+    // Return an array of zero or more fnodes.
     // thing: can be...
-    //   * A string which matches up with an "out" rule in the ruleset. In this
-    //     case, fnodes will be returned. Or, if the out rule referred to uses
-    //     through(), whatever the results of through's callback will be
-    //     returned.
-    //   * An arbitrary LHS which we'll calculate and return the results of. In
-    //     this case, fnodes will be returned.
-    //   * A DOM node, which will (compute-intensely) run the whole ruleset and
-    //     return the fully annotated fnode corresponding to that node
+    //   * A string which matches up with an "out" rule in the ruleset. If the
+    //     out rule uses through(), the results of through's callback (which
+    //     might not be fnodes) will be returned.
+    //   * An arbitrary LHS which we calculate and return the results of
+    //   * A DOM node, for which we will return the corresponding fnode
     // Results are cached in the first and third cases.
     get(thing) {
         if (typeof thing === 'string') {
@@ -121,8 +118,7 @@ class BoundRuleset {
             // Return the fnode  and let it run type(foo) on demand, as people
             // ask it things like scoreFor(foo).
             return this.fnodeForElement(thing);
-        } else if (thing.asLhs) {
-            // TODO: I'm not sure if we can still do this in Toposort Land. What if they ask for type(b) → score(2)? It won't run other b → b rules. We could just mention that as a weird corner case and tell ppl not to do that. Or we could implement a special case that makes sure we light up all b → b rules whenever we light up one.
+        } else if (thing.asLhs !== undefined) {
             // Make a temporary out rule, and run it. This may add things to
             // the ruleset's cache, but that's fine: it doesn't change any
             // future results; it just might make them faster. For example, if

@@ -18,6 +18,31 @@ describe('Ruleset', function () {
             assert.equal(div.scoreFor('paragraphish'), 1);
         });
 
+        it('by passed-in type(A) LHS, triggering A -> A rules along the way', function () {
+            const doc = jsdom(`
+                <div>Hooooooo</div>
+            `);
+            const rules = ruleset(
+                rule(dom('div'), type('paragraphish')),
+                rule(type('paragraphish'), score(2)),
+                rule(type('paragraphish'), type('foo'))
+            );
+            const facts = rules.against(doc);
+
+            // type(A) queries cause A -> A rules to run:
+            const div = facts.get(type('paragraphish'))[0];
+            assert.equal(div.scoreFor('paragraphish'), 2);
+
+            // max() queries do, too:
+            const divMax = facts.get(type('paragraphish').max())[0];
+            assert.equal(divMax.scoreFor('paragraphish'), 2);
+
+            // The and() returns the same fnode as the other queries (which
+            // presumably still runs the A -> A rule):
+            const divAnd = facts.get(and(type('paragraphish'), type('foo')))[0];
+            assert(divAnd === div);
+        });
+
         it('results by out-rule key', function () {
             const doc = jsdom(`
                 <div>Hooooooo</div>
@@ -39,6 +64,7 @@ describe('Ruleset', function () {
             );
             const facts = rules.against(doc);
             const div = facts.get(doc.querySelectorAll('div')[0]);
+            // scoreFor() triggers rule execution:
             assert.equal(div.scoreFor('paragraphish'), 8);
         });
 
