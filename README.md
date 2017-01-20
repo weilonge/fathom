@@ -43,14 +43,14 @@ const rules = ruleset(
 
     // Take all title-ish things, and punish them if they contain
     // navigational claptrap like colons or dashes:
-    rule(type('titley'), func(node => {score: containsColonsOrDashes(node.element) ? .5 : 1})),
+    rule(type('titley'), score(fnode => containsColonsOrDashes(fnode.element) ? .5 : 1)),
 
     // Offer the max-scoring title-ish node under the output key "title":
     rule(type('titley').max(), out('title'))
 );
 ```
 
-See below for a full definition of `func` (which lets you set score and other attributes using a callback function) and other parts of the Fathom language.
+See below for a full definition of `type`, `score`, and the rest of the Fathom language.
 
 ### Rules, Sides, and Flows
 
