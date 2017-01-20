@@ -102,4 +102,13 @@ describe('RHS', function () {
         const facts = rules.against(doc);
         assert.equal(facts.get(type('para'))[0].noteFor('para'), 'foo');
     });
+
+    it('runs scoring callbacks', function () {
+        const doc = jsdom('<p></p>');
+        const rules = ruleset(
+            rule(dom('p'), type('p').score(fnode => 5))
+        );
+        const facts = rules.against(doc);
+        assert.equal(facts.get(type('p'))[0].scoreFor('p'), 5);
+    });
 });

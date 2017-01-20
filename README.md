@@ -172,8 +172,8 @@ Expose the output of this rule's LHS as a "final result" to the surrounding prog
 #### `through`(*callback*)
 Append `.through` to `.out` to run the nodes emitted from the LHS through an arbitrary function before returning them to the containing program. Example: `out('titleLengths').through(fnode => fnode.noteFor('title').length)`
 
-#### `score`(*scoreMultiplier*)
-Multiply the score of the input node by *scoreMultiplier*, which can be >1 to increase the score or <1 to decrease it.
+#### `score`(*scoreOrCallback*)
+Multiply the score of the input node by some number, which can be >1 to increase the score or <1 to decrease it. `scoreOrCallback` can either be a static number or else a callback which takes the fnode and returns a number.
 
 Since every node can have multiple, independent scores (one for each type), this applies to the type explicitly set by the RHS or, if none, to the type named by the `type` call on the LHS. If the LHS has none because it's a `dom(...)` LHS, an error is raised.
 

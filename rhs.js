@@ -159,17 +159,34 @@ class InwardRhs {
     // Set the returned score multiplier. This overrides any previous calls to
     // .score().
     //
+    // scoreOrCallback: Either a number (which will be multiplied into the
+    //   score for each fnode emitted from the LHS) or a function that take a
+    //   fnode and returns such a number
+    //
     // In the future, we might also support providing a callback that receives
     // the fnode and returns a score. We couldn't reason based on these, but
     // the use would be rather to override part of what a previous .func() call
     // provides. It would also allow us to avoid some uses of func(), which
     // force us to verbosely declare typeIn().
-    score(theScore) {
-        function getSubfacts(fnode) {
-            return {score: theScore};
+    score(scoreOrCallback) {
+        let getSubfacts;
+
+        function getSubfactsFromNumber(fnode) {
+            return {score: scoreOrCallback};
+        }
+
+        function getSubfactsFromFunction(fnode) {
+            return {score: scoreOrCallback(fnode)};
+        }
+
+        if (typeof scoreOrCallback === 'number') {
+            getSubfacts = getSubfactsFromNumber;
+        } else {
+            getSubfacts = getSubfactsFromFunction;
         }
         getSubfacts.possibleSubfacts = SCORE;
         getSubfacts.kind = 'score';
+
         return new this.constructor(this._calls.concat(getSubfacts),
                                     this._max,
                                     this._types);

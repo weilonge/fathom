@@ -60,7 +60,7 @@ describe('Ruleset', function () {
             `);
             const rules = ruleset(
                 rule(dom('div'), type('paragraphish')),  // when we add .score(1), the test passes.
-                rule(type('paragraphish'), func(node => ({score: node.element.textContent.length})).typeIn('paragraphish'))
+                rule(type('paragraphish'), score(fnode => fnode.element.textContent.length))
             );
             const facts = rules.against(doc);
             const div = facts.get(doc.querySelectorAll('div')[0]);

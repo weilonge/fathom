@@ -18,8 +18,8 @@ function note(callback) {
 }
 
 
-function score(theScore) {
-    return new Side({method: 'score', args: [theScore]});
+function score(scoreOrCallback) {
+    return new Side({method: 'score', args: [scoreOrCallback]});
 }
 
 
@@ -74,8 +74,8 @@ class Side {
         return this._and('note', callback);
     }
 
-    score(theScore) {
-        return this._and('score', theScore);
+    score(scoreOrCallback) {
+        return this._and('score', scoreOrCallback);
     }
 
     atMost(score) {
