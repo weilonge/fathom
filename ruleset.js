@@ -139,9 +139,8 @@ class BoundRuleset {
 
     // -------- Methods below this point are private to the framework. --------
 
-    // Return all the (shallow) thus-far-unexecuted rules that will have to run
-    // to run the requested rule, in the form of
-    // Map(prereq: [rulesItIsNeededBy]).
+    // Return all the thus-far-unexecuted rules that will have to run to run
+    // the requested rule, in the form of Map(prereq: [rulesItIsNeededBy]).
     _prerequisitesTo(rule, undonePrereqs = new Map()) {
         for (let prereq of rule.prerequisites(this)) {
             if (!this.doneRules.has(prereq)) {
@@ -233,7 +232,9 @@ class Rule {  // abstract
     // The rules are these, where A is a type:
     // * A.max->* depends on anything emitting A.
     // * A->A depends on anything adding A.
-    // * A->* (including (A->out(…)) depends on anything emitting A.
+    // * A->* (including (A->out(…)) depends on anything emitting A. (For
+    //   example, we need the A score finalized before we could transfer it to
+    //   B using conserveScore().)
     prerequisites(ruleset) {
         // Some LHSs know enough to determine their own prereqs:
         const delegated = this.lhs.prerequisites(ruleset);
@@ -276,7 +277,7 @@ class InwardRule extends Rule {
     // rules are done executing, and its cache of results per type.
     results(ruleset) {
         if (ruleset.doneRules.has(this)) {  // shouldn't happen
-            throw new Error('Some internal bumbler called results() on an inward rule twice. That could cause redundant score multiplications, etc.');
+            throw new Error('A bug in Fathom caused results() to be called on an inward rule twice. That could cause redundant score multiplications, etc.');
         }
         const self = this;
         // For now, we consider most of what a LHS computes to be cheap, aside
@@ -345,6 +346,8 @@ class InwardRule extends Rule {
     }
 
     // Return a Set of the types that could be emitted back into the system.
+    // To emit a type means to either to add it to an outputted fnode or to
+    // leave it on an outputted fnode where it already exists.
     typesItCouldEmit() {
         const rhs = this.rhs.possibleEmissions();
         if (!rhs.couldChangeType && this.lhs.guaranteedType() !== undefined) {
@@ -358,7 +361,8 @@ class InwardRule extends Rule {
         }
     }
 
-    // Return a Set of types.
+    // Return a Set of types I could add to fnodes I output (where the fnodes
+    // did not already have them).
     typesItCouldAdd() {
         const ret = new Set(this.typesItCouldEmit());
         ret.delete(this.lhs.guaranteedType());

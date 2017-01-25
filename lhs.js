@@ -166,6 +166,8 @@ class AndLhs extends Lhs {
             const lhs = side.asLhs();
             if (!(lhs.constructor === TypeLhs)) {
                 throw new Error('and() supports only simple type() calls as arguments for now.');
+                // TODO: Though we could solve this with a compilation step: and(type(A), type(B).max()) is equivalent to type(B).max() -> type(Bmax); and(type(A), type(Bmax)).
+                // In fact, we should be able to compile most (any?) arbitrary and()s, including nested ands and and(type(...).max(), ...) constructions into several and(type(A), type(B), ...) rules.
             }
             return lhs;
         }

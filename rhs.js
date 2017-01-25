@@ -249,12 +249,8 @@ class InwardRhs {
         return result;
     }
 
-    // Return a Set of types I am constrained to emit (which means either to
-    // add a type to a fnode or to maintain it unchanged), if we can prove such
-    // a constraint without reference to the LHS. Otherwise, return an empty
-    // Set.
-
-    // Return a record describing the types I might emit.
+    // Return a record describing the types I might emit (which means either to
+    // add a type to a fnode or to output a fnode that already has that type).
     // {couldChangeType: whether I might add a type to the fnode,
     //  possibleTypes: If couldChangeType, the types I might emit; empty set if
     //      we cannot infer it. If not couldChangeType, undefined.}
