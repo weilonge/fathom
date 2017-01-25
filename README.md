@@ -116,9 +116,9 @@ const fnode = facts.get(dom.getElementById('aTitle'));
 ### Left-hand Sides
 
 #### `and`(*typeCall*, *[typeCall, ...]*)
-Take nodes that conform to multiple conditions at once. For example: `and(type('title'), type('english'))`
+Experimental. Take nodes that conform to multiple conditions at once. For example: `and(type('title'), type('english'))`
 
-`and` supports only simple type() calls as arguments for now. `not` and `or` don't exist yet, but you can express `or` the long way around by having 2 rules with identical RHSs.
+Caveats: `and` supports only simple `type` calls as arguments for now, and it may fire off more rules as prerequisites than strictly necessary. `not` and `or` don't exist yet, but you can express `or` the long way around by having 2 rules with identical RHSs.
 
 #### `dom`(*cssSelector*)
 Take nodes that match a given DOM selector. Example: `dom('meta[property="og:title"]')`
