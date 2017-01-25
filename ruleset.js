@@ -346,8 +346,8 @@ class InwardRule extends Rule {
     }
 
     // Return a Set of the types that could be emitted back into the system.
-    // To emit a type means to either to add it to an outputted fnode or to
-    // leave it on an outputted fnode where it already exists.
+    // To emit a type means to either to add it to a fnode emitted from the RHS
+    // or to leave it on such a fnode where it already exists.
     typesItCouldEmit() {
         const rhs = this.rhs.possibleEmissions();
         if (!rhs.couldChangeType && this.lhs.guaranteedType() !== undefined) {

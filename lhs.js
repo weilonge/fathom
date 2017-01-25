@@ -196,8 +196,9 @@ class AndLhs extends Lhs {
 
     // We require all rules that emit any of the types mentioned in my args.
     prerequisites(ruleset) {
-        // TODO: Figure out what to do about and('A') -> type('A'). That's
-        // equivalent to A -> A, which depends on only adders, not emitters.
+        // TODO: Come up with a stricter set of prereqs. and('A') -> type('A')
+        // is equivalent to A -> A, which depends on only adders, not emitters.
+        // See branch inferrer-generalization.
         const prereqTypes = this._args.map(arg => arg.guaranteedType());
         const prereqs = new Set();
         for (let type of prereqTypes) {
