@@ -1,0 +1,37 @@
+env:
+  es6: true
+  node: true
+
+extends:
+  - eslint:recommended
+  - plugin:node/recommended
+
+plugins:
+  - node
+
+root: true
+
+rules:
+  generator-star-spacing: [warn, {before: true, after: false}]
+  guard-for-in: warn  # There's nothing wrong with for..in if you know what you're doing. This is here just to keep me from accidentally saying "for..in" when I mean "for..of". Delete this and come up with a better solution if we ever need to use "for..in".
+  indent: [error, 4, {ObjectExpression: first, ArrayExpression: first, CallExpression: {arguments: first}}]
+  max-len: [off, {code: 100, ignoreComments: true, ignoreStrings: true, ignoreTemplateLiterals: true}]
+  node/exports-style: [error, module.exports]
+  node/no-unpublished-require: [error, {allowModules: [chai, jsdom]}]
+  no-dupe-class-members: error
+  no-loop-func: error
+  no-new-func: error  # equivalent to eval()
+  no-throw-literal: error
+  no-trailing-spaces: error
+  no-underscore-dangle: off
+  no-unused-vars: [warn, {vars: all, args: none}]
+  no-use-before-define: [error, {functions: false, classes: false}]
+  no-useless-escape: error
+  no-var: warn
+  no-warning-comments: [warn, {terms: [xxx, fixme, hack], location: start}]
+  object-shorthand: [error, properties]
+  prefer-const: off
+  quotes: [error, single, {avoidEscape: true, allowTemplateLiterals: true}]
+  semi: [error, always]
+  space-before-blocks: [error, always]
+  space-before-function-paren: [error, {anonymous: always, named: never}]

@@ -1,40 +1,116 @@
 const assert = require('chai').assert;
-const jsdom = require('jsdom');
+const {jsdom} = require('jsdom');
 
-const {dom, flavor, rule, ruleset} = require('../index');
-const {inlineTextLength, linkDensity} = require('../utils');
+const {dom, flavor, func, out, rule, ruleset, type} = require('../index');
+const {inlineTextLength, linkDensity, numberOfMatches, page, sum} = require('../utils');
 
 
-describe('Design-driving demos', function() {
+describe('Design-driving demos', function () {
     it('handles a simple series of short-circuiting rules', function () {
         // TODO: Short-circuiting isn't implemented yet. The motivation of this
         // test is to inspire changes to ranker functions that make them more
         // declarative, such that the engine can be smart enough to run the
         // highest-possible-scoring flavor-chain of rules first and, if it
         // succeeds, omit the others.
-        const doc = jsdom.jsdom(`
+        const doc = jsdom(`
             <meta name="hdl" content="HDL">
             <meta property="og:title" content="OpenGraph">
             <meta property="twitter:title" content="Twitter">
             <title>Title</title>
         `);
+        const typeAndNote = type('titley').note(fnode => fnode.element.getAttribute('content'));
         const rules = ruleset(
             rule(dom('meta[property="og:title"]'),
-                 node => [{score: 40, flavor: 'titley', notes: node.element.content}]),
+                 typeAndNote.score(40)),
             rule(dom('meta[property="twitter:title"]'),
-                 node => [{score: 30, flavor: 'titley', notes: node.element.content}]),
+                 typeAndNote.score(30)),
             rule(dom('meta[name="hdl"]'),
-                 node => [{score: 20, flavor: 'titley', notes: node.element.content}]),
+                 typeAndNote.score(20)),
             rule(dom('title'),
-                 node => [{score: 10, flavor: 'titley', notes: node.element.text}])
+                 typeAndNote.score(10).note(fnode => fnode.element.text)),
+            rule(type('titley').max(), out('bestTitle'))
         );
-        const kb = rules.score(doc);
-        const node = kb.max('titley');
-        assert.equal(node.score, 40);
-        assert.equal(node.flavors.get('titley'), 'OpenGraph');
+        const facts = rules.against(doc);
+        const node = facts.get('bestTitle')[0];
+        assert.equal(node.scoreFor('titley'), 40);
+        assert.equal(node.noteFor('titley'), 'OpenGraph');
     });
 
-    it("takes a decent shot at doing Readability's job", function () {
+    it('identifies logged-in pages', function () {
+        // Stick a score on the root element based on how much the classes on `fnode`
+        // mention logging out.
+        function scoreByLogoutClasses(fnode) {
+            const classes = Array.from(fnode.element.classList);
+            const score = Math.pow(2,
+                                   sum(classes.map(cls => numberOfMatches(/(?:^|[-_])(?:log[-_]?out|sign[-_]?out)(?:$|[-_ $])/ig, cls))));
+            if (score > 1) {
+                return {score, type: 'logoutClass'};
+            }
+        }
+
+        function scoreByLogoutHrefs(fnode) {
+            const href = fnode.element.getAttribute('href');
+            const score = Math.pow(2, numberOfMatches(/(?:^|\W)(?:log[-_]?out|sign[-_]?out)(?:$|\W)/ig, href));
+            if (score > 1) {
+                return {score, type: 'logoutHref'};
+            }
+        }
+
+        const rules = ruleset(
+            // Look for "logout", "signout", etc. in CSS classes and parts thereof:
+            rule(dom('button[class], a[class]'),
+                 func(page(scoreByLogoutClasses)).typeIn('logoutClass')),
+            // Look for "logout" or "signout" in hrefs:
+            rule(dom('a[href]'),
+                 func(page(scoreByLogoutHrefs)).typeIn('logoutHref')),
+
+            // Union the two intermediate results into a more general loggedIn type:
+            rule(type('logoutClass'),
+                 type('loggedIn').conserveScore()),
+            rule(type('logoutHref'),
+                 type('loggedIn').conserveScore())
+
+            // Look for "Log out", "Sign out", etc. in content of links: a
+            // bonus for English pages.
+            // rule(dom('a[href]'), func(page(...)).typeIn('logout
+        );
+
+        function isProbablyLoggedIn(doc) {
+            const ins = rules.against(doc).get(type('loggedIn'));
+            return ins.length && ins[0].scoreFor('loggedIn') > 1;
+        }
+
+        // air.mozilla.org:
+        assert(isProbablyLoggedIn(jsdom(`
+            <html>
+                <a href="/authentication/signout/" class="signout">Sign Out</a>
+            </html>
+        `)));
+        // crateandbarrel.com
+        assert(isProbablyLoggedIn(jsdom(`
+            <html>
+                <div class="dropdown-sign-in">
+                    <a href="/account/logout" rel="nofollow">Sign Out</a>
+                </div>
+            </html>
+        `)));
+        // slashdot.org
+        assert(isProbablyLoggedIn(jsdom(`
+            <html>
+                <a href="///slashdot.org/my/logout">
+                  Log out
+                </a>
+            </html>
+        `)));
+        // news.ycombinator.com
+        assert(isProbablyLoggedIn(jsdom(`
+            <html>
+                <a href="logout?auth=123456789abcdef&amp;goto=news">logout</a>
+            </html>
+        `)));
+    });
+
+    it.skip("takes a decent shot at doing Readability's job", function () {
         // Score a node based on how much text is directly inside it and its
         // inline-tag children.
         function paragraphishByLength(node) {
@@ -46,7 +122,7 @@ describe('Design-driving demos', function() {
             };
         }
 
-        const doc = jsdom.jsdom(`
+        const doc = jsdom(`
             <p>
                 <a class="good" href="/things">Things</a> / <a class="bad" href="/things/tongs">Tongs</a>
             </p>
@@ -77,11 +153,10 @@ describe('Design-driving demos', function() {
 
             // Give bonuses for being (nth) cousins of other texties. IOW,
             // texties that are the same-leveled children of a common ancestor
-            // get a bonus.
+            // get a bonus. [Ed: we should probably use clustering instead.]
             //rule(flavor('texty'), node => ({score: numCousinsOfAtLeastOfScore(node, 200) * 1.5}))
 
-            // Then do a nontrivial yanker which figures out which clump of high-scoring paragraphishes and the things between them to grab.
-            // TODO: How do we ensure blockquotes, h2s, uls, etc. that are part of the article are included? Maybe what we're really looking for is a single, high-scoring container (or span of a container?) and then taking either everything inside it or everything but certain excised bits (interstitial ads/relateds). There might be 2 phases: rank and yank.
+            // TODO: How do we ensure blockquotes, h2s, uls, etc. that are part of the article, betwixt the clustered paragraphishes, are included? Maybe what we're really looking for is a single, high-scoring container (or span of a container?) and then taking either everything inside it or everything but certain excised bits (interstitial ads/relateds). There might be 2 phases: rank and yank.
             // TODO: Also do something about invisible nodes.
         );
         const kb = rules.score(doc);
