@@ -133,7 +133,9 @@ Of the nodes selected by the calls to the left, take the highest-scoring one. Ex
 
 ### Right-hand Sides
 
-A right-hand side is a strung-together series of calls like `type('smoo').props(blah).type('whee').score(2)`. Calls layer together like sheets of transparent acetate: if there are repeats, as with `type` in the previous example, the rightmost takes precedence. Similarly, if `props`, which can return multiple properties of a fact (element, note, score, and type), is missing any of these properties, we continue searching to the left for anything that provides them (excepting other `props` calls—if you want that, write a combinator, and use it to combine the 2 functions you want)).
+A right-hand side is a strung-together series of calls like `type('smoo').props(blah).type('whee').score(2)`. Calls layer together like sheets of transparent acetate: if there are repeats, as with `type` in the previous example, the rightmost takes precedence. Similarly, if `props`, which can return multiple properties of a fact (element, note, score, and type), is missing any of these properties, we continue searching to the left for any call that provides them (excepting other `props` calls—if you want that, write a combinator, and use it to combine the 2 functions you want).
+
+A good practice is to use more declarative calls—`score`, `note`, and `type`—as much as possible and save `props` for when you need it. The query planner can get more out of the more specialized calls without you having to tack on verbose hints like `atMost` or `typeIn`.
 
 #### `atMost`(*score*)
 Declare that the maximum returned score multiplier is such and such, which helps the optimizer plan efficiently. This doesn't force it to be true; it merely throws an error at runtime if it isn't. To lift an `atMost` constraint, call `atMost()` (with no args).
@@ -272,7 +274,7 @@ The focii for 2.0 are syntactic sugar and support for larger, more powerful rule
 * We expand the domain of concern of a ruleset from a single dimension ("Find just the ads!") to multiple ones ("Find the ads and the navigation and the products and the prices!"). This is done by making scores and notes per-type.
 * The rule syntax has been richly sugared to…
     * be both shorter and easier to read in most cases
-    * surface more info declaratively so the query planner can take advantage of it
+    * surface more info declaratively so the query planner can take advantage of it (`props` is where the old-style ranker functions went, but avoid them when you don't need that much power, and you'll reap a reward of concision and efficiently planned queries)
     * allow you to concisely factor up repeated parts of complex LHSs and RHSs
 * Test coverage is greatly improved, and eslint is keeping us from doing overtly stupid things.
 
@@ -280,6 +282,7 @@ The focii for 2.0 are syntactic sugar and support for larger, more powerful rule
 
 * RHSs (née ranker functions) can no longer return multiple facts, which simplifies both syntax and design. For now, use multiple rules, each emitting one fact, and share expensive intermediate computations in notes. If this proves a problem in practice, we'll switch back, but I never saw anyone return multiple facts in the wild.
 * Scores are now per-type. This lets you deliver multiple independent scores per ruleset. It also lets Fathom optimize out downstream rules in many cases, since downstream rules' scores no longer back-propagate to upstream types. Per-type scores also enable complex computations with types as composable units of abstraction, open the possibility of over-such-and-such-a-score yankers, and make non-multiplication-based score components a possibility. However, the old behavior remains largely available via `conserveScore`.
+* Flavors are now types.
 
 ### 1.1.2
 * Stop assuming querySelectorAll() results conform to the iterator protocol. This fixes compatibility with Chrome.
