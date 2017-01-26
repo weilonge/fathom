@@ -1,7 +1,7 @@
 const {assert} = require('chai');
 const {jsdom} = require('jsdom');
 
-const {and, conserveScore, dom, func, out, rule, ruleset, score, type, typeIn} = require('../index');
+const {and, conserveScore, dom, out, props, rule, ruleset, score, type, typeIn} = require('../index');
 
 
 describe('Ruleset', function () {
@@ -72,7 +72,7 @@ describe('Ruleset', function () {
             // While we're at it, test that querying a nonexistent type from a
             // bound ruleset doesn't crash.
             const rules = ruleset(
-                rule(dom('a'), func(n => ({type: 'a'})).typeIn('a', 'b'))
+                rule(dom('a'), props(n => ({type: 'a'})).typeIn('a', 'b'))
             );
             const facts = rules.against(jsdom('<a></a>'));
             // Tempt it to multiply once:
@@ -175,12 +175,12 @@ describe('Ruleset', function () {
     describe('plans rule execution', function () {
         it('by demanding rules have determinate type', function () {
             assert.throws(() => ruleset(rule(dom('p'), type('a')),
-                                        rule(type('a'), func('dummy'))),
-                          'Could not determine the emitted type of a rule because its right-hand side calls func() without calling typeIn().');
+                                        rule(type('a'), props('dummy'))),
+                          'Could not determine the emitted type of a rule because its right-hand side calls props() without calling typeIn().');
         });
 
         it('by remembering what types rules add and emit', function () {
-            const rule1 = rule(dom('p'), func('dummy').typeIn('q', 'r'));
+            const rule1 = rule(dom('p'), props('dummy').typeIn('q', 'r'));
             const rule2 = rule(type('r'), type('s'));
             const facts = ruleset(rule1, rule2).against(jsdom(''));
             assert.deepEqual(facts.inwardRulesThatCouldEmit('q'), [rule1]);
@@ -192,8 +192,8 @@ describe('Ruleset', function () {
             const rules = ruleset(
                 rule(dom('p'), type('a')),
                 rule(dom('p'), type('b')),
-                rule(type('a'), func(fnode => ({type: 'c'})).typeIn('c')),
-                rule(type('b'), func(fnode => ({type: 'd'})).typeIn('d')),
+                rule(type('a'), props(fnode => ({type: 'c'})).typeIn('c')),
+                rule(type('b'), props(fnode => ({type: 'd'})).typeIn('d')),
                 rule(type('c'), out('c'))
             );
             const facts = rules.against(doc);
@@ -240,7 +240,7 @@ describe('Rule', function () {
         assert.sameMembers(Array.from(a.typesItCouldEmit()), ['para']);
         assert.sameMembers(Array.from(a.typesItCouldAdd()), ['para']);
 
-        const b = rule(type('r'), typeIn('q').func('dummy').typeIn('r', 's'));
+        const b = rule(type('r'), typeIn('q').props('dummy').typeIn('r', 's'));
         assert.sameMembers(Array.from(b.typesItCouldEmit()), ['r', 's']);
         assert.sameMembers(Array.from(b.typesItCouldAdd()), ['s']);
 
@@ -271,4 +271,4 @@ describe('Rule', function () {
 
 
 // Maybe there should be a default .score and .note on fnodes that are selected by a type() selector, so we don't have to say scoreFor('someType'), repeating ourselves.
-// Decide if * → func(...).score(2) should multiply the score more than once if it just returns the same node over and over. Yes, because it would if you divided it into 2 rules. And if you don't like it, don't return the same element multiple times from func!
+// Decide if * → props(...).score(2) should multiply the score more than once if it just returns the same node over and over. Yes, because it would if you divided it into 2 rules. And if you don't like it, don't return the same element multiple times from props!

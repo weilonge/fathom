@@ -1,7 +1,7 @@
 const assert = require('chai').assert;
 const {jsdom} = require('jsdom');
 
-const {dom, flavor, func, out, rule, ruleset, type} = require('../index');
+const {dom, flavor, out, props, rule, ruleset, type} = require('../index');
 const {inlineTextLength, linkDensity, numberOfMatches, page, sum} = require('../utils');
 
 
@@ -59,10 +59,10 @@ describe('Design-driving demos', function () {
         const rules = ruleset(
             // Look for "logout", "signout", etc. in CSS classes and parts thereof:
             rule(dom('button[class], a[class]'),
-                 func(page(scoreByLogoutClasses)).typeIn('logoutClass')),
+                 props(page(scoreByLogoutClasses)).typeIn('logoutClass')),
             // Look for "logout" or "signout" in hrefs:
             rule(dom('a[href]'),
-                 func(page(scoreByLogoutHrefs)).typeIn('logoutHref')),
+                 props(page(scoreByLogoutHrefs)).typeIn('logoutHref')),
 
             // Union the two intermediate results into a more general loggedIn type:
             rule(type('logoutClass'),
@@ -72,7 +72,7 @@ describe('Design-driving demos', function () {
 
             // Look for "Log out", "Sign out", etc. in content of links: a
             // bonus for English pages.
-            // rule(dom('a[href]'), func(page(...)).typeIn('logout
+            // rule(dom('a[href]'), props(page(...)).typeIn('logout
         );
 
         function isProbablyLoggedIn(doc) {

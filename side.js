@@ -2,8 +2,8 @@ const {Lhs} = require('./lhs');
 const {InwardRhs} = require('./rhs');
 
 
-function func(callback) {
-    return new Side({method: 'func', args: [callback]});
+function props(callback) {
+    return new Side({method: 'props', args: [callback]});
 }
 
 
@@ -62,8 +62,8 @@ class Side {
         return this._and('max');
     }
 
-    func(callback) {
-        return this._and('func', callback);
+    props(callback) {
+        return this._and('props', callback);
     }
 
     type(...types) {
@@ -119,8 +119,8 @@ module.exports = {
     and,
     atMost,
     conserveScore,
-    func,
     note,
+    props,
     score,
     type,
     typeIn

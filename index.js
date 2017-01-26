@@ -5,7 +5,7 @@
 const {rule, ruleset} = require('./ruleset');
 const {dom} = require('./lhs');
 const {out} = require('./rhs');
-const {and, atMost, func, conserveScore, max, note, score, type, typeIn} = require('./side');
+const {and, atMost, conserveScore, max, note, props, score, type, typeIn} = require('./side');
 
 
 module.exports = {
@@ -13,10 +13,10 @@ module.exports = {
     atMost,
     conserveScore,
     dom,
-    func,
     max,
     note,
     out,
+    props,
     rule,
     ruleset,
     score,

@@ -1,17 +1,17 @@
 const {assert} = require('chai');
 const {jsdom} = require('jsdom');
 
-const {atMost, dom, func, note, out, rule, ruleset, score, type, typeIn} = require('../index');
+const {atMost, dom, note, out, props, rule, ruleset, score, type, typeIn} = require('../index');
 
 
 describe('RHS', function () {
     it('combines different calls piecewise, with rightmost repeated subfacts shadowing', function () {
-        const rhs = type('foo').score(5).func(node => ({score: 6})).asRhs();
+        const rhs = type('foo').score(5).props(node => ({score: 6})).asRhs();
         assert.deepEqual(rhs.fact('dummy'), {type: 'foo', score: 6});
     });
 
     it('has same-named calls shadow, with rightmost winning', function () {
-        const rhs = func(node => ({score: 1})).func(node => ({note: 'foo'})).asRhs();
+        const rhs = props(node => ({score: 1})).props(node => ({note: 'foo'})).asRhs();
         assert.deepEqual(rhs.fact('dummy'), {note: 'foo'});
     });
 
@@ -21,13 +21,13 @@ describe('RHS', function () {
             count++;
             return {};
         }
-        const rhs = func(addOne).asRhs();
+        const rhs = props(addOne).asRhs();
         assert.deepEqual(rhs.fact('dummy'), {});
         assert.equal(count, 1);
     });
 
-    it('ignores unexpected subfacts returned from func() callbacks', function () {
-        const rhs = func(node => ({conserveScore: true, score: 3})).asRhs();
+    it('ignores unexpected subfacts returned from props() callbacks', function () {
+        const rhs = props(node => ({conserveScore: true, score: 3})).asRhs();
         assert.deepEqual(rhs.fact('dummy'), {score: 3});
     });
 
@@ -64,7 +64,7 @@ describe('RHS', function () {
         const doc = jsdom('<p></p>');
         const rules = ruleset(
             rule(dom('p'), type('para')),
-            rule(type('para'), func(n => ({})).typeIn('nope'))
+            rule(type('para'), props(n => ({})).typeIn('nope'))
         );
         const facts = rules.against(doc);
         assert.throws(() => facts.get(type('nope')),

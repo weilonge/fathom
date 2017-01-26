@@ -357,7 +357,7 @@ class InwardRule extends Rule {
             // We can prove the type emission from the RHS alone.
             return rhs.possibleTypes;
         } else {
-            throw new Error('Could not determine the emitted type of a rule because its right-hand side calls func() without calling typeIn().');
+            throw new Error('Could not determine the emitted type of a rule because its right-hand side calls props() without calling typeIn().');
         }
     }
 

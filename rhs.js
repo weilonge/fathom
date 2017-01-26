@@ -23,15 +23,15 @@ function out(key) {
 
 
 // A right-hand side is a strung-together series of calls like
-// `type('smoo').func(blah).type('whee').score(2)`. Calls layer together like
+// `type('smoo').props(blah).type('whee').score(2)`. Calls layer together like
 // sheets of transparent acetate: if there are repeats, as with `type()` in the
-// previous example, the rightmost takes precedence. Similarly, if `func()`,
+// previous example, the rightmost takes precedence. Similarly, if `props()`,
 // which can return multiple properties of a fact (element, note, score, and
 // type), is missing any of these properties, we continue searching to the left
-// for anything that provides them (excepting other func()s--if you want that,
-// write a combinator, and use it to combine the 2 functions you want)). To
-// prevent this, return all properties explicitly from your func, even if they
-// are no-ops (like {score: 1, note: undefined, type: undefined}).
+// for anything that provides them (excepting other props() calls--if you want
+// that, write a combinator, and use it to combine the 2 functions you want)).
+// To prevent this, return all properties explicitly from your props callback,
+// even if they are no-ops (like {score: 1, note: undefined, type: undefined}).
 class InwardRhs {
     constructor(calls = [], max = Infinity, types) {
         this._calls = calls.slice();
@@ -54,10 +54,10 @@ class InwardRhs {
     }
 
     // Determine any of type, note, score, and element using a callback.
-    // This overrides any previous call to .func() and, depending on what
+    // This overrides any previous call to .props() and, depending on what
     // properties of the callback's return value are filled out, may override
     // the effects of other previous calls as well.
-    func(callback) {
+    props(callback) {
         function getSubfacts(fnode) {
             const subfacts = callback(fnode);
             // Filter the raw result down to okayed properties so callbacks
@@ -74,7 +74,7 @@ class InwardRhs {
         }
         // Thse are the subfacts this call could affect:
         getSubfacts.possibleSubfacts = TYPE | NOTE | SCORE | ELEMENT;
-        getSubfacts.kind = 'func';
+        getSubfacts.kind = 'props';
         return new this.constructor(this._calls.concat(getSubfacts),
                                     this._max,
                                     this._types);
@@ -86,7 +86,7 @@ class InwardRhs {
     // In the future, we might also support providing a callback that receives
     // the fnode and returns a type. We couldn't reason based on these, but the
     // use would be rather a consise way to to override part of what a previous
-    // .func() call provides.
+    // .props() call provides.
     type(type) {
         // Actually emit a given type.
         function getSubfacts() {
@@ -165,8 +165,8 @@ class InwardRhs {
     //
     // In the future, we might also support providing a callback that receives
     // the fnode and returns a score. We couldn't reason based on these, but
-    // the use would be rather to override part of what a previous .func() call
-    // provides. It would also allow us to avoid some uses of func(), which
+    // the use would be rather to override part of what a previous .props() call
+    // provides. It would also allow us to avoid some uses of props(), which
     // force us to verbosely declare typeIn().
     score(scoreOrCallback) {
         let getSubfacts;
@@ -196,7 +196,7 @@ class InwardRhs {
     // nodes rather than just starting from 1.
     //
     // For now, there is no way to turn this back off, for example with a later
-    // application of .func() or .conserveScore(false). We can add one if
+    // application of .props() or .conserveScore(false). We can add one if
     // necessary.
     conserveScore() {
         function getSubfacts(fnode) {
@@ -213,7 +213,7 @@ class InwardRhs {
 
     // -------- Methods below this point are private to the framework. --------
 
-    // Run all my func().type().notes().score() stuff across a given fnode,
+    // Run all my props().type().note().score() stuff across a given fnode,
     // enforce my max() stuff, and return a fact ({element, type, score,
     // notes}) for incorporation into that fnode (or a different one, if
     // element is specified). Any of the 4 fact properties can be missing;
@@ -233,7 +233,7 @@ class InwardRhs {
                     // This call might provide a subfact we are missing.
                     const newSubfacts = call(fnode);
                     for (let subfact in newSubfacts) {
-                        // A func() callback could insert arbitrary keys into
+                        // A props() callback could insert arbitrary keys into
                         // the result, but it shouldn't matter, because nothing
                         // pays any attention to them.
                         if (!result.hasOwnProperty(subfact)) {
@@ -256,12 +256,12 @@ class InwardRhs {
     //      we cannot infer it. If not couldChangeType, undefined.}
     possibleEmissions() {
         // If there is a typeIn() constraint or there is a type() call to the
-        // right of all func() calls, we have a constraint. We hunt for the
+        // right of all props() calls, we have a constraint. We hunt for the
         // tightest constraint we can find, favoring a type() call because it
         // gives us a single type but then falling back to a typeIn().
         let couldChangeType = false;
         for (let call of reversed(this._calls)) {
-            if (call.kind === 'func') {
+            if (call.kind === 'props') {
                 couldChangeType = true;
                 break;
             } else if (call.kind === 'type') {

@@ -133,7 +133,7 @@ Of the nodes selected by the calls to the left, take the highest-scoring one. Ex
 
 ### Right-hand Sides
 
-A right-hand side is a strung-together series of calls like `type('smoo').func(blah).type('whee').score(2)`. Calls layer together like sheets of transparent acetate: if there are repeats, as with `type` in the previous example, the rightmost takes precedence. Similarly, if `func`, which can return multiple properties of a fact (element, note, score, and type), is missing any of these properties, we continue searching to the left for anything that provides them (excepting other `func` calls—if you want that, write a combinator, and use it to combine the 2 functions you want)).
+A right-hand side is a strung-together series of calls like `type('smoo').props(blah).type('whee').score(2)`. Calls layer together like sheets of transparent acetate: if there are repeats, as with `type` in the previous example, the rightmost takes precedence. Similarly, if `props`, which can return multiple properties of a fact (element, note, score, and type), is missing any of these properties, we continue searching to the left for anything that provides them (excepting other `props` calls—if you want that, write a combinator, and use it to combine the 2 functions you want)).
 
 #### `atMost`(*score*)
 Declare that the maximum returned score multiplier is such and such, which helps the optimizer plan efficiently. This doesn't force it to be true; it merely throws an error at runtime if it isn't. To lift an `atMost` constraint, call `atMost()` (with no args).
@@ -143,10 +143,10 @@ The reason `atMost` and `typeIn` apply until explicitly cleared is so that, if s
 #### `conserveScore`()
 Base the scores this RHS applies on the scores of the input nodes rather than starting over from 1.
 
-For now, there is no way to turn this back off (for example with a later application of `func` or `conserveScore(false)`).
+For now, there is no way to turn this back off (for example with a later application of `props` or `conserveScore(false)`).
 
-#### `func`(*callback*)
-Determine any of type, note, score, and element using a callback. This overrides any previous call to `func` and, depending on what properties of the callback's return value are filled out, may override the effects of other previous calls as well.
+#### `props`(*callback*)
+Determine any of type, note, score, and element using a callback. This overrides any previous call to `props` and, depending on what properties of the callback's return value are filled out, may override the effects of other previous calls as well.
 
 The callback should return...
 
@@ -166,7 +166,7 @@ function callback(fnode) {
 }
 ```
 
-If you use `func`, Fathom cannot look inside your callback to see what type you are emitting, so you must declare your output types with `typeIn` or set a single static type with `type`. Fathom will complain if you don't. (You can still opt not to return any type if the node turns out not to be a good match, even if you declare a `typeIn`.
+If you use `props`, Fathom cannot look inside your callback to see what type you are emitting, so you must declare your output types with `typeIn` or set a single static type with `type`. Fathom will complain if you don't. (You can still opt not to return any type if the node turns out not to be a good match, even if you declare a `typeIn`.
 
 #### `note`(*callback*)
 Whatever the callback returns (even `undefined`) becomes the note of the fact. This overrides any previous call to `note`.
@@ -175,7 +175,7 @@ Since every node can have multiple, independent notes (one for each type), this 
 
 When you query for fnodes of a certain type, you can expect to find notes of any form you specified on any RHS with that type. If no note is specified, it will be undefined. However, if two RHSs emits a given type, one adding a note and the other not adding one (or adding an undefined one), the meaningful note overrides the undefined one. This allows elaboration on a RHS's score (for example) without needing to repeat note logic.
 
-Indeed, `undefined` is not considered a note. So, though notes cannot in general be overwritten, a note that is `undefined` can. Symmetrically, an `undefined` returned from a `note` or `func` or the like will quietly decline to overwrite an existing defined note, where any other value would cause an error. Rationale: letting `undefined` be a valid note value would mean you couldn't shadow a leftward note in a RHS without introducing a new singleton value to serve as a "no value" flag. It's not worth the complexity and the potential differences between the (internal) fact and fnode note value semantics.
+Indeed, `undefined` is not considered a note. So, though notes cannot in general be overwritten, a note that is `undefined` can. Symmetrically, an `undefined` returned from a `note` or `props` or the like will quietly decline to overwrite an existing defined note, where any other value would cause an error. Rationale: letting `undefined` be a valid note value would mean you couldn't shadow a leftward note in a RHS without introducing a new singleton value to serve as a "no value" flag. It's not worth the complexity and the potential differences between the (internal) fact and fnode note value semantics.
 
 Best practice: any rule adding a type should apply the same note. If only one rule of several type-foo-emitting ones did, it should be made to emit a different type instead so downstream rules can explicitly state that they require the note to be there. Otherwise, there is nothing to guarantee the note-adding rule will run before the note-needing one.
 
@@ -196,7 +196,7 @@ Apply the type *theType* to processed by this RHS. This overrides any previous c
 #### `typeIn`(*type*, *[type, ...]*)
 Constrain this rule to emit 1 of a set of given types. This overrides any previous call to `typeIn`. Pass no args to lift a previous `typeIn` constraint, as you might do when basing a LHS on a common value to factor out repetition.
 
-`typeIn` is mostly a hint for the query planner when you're emitting types dynamically from `func` calls—in fact, an error will be raised if `func` is used without a `typeIn` or `type` to constrain it—but it also checks conformance at runtime to ensure validity.
+`typeIn` is mostly a hint for the query planner when you're emitting types dynamically from `props` calls—in fact, an error will be raised if `props` is used without a `typeIn` or `type` to constrain it—but it also checks conformance at runtime to ensure validity.
 
 ### Clustering
 
