@@ -111,6 +111,14 @@ describe('Design-driving demos', function () {
     });
 
     it.skip("takes a decent shot at doing Readability's job", function () {
+        // Potential advantages over readability:
+        // * State clearly contained
+        // * Should work fine with ideographic languages and others that lack space-delimited words
+        // * Pluggable
+        // * Potential to have rules generated or tuned by training
+        // * Adaptable to find things other than the main body text
+        // * Potential to perform better since it doesn't have to run over and over, loosening constraints each time, if it fails
+
         // Score a node based on how much text is directly inside it and its
         // inline-tag children.
         function paragraphishByLength(node) {
