@@ -278,13 +278,14 @@ Join us in IRC if you have questions: #fathom on irc.mozilla.org. Or open an iss
 ### 2.0
 The focii for 2.0 are syntactic sugar and support for larger, more powerful rulesets that can operate at higher levels of abstraction. From these priorities spring all of the following:
 
-* "Yankers" or aggregate functions are now part of the ruleset: `max` for now, more in a later release. This in-ruleset mapping from the fuzzy domain of scores back to the boolean domain of types lets ruleset authors choose between efficiency and completeness. It also opens the door to automatic optimization down the road.
+* "Yankers" or aggregate functions are now part of the ruleset: `max` and `and` for now, with more in a later release. This in-ruleset mapping from the fuzzy domain of scores back to the boolean domain of types complements the opposite mapping provided by `score` and lets ruleset authors choose between efficiency and completeness. It also saves imperative programming where maxima are referenced from more than one place. Finally, it opens the door to automatic optimization down the road.
 * Answers are computed lazily, running only the necessary rules each time you say `get(...)` and caching intermediate results to save work on later calls. We thus eschew 1.x's strategy of emitting the entire scored world for the surrounding imperative program to examine and instead expose a factbase that acts like a lazy hash of answers. This allows for large, sophisticated rulesets that are nonetheless fast and can be combined to reuse parts (see `Ruleset.rules()`). Of course, if you still want to imbibe the entire scored corpus of nodes in your surrounding program, you can simply yank all nodes of a type using the `type` yanker: just point it to `out`, and the results will be available from the outside: `rule(type('foo'), out('someKey'))`.
 * We expand the domain of concern of a ruleset from a single dimension ("Find just the ads!") to multiple ones ("Find the ads and the navigation and the products and the prices!"). This is done by making scores and notes per-type.
 * The rule syntax has been richly sugared to…
-    * be both shorter and easier to read in most cases
+    * be shorter and easier to read in most cases
     * surface more info declaratively so the query planner can take advantage of it (`props` is where the old-style ranker functions went, but avoid them when you don't need that much power, and you'll reap a reward of concision and efficiently planned queries)
     * allow you to concisely factor up repeated parts of complex LHSs and RHSs
+* The new experimental `and` combinator allows you to build more powerful abstractions upon the black boxes of types.
 * Test coverage is greatly improved, and eslint is keeping us from doing overtly stupid things.
 
 #### Backward-incompatible changes
