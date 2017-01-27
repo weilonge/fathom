@@ -232,6 +232,29 @@ describe('Ruleset', function () {
         assert.equal(ruleList.length, 4);  // because deepEqual doesn't actually deep-compare Maps yet
         assert.deepEqual(ruleset(...ruleList), rules);
     });
+
+    it('takes a subtree of a document and operates on it', function () {
+        const doc = jsdom(`
+            <div id=root>some text
+             <div id=inner>some more text</div>
+            </div>
+        `);
+        const rules = ruleset(
+            rule(dom('#root'), type('smoo').score(10)),
+            rule(dom('#inner'), type('smoo').score(5)),
+            rule(type('smoo').max(), out('best'))
+        );
+        const facts = rules.against(doc);
+        const best = facts.get('best');
+        assert.equal(best.length, 1);
+        assert.equal(best[0].element.id, 'root');
+
+        const subtree = doc.getElementById('root');
+        const subtreeFacts = rules.against(subtree);
+        const subtreeBest = subtreeFacts.get('best');
+        assert.equal(subtreeBest.length, 1);
+        assert.equal(subtreeBest[0].element.id, 'inner');
+    });
 });
 
 describe('Rule', function () {

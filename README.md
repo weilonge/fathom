@@ -94,8 +94,11 @@ Remember that Fathom's rulesets are unordered, so any rule's output can flow int
 Once the ruleset is defined, run a DOM tree through it:
 
 ```javascript
-// Tell the ruleset which DOM to run against, yielding a factbase about the document.
-const facts = rules.against(jsdom.jsdom("<html><head>...</html>"));
+var dom = jsdom.jsdom("<html><head>...</html>"));
+// Tell the ruleset which DOM to run against, yielding a factbase about the document:
+var facts = rules.against(dom);
+// A DOM subtree can be passed in instead, if you like:
+var subtreeFacts = rules.against(dom.body.firstElementChild);
 ```
 
 Then, pull the answers out of the factbase: in this case, we want the max-scoring title, which the ruleset conveniently stores under the "title" output key:
