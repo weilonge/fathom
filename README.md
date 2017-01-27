@@ -120,6 +120,8 @@ const fnode = facts.get(dom.getElementById('aTitle'));
 
 ### Left-hand Sides
 
+Left-hand sides are currently a few special forms which select nodes to be fed to right-hand sides.
+
 #### `and`(*typeCall*, *[typeCall, ...]*)
 Experimental. Take nodes that conform to multiple conditions at once. For example: `and(type('title'), type('english'))`
 
