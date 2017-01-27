@@ -131,6 +131,10 @@ Take nodes that match a given DOM selector. Example: `dom('meta[property="og:tit
 #### `max`()
 Of the nodes selected by the calls to the left, take the highest-scoring one. Example: `type('titley').max()`
 
+#### `type`(*theType*)
+Take nodes that have the given type. Example: `type('titley')`
+
+
 ### Right-hand Sides
 
 A right-hand side is a strung-together series of calls like `type('smoo').props(blah).type('whee').score(2)`. Calls layer together like sheets of transparent acetate: if there are repeats, as with `type` in the previous example, the rightmost takes precedence. Similarly, if `props`, which can return multiple properties of a fact (element, note, score, and type), is missing any of these properties, we continue searching to the left for any call that provides them (excepting other `props` calls—if you want that, write a combinator, and use it to combine the 2 functions you want).
