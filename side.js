@@ -38,11 +38,16 @@ function conserveScore() {
 }
 
 
-// Pull nodes that conform to multiple conditions at once.
-//
-// For example: `and(type('title'), type('english'))`
-//
-// `and()` supports only simple type() calls as arguments for now.
+/**
+ * Experimental. Pull nodes that conform to multiple conditions at once.
+ *
+ * For example: ``and(type('title'), type('english'))``
+ *
+ * Caveats: ``and`` supports only simple ``type`` calls as arguments for now,
+ * and it may fire off more rules as prerequisites than strictly necessary.
+ * ``not`` and ``or`` don't exist yet, but you can express ``or`` the long way
+ * around by having 2 rules with identical RHSs.
+ */
 function and(...lhss) {
     return new Side({method: 'and', args: lhss});
 }

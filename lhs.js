@@ -3,7 +3,10 @@
 const {maxes, getDefault, setDefault} = require('./utils');
 
 
-// Take nodes that match a given DOM selector.
+/**
+ * Take nodes that match a given DOM selector. Example:
+ * ``dom('meta[property="og:title"]')``
+ */
 function dom(selector) {
     return new DomLhs(selector);
 }
@@ -118,8 +121,11 @@ class TypeLhs extends Lhs {
         return new this.constructor(inputType);
     }
 
-    // Return a new LHS constrained to return only the max-scoring node of
-    // a type. If there is a tie, more than 1 node may be selected.
+    /**
+     * Of the nodes selected by a ``type`` call to the left, constrain the LHS
+     * to return only the max-scoring one. If there is a tie, more than 1 node
+     * will be returned. Example: ``type('titley').max()``
+     */
     max() {
         return new TypeMaxLhs(this._type);
     }

@@ -17,21 +17,17 @@ const SUBFACTS = {
 };
 
 
+/**
+ * Expose the output of this rule's LHS as a "final result" to the surrounding
+ * program. It will be available by calling :func:`~BoundRuleset.get` on the
+ * ruleset and passing the key. You can run the nodes through a callback
+ * function first by adding :func:`~OutwardRhs.through()`.
+ */
 function out(key) {
     return new OutwardRhs(key);
 }
 
 
-// A right-hand side is a strung-together series of calls like
-// `type('smoo').props(blah).type('whee').score(2)`. Calls layer together like
-// sheets of transparent acetate: if there are repeats, as with `type()` in the
-// previous example, the rightmost takes precedence. Similarly, if `props()`,
-// which can return multiple properties of a fact (element, note, score, and
-// type), is missing any of these properties, we continue searching to the left
-// for anything that provides them (excepting other props() calls--if you want
-// that, write a combinator, and use it to combine the 2 functions you want)).
-// To prevent this, return all properties explicitly from your props callback,
-// even if they are no-ops (like {score: 1, note: undefined, type: undefined}).
 class InwardRhs {
     constructor(calls = [], max = Infinity, types) {
         this._calls = calls.slice();
@@ -39,10 +35,16 @@ class InwardRhs {
         this._types = new NiceSet(types);  // empty set if unconstrained
     }
 
-    // Declare that the maximum returned score multiplier is such and such.
-    // This doesn't force it to be true; it merely throws an error if it isn't.
-    // This overrides any previous call to .atMost(). To lift an .atMost()
-    // constraint, call .atMost() with no args.
+    /**
+     * Declare that the maximum returned score multiplier is such and such,
+     * which helps the optimizer plan efficiently. This doesn't force it to be
+     * true; it merely throws an error at runtime if it isn't. To lift an
+     * ``atMost`` constraint, call ``atMost()`` (with no args). The reason
+     * ``atMost`` and ``typeIn`` apply until explicitly cleared is so that, if
+     * someone used them for safety reasons on a lexically distant rule you are
+     * extending, you won't stomp on their constraint and break their
+     * invariants accidentally.
+     */
     atMost(score) {
         return new this.constructor(this._calls, score, this._types);
     }
@@ -53,10 +55,22 @@ class InwardRhs {
         }
     }
 
-    // Determine any of type, note, score, and element using a callback.
-    // This overrides any previous call to .props() and, depending on what
-    // properties of the callback's return value are filled out, may override
-    // the effects of other previous calls as well.
+    /**
+      * Determine any of type, note, score, and element using a callback. This
+      * overrides any previous call to `props` and, depending on what
+      * properties of the callback's return value are filled out, may override
+      * the effects of other previous calls as well.
+      *
+      * The callback should return...
+      *
+      * * An optional score multiplier
+      * * A type (required on ``dom(...)`` rules, defaulting to the input one on
+      *   ``type(...)`` rules)
+      * * Optional notes
+      * * An element, defaulting to the input one. Overriding the default
+      *   enables a callback to walk around the tree and say things about nodes
+      *   other than the input one.
+      */
     props(callback) {
         function getSubfacts(fnode) {
             const subfacts = callback(fnode);
@@ -80,42 +94,45 @@ class InwardRhs {
                                     this._types);
     }
 
-    // Set the type applied to fnodes processed by this RHS. This overrides any
-    // previous call to .type().
-    //
-    // In the future, we might also support providing a callback that receives
-    // the fnode and returns a type. We couldn't reason based on these, but the
-    // use would be rather a consise way to to override part of what a previous
-    // .props() call provides.
-    type(type) {
+    /**
+     * Set the type applied to fnodes processed by this RHS.
+     */
+    type(theType) {
+        // In the future, we might also support providing a callback that receives
+        // the fnode and returns a type. We couldn't reason based on these, but the
+        // use would be rather a consise way to to override part of what a previous
+        // .props() call provides.
+
         // Actually emit a given type.
         function getSubfacts() {
-            return {type};
+            return {type: theType};
         }
         getSubfacts.possibleSubfacts = TYPE;
-        getSubfacts.type = type;
+        getSubfacts.type = theType;
         getSubfacts.kind = 'type';
         return new this.constructor(this._calls.concat(getSubfacts),
                                     this._max,
                                     this._types);
     }
 
-    // Constrain us to emit 1 of a set of given types. This overrides any
-    // previous call to .typeIn(). Pass no args to lift a previous typeIn()
-    // constraint.
-    //
-    // This is mostly a hint for the optimizer when you're emitting types
-    // dynamically from functions, but it also checks conformance at runtime to
-    // ensure validity.
-    //
-    // Rationale: If we used the spelling "type('a', 'b', ...)" instead of
-    // this, one might expect type('a', 'b').type(fn) to have the latter call
-    // override, while expecting type(fn).type('a', 'b') to keep both in
-    // effect. Then different calls to type() don't consistently override each
-    // other, and the rules get complicated. Plus you can't inherit a type
-    // constraint and then sub in another type-returning function that still
-    // gets the constraint applied.
+    /**
+     * Constrain this rule to emit 1 of a set of given types. Pass no args to lift
+     * a previous ``typeIn`` constraint, as you might do when basing a LHS on a
+     * common value to factor out repetition.
+     *
+     * ``typeIn`` is mostly a hint for the query planner when you're emitting types
+     * dynamically from ``props`` calls—in fact, an error will be raised if
+     * ``props`` is used without a ``typeIn`` or ``type`` to constrain it—but it
+     * also checks conformance at runtime to ensure validity.
+     */
     typeIn(...types) {
+        // Rationale: If we used the spelling "type('a', 'b', ...)" instead of
+        // this, one might expect type('a', 'b').type(fn) to have the latter
+        // call override, while expecting type(fn).type('a', 'b') to keep both
+        // in effect. Then different calls to type() don't consistently
+        // override each other, and the rules get complicated. Plus you can't
+        // inherit a type constraint and then sub in another type-returning
+        // function that still gets the constraint applied.
         return new this.constructor(this._calls,
                                     this._max,
                                     types);
@@ -137,14 +154,10 @@ class InwardRhs {
         }
     }
 
-    // Whatever the callback returns (even undefined) becomes the note of the
-    // fact. This overrides any previous call to .note().
-    //
-    // When you query for fnodes of a certain type, you can expect to find
-    // notes of any form you specified on any RHS with that type. If no note is
-    // specified, it will be undefined. However, if two RHSs emits a given
-    // type, one adding a note and the other not adding one (or adding an
-    // undefined one), the meaningful note overrides the undefined one.
+    /**
+     * Whatever the callback returns (even ``undefined``) becomes the note of
+     * the fact. This overrides any previous call to ``note``.
+     */
     note(callback) {
         function getSubfacts(fnode) {
             return {note: callback(fnode)};
@@ -156,18 +169,18 @@ class InwardRhs {
                                     this._types);
     }
 
-    // Set the returned score multiplier. This overrides any previous calls to
-    // .score().
-    //
-    // scoreOrCallback: Either a number (which will be multiplied into the
-    //   score for each fnode emitted from the LHS) or a function that take a
-    //   fnode and returns such a number
-    //
-    // In the future, we might also support providing a callback that receives
-    // the fnode and returns a score. We couldn't reason based on these, but
-    // the use would be rather to override part of what a previous .props() call
-    // provides. It would also allow us to avoid some uses of props(), which
-    // force us to verbosely declare typeIn().
+    /**
+     * Multiply the score of the input node by some number, which can be >1 to
+     * increase the score or <1 to decrease it.
+     *
+     * @param {number|function} scoreOrCallback Can either be a static number or
+     *     else a callback which takes the fnode and returns a number.
+     *
+     * Since every node can have multiple, independent scores (one for each type),
+     * this applies to the type explicitly set by the RHS or, if none, to the type
+     * named by the ``type`` call on the LHS. If the LHS has none because it's a
+     * ``dom(...)`` LHS, an error is raised.
+     */
     score(scoreOrCallback) {
         let getSubfacts;
 
@@ -192,12 +205,13 @@ class InwardRhs {
                                     this._types);
     }
 
-    // Rig this RHS to base the scores it applies off the scores of the input
-    // nodes rather than just starting from 1.
-    //
-    // For now, there is no way to turn this back off, for example with a later
-    // application of .props() or .conserveScore(false). We can add one if
-    // necessary.
+    /**
+     * Base the scores this RHS applies on the scores of the input nodes rather
+     * than starting over from 1.
+     *
+     * For now, there is no way to turn this back off (for example with a later
+     * application of ``props`` or ``conserveScore(false)``).
+     */
     conserveScore() {
         function getSubfacts(fnode) {
             return {conserveScore: true};
@@ -281,6 +295,13 @@ class OutwardRhs {
         this.callback = through;
     }
 
+    /**
+     * Append ``.through`` to :func:`out` to run the nodes emitted from the LHS
+     * through an arbitrary function before returning them to the containing
+     * program. Example::
+     *
+     *     out('titleLengths').through(fnode => fnode.noteFor('title').length)
+     */
     through(callback) {
         return new this.constructor(this.key, callback);
     }
