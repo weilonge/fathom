@@ -2,4 +2,4 @@
 Fathom
 ======
 
-See the full docs at `<https://fathom.readthedocs.org/>`_.
+See the full docs at `<https://mozilla.github.io/fathom/>`_.
