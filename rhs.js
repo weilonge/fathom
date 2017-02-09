@@ -173,13 +173,13 @@ class InwardRhs {
      * Multiply the score of the input node by some number, which can be >1 to
      * increase the score or <1 to decrease it.
      *
-     * @param {number|function} scoreOrCallback Can either be a static number or
-     *     else a callback which takes the fnode and returns a number.
-     *
      * Since every node can have multiple, independent scores (one for each type),
      * this applies to the type explicitly set by the RHS or, if none, to the type
      * named by the ``type`` call on the LHS. If the LHS has none because it's a
      * ``dom(...)`` LHS, an error is raised.
+     *
+     * @param {number|function} scoreOrCallback Can either be a static number or
+     *     else a callback which takes the fnode and returns a number.
      */
     score(scoreOrCallback) {
         let getSubfacts;
