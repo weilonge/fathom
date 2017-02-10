@@ -60,7 +60,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'Fathom'
-copyright = u'2017, Mozilla Corporation'
+copyright = u'2017, Mozilla Foundation'
 author = u'Erik Rose'
 
 # The version info for the project you're documenting, acts as replacement for
