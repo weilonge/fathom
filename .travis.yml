@@ -10,8 +10,6 @@ addons:
 
 after_success:
   - "npm run coveralls"
-  - docs/tooling/travis-deploy-docs
-  - cat /tmp/sphinx-err-*
 
 notifications:
   email:
@@ -24,6 +22,13 @@ notifications:
       - "[%{repository_name} %{branch} %{result}] \"%{commit_subject}\" by %{author}"
       - "Changes: %{compare_url}"
       - "Build details: %{build_url}"
+
+deploy:
+  provider: script
+  script: docs/tooling/travis-deploy-docs
+  on:
+    branch: master
+  skip_cleanup: true
 
 env:
   global:
