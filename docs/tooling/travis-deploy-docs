@@ -14,10 +14,10 @@ pip install 'sphinx-js<2.0'
 cd docs
 PATH="$CHECKOUT/node_modules/.bin:$PATH"
 make clean html
-touch .nojekyll
 
 # Upload them:
 cd _build/html
+touch .nojekyll
 REV=$(git rev-parse HEAD)
 git init
 git config user.name "Fathom Documenter"
