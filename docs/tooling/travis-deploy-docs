@@ -3,6 +3,8 @@
 
 # Install prereqs:
 npm install jsdoc
+virtualenv venv  # Global Python env is unwriteable.
+source venv/bin/activate
 pip install 'sphinx-js<2.0'
 
 # Build docs:
