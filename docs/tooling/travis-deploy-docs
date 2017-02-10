@@ -1,22 +1,27 @@
 #!/bin/sh -e
 # Rebuild Sphinx docs, and upload them to gh-pages branch.
 
+CHECKOUT=$(pwd)
+
 # Install prereqs:
 npm install jsdoc
 virtualenv venv  # Global Python env is unwriteable.
-VIRTUAL_ENV="$(pwd)/venv"
+VIRTUAL_ENV="$CHECKOUT/venv"  # activate script doesn't work.
 PATH="$VIRTUAL_ENV/bin:$PATH"
 pip install 'sphinx-js<2.0'
 
 # Build docs:
 cd docs
+PATH="$CHECKOUT/node_modules/.bin:$PATH"
 make clean html
-touch .nojekyll
 
 # Upload them:
 cd _build/html
+touch .nojekyll
 REV=$(git rev-parse HEAD)
 git init
+git config user.name "Fathom Documenter"
+git config user.email "erik+fathomdoc@mozilla.commm"
 git checkout -b gh-pages
 git add .
 git commit -m "Update docs to ${REV}."
