@@ -40,7 +40,9 @@ function numStrides(left, right) {
 /**
  * Return a distance measurement between 2 DOM nodes.
  *
- * O(n log n)
+ * This is largely an implementation detail of :func:`clusters`, but you can
+ * call it yourself if you wish to implement your own clustering. Takes O(n log
+ * n) time.
  */
 function distance(elementA, elementB) {
     // I was thinking of something that adds little cost for siblings. Up
