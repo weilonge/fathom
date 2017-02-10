@@ -20,6 +20,8 @@ touch .nojekyll
 cd _build/html
 REV=$(git rev-parse HEAD)
 git init
+git config user.name "Fathom Documenter"
+git config user.email "erik+fathomdoc@mozilla.commm"
 git checkout -b gh-pages
 git add .
 git commit -m "Update docs to ${REV}."
