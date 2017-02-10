@@ -37,12 +37,16 @@ function numStrides(left, right) {
 }
 
 
-// Return a distance measurement between 2 DOM nodes.
-//
-// I was thinking of something that adds little cost for siblings.
-// Up should probably be more expensive than down (see middle example in the Nokia paper).
-// O(n log n)
+/**
+ * Return a distance measurement between 2 DOM nodes.
+ *
+ * O(n log n)
+ */
 function distance(elementA, elementB) {
+    // I was thinking of something that adds little cost for siblings. Up
+    // should probably be more expensive than down (see middle example in the
+    // Nokia paper).
+
     // TODO: Test and tune these costs. They're off-the-cuff at the moment.
     //
     // Cost for each level deeper one node is than the other below their common
@@ -256,19 +260,21 @@ class DistanceMatrix {
 }
 
 
-// Partition the given nodes into one or more clusters by position in the DOM
-// tree.
-//
-// elements: An Array of DOM nodes
-// tooFar: The closest-nodes distance() beyond which we will not attempt to
-//     unify 2 clusters
-//
-// This implements an agglomerative clustering. It uses single linkage, since
-// we're talking about adjacency here more than Euclidean proximity: the
-// clusters we're talking about in the DOM will tend to be adjacent, not
-// overlapping. We haven't tried other linkage criteria yet.
-//
-// Maybe later we'll consider score or notes.
+/**
+ * Partition the given nodes into one or more clusters by position in the DOM
+ * tree.
+ *
+ * This implements an agglomerative clustering. It uses single linkage, since
+ * we're talking about adjacency here more than Euclidean proximity: the
+ * clusters we're talking about in the DOM will tend to be adjacent, not
+ * overlapping. We haven't tried other linkage criteria yet.
+ *
+ * Maybe later we'll consider score or notes.
+ *
+ * @arg {Array} elements An Array of DOM nodes
+ * @arg {number} tooFar The closest-nodes :func:`distance` beyond which we will
+ *     not attempt to unify 2 clusters
+ */
 function clusters(elements, tooFar) {
     const matrix = new DistanceMatrix(elements);
     let closest;
