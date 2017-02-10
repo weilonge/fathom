@@ -1,0 +1,22 @@
+#!/bin/sh -e
+# Rebuild Sphinx docs, and upload them to gh-pages branch.
+
+# Install prereqs:
+npm install jsdoc
+pip install 'sphinx-js<2.0'
+
+# Build docs:
+cd docs
+make clean html
+touch .nojekyll
+
+# Upload them:
+cd _build/html
+REV=$(git rev-parse HEAD)
+git init
+git checkout -b gh-pages
+git add .
+git commit -m "Update docs to ${REV}."
+git remote add mozilla "https://$GH_TOKEN@github.com/mozilla/fathom.git"
+# Eat output so it doesn't spit out the sensitive GH_TOKEN if something goes wrong:
+git push -q -f mozilla gh-pages > /dev/null 2>&1
