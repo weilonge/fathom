@@ -7,7 +7,7 @@ In addition to components intrinsically tied to rulesets, Fathom comes with a va
 Clustering
 ==========
 
-Fathom also provides a hierarchal clustering algorithm that helps you group nodes into clusters based on their proximity and similarity of ancestral structure:
+Fathom provides a hierarchal clustering algorithm that helps you group nodes into clusters based on their proximity and similarity of ancestral structure.
 
 .. autofunction:: clusters
 

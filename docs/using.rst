@@ -46,7 +46,9 @@ It's snakey sort of flow. This rule, which takes in fnodes that have previously 
 
     rule(type('textContainer'), type('countedWords').note(fnode => fnode.element.textContent.split(/\s+/).length))
 
-...can be thought of as... ::
+...can be thought of as...
+
+.. code-block:: none
 
     textContainer fnodes emitted        assign "countedWords" type
          from other rules          ->        and a word count        ->   changed nodes --\
@@ -68,10 +70,8 @@ Once the ruleset is defined, run a DOM tree through it:
    var dom = jsdom.jsdom("<html><head>...</html>"));
    // Tell the ruleset which DOM to run against, yielding a factbase about the document:
    var facts = rules.against(dom);
-   // A DOM subtree can be passed in instead, if you like:
-   var subtreeFacts = rules.against(dom.body.firstElementChild);
 
-Then, pull the answers out of the factbase: in this case, we want the max-scoring title, which the ruleset conveniently stores under the "title" output key:
+After running a tree or subtree through, pull the answers out of the factbase: in this case, we want the max-scoring title, which the ruleset conveniently stores under the "title" output key:
 
 .. code-block:: js
 
@@ -88,3 +88,11 @@ Or if you have a reference to a DOM element from elsewhere in your program, you 
 .. code-block:: js
 
    const fnode = facts.get(dom.getElementById('aTitle'));
+
+.. note::
+
+   A DOM subtree can be passed in instead, if you like:
+
+   .. code-block:: js
+
+      var subtreeFacts = rules.against(dom.body.firstElementChild);

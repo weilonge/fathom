@@ -6,6 +6,9 @@ const {maxes, getDefault, setDefault} = require('./utils');
 /**
  * Take nodes that match a given DOM selector. Example:
  * ``dom('meta[property="og:title"]')``
+ *
+ * Every ruleset has at least one ``dom`` rule, as that is where nodes begin to
+ * flow into the system.
  */
 function dom(selector) {
     return new DomLhs(selector);
