@@ -21,7 +21,7 @@ const SUBFACTS = {
  * Expose the output of this rule's LHS as a "final result" to the surrounding
  * program. It will be available by calling :func:`~BoundRuleset.get` on the
  * ruleset and passing the key. You can run the nodes through a callback
- * function first by adding :func:`~OutwardRhs.through()`.
+ * function first by adding :func:`through()`.
  */
 function out(key) {
     return new OutwardRhs(key);

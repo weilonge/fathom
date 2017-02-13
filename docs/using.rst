@@ -40,7 +40,7 @@ See below for a full definition of `type`, `score`, and the rest of the Fathom l
 Rules, Sides, and Flows
 =======================
 
-Each rule is shaped like ``rule(left-hand side, right-hand side)``. The *left-hand side* (LHS) pulls in one or more DOM nodes as input: either ones that match a certain CSS selector (``dom(...)``) or ones tagged with a certain type by other rules (``type(...)``). The *right-hand side* (RHS) then decides what to do with those nodes: assigning an additional type, scaling the score, scribbling a note on it, or some combination thereof. Envision the rule as a pipeline, with the DOM flowing in one end, nodes being picked and passed along to RHSs which twiddle them, and then finally falling out right side, where they might flow into other rules whose LHSs pick them up.
+Each rule is shaped like ``rule(left-hand side, right-hand side)``. The *left-hand side* (LHS) pulls in one or more DOM nodes as input: either ones that match a certain CSS selector (:func:`dom()`) or ones tagged with a certain type by other rules (:func:`type()`). The *right-hand side* (RHS) then decides what to do with those nodes: assigning an additional type, scaling the score, scribbling a note on it, or some combination thereof. Envision the rule as a pipeline, with the DOM flowing in one end, nodes being picked and passed along to RHSs which twiddle them, and then finally falling out right side, where they might flow into other rules whose LHSs pick them up.
 
 It's snakey sort of flow. This rule, which takes in fnodes that have previously been identified as text containers and adds a word-count annotation... ::
 

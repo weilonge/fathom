@@ -35,11 +35,6 @@ extensions = [
     'sphinx_js'
 ]
 
-# autoapi_type = 'javascript'
-# autoapi_dirs = ['../']
-# autoapi_ignore = ['*/docs/*', '*/coverage/*', '*/test/*', '*/node_modules/*']
-# autoapi_keep_files = True
-
 primary_domain = 'js'
 
 # Add any paths that contain templates here, relative to this directory.
