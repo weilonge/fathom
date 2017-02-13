@@ -28,5 +28,11 @@ Contents
 Back Matter
 ===========
 
+.. toctree::
+   :hidden:
+
+   glossary
+
+* :doc:`glossary`
 * :ref:`genindex`
 * :ref:`search`
