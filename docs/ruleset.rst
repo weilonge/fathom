@@ -1,11 +1,30 @@
-=================
-Ruleset Reference
-=================
+==========================
+Rule and Ruleset Reference
+==========================
 
-These are the control structures which govern the flow of scores, types, and notes through a ruleset.
+Rulesets
+========
+
+The top-level Fathom object is the ruleset, an unordered collection of rules. The plain old :class:`Ruleset` is what you typically construct. Then you call :func:`~Ruleset.against` to get back a :class:`BoundRuleset`, which is specific to a given DOM tree. From that, you pull answers.
+
+.. autoclass:: Ruleset
+
+   .. autofunction:: Ruleset#against
+   .. autofunction:: Ruleset#rules
+
+.. autoclass:: BoundRuleset()
+
+   .. autofunction:: BoundRuleset#get
+
+Rules
+=====
+
+These are the control structures which govern the flow of scores, types, and notes through a ruleset. You construct a rule by calling :func:`rule` and passing it a left-hand side and a right-hand side:
+
+.. autofunction:: rule
 
 Left-hand Sides
-===============
+---------------
 
 Left-hand sides are currently a few special forms which select nodes to be fed to right-hand sides.
 
@@ -20,7 +39,7 @@ Left-hand sides are currently a few special forms which select nodes to be fed t
       :short-name:
 
 Right-hand Sides
-================
+----------------
 
 A right-hand side is a strung-together series of calls like this::
 

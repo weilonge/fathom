@@ -6,8 +6,10 @@ const {reversed, setDefault, toposort} = require('./utils');
 const {out, OutwardRhs} = require('./rhs');
 
 
-// Construct and return the proper type of rule class based on the
-// inwardness/outwardness of the RHS.
+/**
+ * Construct and return the proper type of rule class based on the
+ * inwardness/outwardness of the RHS.
+ */
 function rule(lhs, rhs) {
     // Since out() is a valid call only on the RHS (unlike type()), we can take
     // a shortcut here: any outward RHS will already be an OutwardRhs; we don't
@@ -23,9 +25,11 @@ function ruleset(...rules) {
 }
 
 
-// An unbound ruleset. Eventually, you'll be able to add rules to these. Then,
-// when you bind them by calling against(), the resulting BoundRuleset will be
-// immutable.
+/**
+ * An unbound ruleset. Eventually, you'll be able to add rules to these. Then,
+ * when you bind them by calling :func:`~Ruleset.against()`, the resulting
+ * :class:`BoundRuleset` will be immutable.
+ */
 class Ruleset {
     constructor(...rules) {
         this._inRules = [];
@@ -56,11 +60,13 @@ class Ruleset {
         }
     }
 
-    // Commit this ruleset to running against a specific DOM tree.
-    //
-    // This doesn't actually modify the Ruleset but rather returns a fresh
-    // BoundRuleset, which contains caches and other stateful, per-DOM
-    // bric-a-brac.
+    /**
+     * Commit this ruleset to running against a specific DOM tree.
+     *
+     * This doesn't actually modify the Ruleset but rather returns a fresh
+     * BoundRuleset, which contains caches and other stateful, per-DOM
+     * bric-a-brac.
+     */
     against(doc) {
         return new BoundRuleset(doc,
                                 this._inRules,
@@ -69,19 +75,24 @@ class Ruleset {
                                 this._rulesThatCouldAdd);
     }
 
-    // Return all the rules (both inward and outward) that make up this ruleset.
-    //
-    // From this, you can construct another ruleset like this one but with your
-    // own rules added.
+    /**
+     * Return all the rules (both inward and outward) that make up this ruleset.
+     *
+     * From this, you can construct another ruleset like this one but with your
+     * own rules added.
+     */
     rules() {
         return Array.from([...this._inRules, ...this._outRules.values()]);
     }
 }
 
 
-// A ruleset that is earmarked to analyze a certain DOM
-//
-// This also carries with it a cache of rule results.
+/**
+ * A ruleset that is earmarked to analyze a certain DOM
+ *
+ * Carries a cache of rule results on that DOM. Typically comes from
+ * :func:`Ruleset.against`.
+ */
 class BoundRuleset {
     // inRules: an Array of non-out() rules
     // outRules: a Map of output keys to out() rules
@@ -99,14 +110,18 @@ class BoundRuleset {
         this.doneRules = new Set();  // InwardRules that have been executed. OutwardRules can be executed more than once because they don't change any fnodes and are thus idempotent.
     }
 
-    // Return an array of zero or more fnodes.
-    // thing: can be...
-    //   * A string which matches up with an "out" rule in the ruleset. If the
-    //     out rule uses through(), the results of through's callback (which
-    //     might not be fnodes) will be returned.
-    //   * An arbitrary LHS which we calculate and return the results of
-    //   * A DOM node, for which we will return the corresponding fnode
-    // Results are cached in the first and third cases.
+    /**
+     * Return an array of zero or more fnodes.
+     * @arg thing {string|Lhs|Node} Can be...
+     *
+     *       * A string which matches up with an "out" rule in the ruleset. If the
+     *         out rule uses through(), the results of through's callback (which
+     *         might not be fnodes) will be returned.
+     *       * An arbitrary LHS which we calculate and return the results of
+     *       * A DOM node, for which we will return the corresponding fnode
+     *
+     *     Results are cached in the first and third cases.
+     */
     get(thing) {
         if (typeof thing === 'string') {
             if (this._outRules.has(thing)) {
