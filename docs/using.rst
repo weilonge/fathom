@@ -67,9 +67,9 @@ Once the ruleset is defined, run a DOM tree through it:
 
 .. code-block:: js
 
-   var dom = jsdom.jsdom("<html><head>...</html>"));
+   const dom = jsdom.jsdom("<html><head>...</html>"));
    // Tell the ruleset which DOM to run against, yielding a factbase about the document:
-   var facts = rules.against(dom);
+   const facts = rules.against(dom);
 
 After running a tree or subtree through, pull the answers out of the factbase: in this case, we want the max-scoring title, which the ruleset conveniently stores under the "title" output key:
 
@@ -95,4 +95,4 @@ Or if you have a reference to a DOM element from elsewhere in your program, you 
 
    .. code-block:: js
 
-      var subtreeFacts = rules.against(dom.body.firstElementChild);
+      const subtreeFacts = rules.against(dom.body.firstElementChild);
