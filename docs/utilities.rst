@@ -56,3 +56,30 @@ Fathom provides a hierarchal clustering algorithm that helps you group nodes int
    At present, the costs for each factor are constants in the :func:`distance` function. They will become settable in a future release.
 
 .. autofunction:: distance
+
+Other
+=====
+
+.. autofunction:: best
+.. autofunction:: collapseWhitespace
+.. autofunction:: first
+.. autofunction:: getDefault
+.. autofunction:: identity
+.. autofunction:: inlineTextLength
+.. autofunction:: inlineTexts
+.. autofunction:: isBlock
+.. autofunction:: isWhitespace
+.. autofunction:: length
+.. autofunction:: linkDensity
+.. autofunction:: max
+.. autofunction:: maxes
+.. autofunction:: min
+.. autoclass:: NiceSet
+.. autofunction:: numberOfMatches
+.. autofunction:: page
+.. autofunction:: reversed
+.. autofunction:: rootElement
+.. autofunction:: setDefault
+.. autofunction:: sum
+.. autofunction:: toposort
+.. autofunction:: walk

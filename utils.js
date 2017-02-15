@@ -3,13 +3,22 @@ const {forEach, map} = require('wu');
 const {CycleError} = require('./exceptions');
 
 
+/**
+ * Return the passed-in arg. Useful as a default.
+ */
 function identity(x) {
     return x;
 }
 
 
-// From an iterable return the best item, according to an arbitrary comparator
-// function. In case of a tie, the first item wins.
+/**
+ * From an iterable return the best item, according to an arbitrary comparator
+ * function. In case of a tie, the first item wins.
+ *
+ * @arg by {function} Given an item of the iterable, return a value to compare
+ * @arg isBetter {function} Return whether its first arg is better than its
+ *     second
+ */
 function best(iterable, by, isBetter) {
     let bestSoFar, bestKeySoFar;
     let isFirst = true;
@@ -30,20 +39,25 @@ function best(iterable, by, isBetter) {
 }
 
 
-// Return the maximum item from an iterable, as defined by >.
-//
-// Works with any type that works with >. If multiple items are equally great,
-// return the first.
-//
-// by: a function that, given an item of the iterable, returns a value to
-//     compare
+/**
+ * Return the maximum item from an iterable, as defined by >.
+ *
+ * Works with any type that works with >. If multiple items are equally great,
+ * return the first.
+ *
+ * @arg by {function} Given an item of the iterable, returns a value to
+ *     compare
+ */
 function max(iterable, by = identity) {
     return best(iterable, by, (a, b) => a > b);
 }
 
 
-// Return an Array of maximum items from an iterable, as defined by > and ===.
-// If an empty iterable is passed in, return [].
+/**
+ * Return an Array of maximum items from an iterable, as defined by > and ===.
+ *
+ * If an empty iterable is passed in, return [].
+ */
 function maxes(iterable, by = identity) {
     let bests = [];
     let bestKeySoFar;
@@ -64,12 +78,20 @@ function maxes(iterable, by = identity) {
 }
 
 
+/**
+ * Return the minimum item from an iterable, as defined by <.
+ *
+ * If multiple items are equally great, return the first. If an empty iterable
+ * is passed in, return [].
+ */
 function min(iterable, by = identity) {
     return best(iterable, by, (a, b) => a < b);
 }
 
 
-// Return the sum of an iterable, as defined by the + operator.
+/**
+ * Return the sum of an iterable, as defined by the + operator.
+ */
 function sum(iterable) {
     let total;
     let isFirst = true;
@@ -87,6 +109,9 @@ function sum(iterable) {
 }
 
 
+/**
+ * Return the number of items in an iterable, consuming it as a side effect.
+ */
 function length(iterable) {
     let num = 0;
     // eslint-disable-next-line no-unused-vars
@@ -97,9 +122,12 @@ function length(iterable) {
 }
 
 
-// Iterate, depth first, over a DOM node. Return the original node first.
-// shouldTraverse - a function on a node saying whether we should include it
-//     and its children
+/**
+ * Iterate, depth first, over a DOM node. Return the original node first.
+ *
+ * @arg shouldTraverse {function} Given a node, say whether we should
+ *     include it and its children
+ */
 function *walk(element, shouldTraverse) {
     yield element;
     for (let child of element.childNodes) {
@@ -119,18 +147,22 @@ forEach(blockTags.add.bind(blockTags),
          'ISINDEX', 'MENU', 'NOFRAMES', 'NOSCRIPT', 'OL', 'P', 'PRE',
          'TABLE', 'UL', 'DD', 'DT', 'FRAMESET', 'LI', 'TBODY', 'TD',
          'TFOOT', 'TH', 'THEAD', 'TR', 'HTML']);
-// Return whether a DOM element is a block element by default (rather
-// than by styling).
+/**
+ * Return whether a DOM element is a block element by default (rather than by
+ * styling).
+ */
 function isBlock(element) {
     return blockTags.has(element.tagName);
 }
 
 
-// Yield strings of text nodes within a normalized DOM node and its
-// children, without venturing into any contained block elements.
-//
-// shouldTraverse: A function that specifies additional elements to
-//     exclude by returning false
+/**
+ * Yield strings of text nodes within a normalized DOM node and its children,
+ * without venturing into any contained block elements.
+ *
+ * @arg shouldTraverse {function} Specify additional elements to exclude by
+ *     returning false
+ */
 function *inlineTexts(element, shouldTraverse = element => true) {
     // TODO: Could we just use querySelectorAll() with a really long
     // selector rather than walk(), for speed?
@@ -151,19 +183,31 @@ function *inlineTexts(element, shouldTraverse = element => true) {
 }
 
 
+/**
+ * Return the total length of the inline text within an element, with
+ * whitespace collapsed.
+ *
+ * @arg shouldTraverse {function} Specify additional elements to exclude by
+ *     returning false
+ */
 function inlineTextLength(element, shouldTraverse = element => true) {
     return sum(map(text => collapseWhitespace(text).length,
                    inlineTexts(element, shouldTraverse)));
 }
 
 
+/**
+ * Return a string with each run of whitespace collapsed to a single space.
+ */
 function collapseWhitespace(str) {
     return str.replace(/\s{2,}/g, ' ');
 }
 
 
-// Return the ratio of the inline text length of the links in an
-// element to the inline text length of the entire element.
+/**
+ * Return the ratio of the inline text length of the links in an element to the
+ * inline text length of the entire element.
+ */
 function linkDensity(node) {
     const length = node.flavors.get('paragraphish').inlineLength;
     const lengthWithoutLinks = inlineTextLength(node.element,
@@ -172,15 +216,18 @@ function linkDensity(node) {
 }
 
 
-// Return the next sibling node of `element`, skipping over text nodes that
-// consist wholly of whitespace.
+/**
+ * Return whether an element is a text node that consist wholly of whitespace.
+ */
 function isWhitespace(element) {
     return (element.nodeType === element.TEXT_NODE &&
             element.textContent.trim().length === 0);
 }
 
 
-// Get a key of a map, first setting it to a default value if it's missing.
+/**
+ * Get a key of a map, first setting it to a default value if it's missing.
+ */
 function setDefault(map, key, defaultMaker) {
     if (map.has(key)) {
         return map.get(key);
@@ -191,7 +238,9 @@ function setDefault(map, key, defaultMaker) {
 }
 
 
-// Get a key of a map or, if it's missing, a default value.
+/**
+ * Get a key of a map or, if it's missing, a default value.
+ */
 function getDefault(map, key, defaultMaker) {
     if (map.has(key)) {
         return map.get(key);
@@ -200,7 +249,9 @@ function getDefault(map, key, defaultMaker) {
 }
 
 
-// Return an backward iterator over an Array.
+/**
+ * Return an backward iterator over an Array.
+ */
 function *reversed(array) {
     for (let i = array.length - 1; i >= 0; i--) {
         yield array[i];
@@ -208,10 +259,13 @@ function *reversed(array) {
 }
 
 
-// Return an Array, the reverse topological sort of the nodes `nodes`.
-//
-// nodesThatNeed: A function that takes a node and returns an Array of nodes
-//     that depend on it
+/**
+ * Return an Array, the reverse topological sort of the given nodes.
+ *
+ * @arg nodes An iterable of arbitrary things
+ * @arg nodesThatNeed {function} Take a node and returns an Array of nodes
+ *     that depend on it
+ */
 function toposort(nodes, nodesThatNeed) {
     const ret = [];
     const todo = new Set(nodes);
@@ -239,9 +293,13 @@ function toposort(nodes, nodesThatNeed) {
 }
 
 
-// A Set with the additional methods it ought to have had
+/**
+ * A Set with the additional methods it ought to have had
+ */
 class NiceSet extends Set {
-    // Remove and return an arbitrary item. Throw an error if I am empty.
+    /**
+     * Remove and return an arbitrary item. Throw an Error if I am empty.
+     */
     pop() {
         for (let v of this.values()) {
             this.delete(v);
@@ -256,7 +314,9 @@ class NiceSet extends Set {
 }
 
 
-// Return the first item of an iterable.
+/**
+ * Return the first item of an iterable.
+ */
 function first(iterable) {
     for (let i of iterable) {
         return i;
@@ -264,8 +324,10 @@ function first(iterable) {
 }
 
 
-// Given any node in a DOM tree, return the root element of the tree, generally
-// an HTML element.
+/**
+ * Given any node in a DOM tree, return the root element of the tree, generally
+ * an HTML element.
+ */
 function rootElement(element) {
     let parent;
     while ((parent = element.parentNode) !== null && parent.nodeType === parent.ELEMENT_NODE) {
@@ -275,18 +337,23 @@ function rootElement(element) {
 }
 
 
-// Return the number of times a regex occurs within the string `haystack`.
-// Caller must make sure `regex` has the 'g' option set.
+/**
+ * Return the number of times a regex occurs within the string `haystack`.
+ *
+ * Caller must make sure `regex` has the 'g' option set.
+ */
 function numberOfMatches(regex, haystack) {
     return (haystack.match(regex) || []).length;
 }
 
 
-// Wrap a scoring callback, and set its element to the page root iff a score is
-// returned.
-//
-// This is used to build rulesets which classify entire pages rather than
-// picking out specific elements.
+/**
+ * Wrap a scoring callback, and set its element to the page root iff a score is
+ * returned.
+ *
+ * This is used to build rulesets which classify entire pages rather than
+ * picking out specific elements.
+ */
 function page(scoringFunction) {
     function wrapper(node) {
         const scoreAndTypeAndNote = scoringFunction(node);
