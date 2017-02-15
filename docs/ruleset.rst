@@ -28,7 +28,6 @@ Left-hand Sides
 
 Left-hand sides are currently a few special forms which select nodes to be fed to right-hand sides.
 
-.. autofunction:: and(typeCall[, typeCall, ...])
 .. autofunction:: dom
 
 .. function:: type(theType)
@@ -38,12 +37,14 @@ Left-hand sides are currently a few special forms which select nodes to be fed t
    .. autofunction:: TypeLhs#max
       :short-name:
 
+.. autofunction:: and(typeCall[, typeCall, ...])
+
 Right-hand Sides
 ----------------
 
 A right-hand side is a strung-together series of calls like this::
 
-    type('smoo').func(blah).type('whee').score(2)
+    type('smoo').props(someCallback).type('whee').score(2)
 
 Calls layer together like sheets of transparent acetate: if there are repeats, as with ``type`` in the previous example, the rightmost takes precedence and the left becomes useless. Similarly, if :func:`props`, which can return multiple properties of a fact (element, note, score, and type), is missing any of these properties, we continue searching to the left for anything that provides them (excepting other :func:props` calls—if you want that, write a combinator, and use it to combine the 2 functions you want)). To prevent this, return all properties explicitly from your props callback, even if they are no-ops (like ``{score: 1, note: undefined, type: undefined}``). Aside from this layering precedence, the order of calls does not matter.
 
@@ -84,8 +85,8 @@ A good practice is to use more declarative calls—:func:`score`, :func:`note`, 
 
 .. autofunction:: out
 
-.. autofunction:: OutwardRhs#through
-   :short-name:
+   .. autofunction:: OutwardRhs#through
+      :short-name:
 
 .. autofunction:: InwardRhs#score
    :short-name:
