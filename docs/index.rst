@@ -35,4 +35,3 @@ Back Matter
 
 * :doc:`glossary`
 * :ref:`genindex`
-* :ref:`search`
