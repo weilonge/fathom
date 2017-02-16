@@ -5,12 +5,16 @@ Rule and Ruleset Reference
 Rulesets
 ========
 
-The top-level Fathom object is the ruleset, an unordered collection of rules. The plain old :class:`Ruleset` is what you typically construct. Then you call :func:`~Ruleset.against` to get back a :class:`BoundRuleset`, which is specific to a given DOM tree. From that, you pull answers.
+The top-level Fathom object is the ruleset, an unordered collection of rules. The plain old :class:`Ruleset` is what you typically construct, via the ``ruleset`` convenience function:
 
-.. autoclass:: Ruleset
+.. autofunction:: ruleset(rule[, rule, ...])
+
+.. autoclass:: Ruleset(rule[, rule, ...])
 
    .. autofunction:: Ruleset#against
    .. autofunction:: Ruleset#rules
+
+Then you call :func:`Ruleset.against` to get back a :class:`BoundRuleset`, which is specific to a given DOM tree. From that, you pull answers.
 
 .. autoclass:: BoundRuleset()
 
@@ -42,7 +46,7 @@ Left-hand sides are currently a few special forms which select nodes to be fed t
 Right-hand Sides
 ----------------
 
-A right-hand side is a strung-together series of calls like this::
+A right-hand side takes the nodes chosen by the left-hand side and mutates them. Spelling-wise, a RHS is a strung-together series of calls like this::
 
     type('smoo').props(someCallback).type('whee').score(2)
 

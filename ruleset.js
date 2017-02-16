@@ -19,7 +19,9 @@ function rule(lhs, rhs) {
 }
 
 
-// Sugar for conciseness and consistency
+/**
+ * Return a new :class:`Ruleset` containing the given rules.
+ */
 function ruleset(...rules) {
     return new Ruleset(...rules);
 }

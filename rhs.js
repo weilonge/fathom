@@ -178,7 +178,7 @@ class InwardRhs {
      * named by the ``type`` call on the LHS. If the LHS has none because it's a
      * ``dom(...)`` LHS, an error is raised.
      *
-     * @param {number|function} scoreOrCallback Can either be a static number or
+     * @arg {number|function} scoreOrCallback Can either be a static number or
      *     else a callback which takes the fnode and returns a number.
      */
     score(scoreOrCallback) {
